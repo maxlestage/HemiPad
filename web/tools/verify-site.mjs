@@ -324,9 +324,8 @@ for (const scheme of ['dark', 'light']) {
     'une commande masquée reste récupérable en bas de l’écran'
   )
 
-  // Et se réaffiche.
-  await page.locator('[data-hidden-control="faceS"]').click()
-  await page.waitForTimeout(150)
+  // La commande reste sélectionnée après avoir été masquée : le panneau est
+  // toujours ouvert, et le même bouton la réaffiche.
   await page.locator('.control-panel').getByRole('button', { name: /^(Afficher|Show|Mostrar)$/ }).click()
   await page.waitForTimeout(200)
   check(
@@ -334,8 +333,42 @@ for (const scheme of ['dark', 'light']) {
     'une commande masquée se réaffiche'
   )
 
+  // Sélection multiple : verrouiller deux commandes d'un geste.
+  await page.locator('.control-panel').getByRole('button', { name: /^(Désélectionner|Deselect|Deseleccionar)$/ }).click()
+  await page.waitForTimeout(150)
+  await page.locator('[data-control="L2"]').click()
+  await page.locator('[data-control="R2"]').click()
+  await page.waitForTimeout(150)
+  check(
+    /2/.test(await page.locator('.control-panel .panel-badge').first().innerText()),
+    'deux commandes se règlent ensemble'
+  )
+  await page.locator('.control-panel').getByRole('button', { name: /^(Verrouiller|Lock|Bloquear)$/ }).click()
+  await page.waitForTimeout(200)
+  check(
+    (await page.locator('[data-control="L2"].is-locked').count()) === 1 &&
+      (await page.locator('[data-control="R2"].is-locked').count()) === 1,
+    'les deux commandes sont verrouillées d’un seul geste'
+  )
+
+  // Une commande verrouillée ne se déplace plus.
+  const verrouillee = page.locator('[data-control="L2"]')
+  const avantVerrou = await verrouillee.boundingBox()
+  await page.mouse.move(avantVerrou.x + avantVerrou.width / 2, avantVerrou.y + avantVerrou.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(avantVerrou.x + avantVerrou.width / 2 - 100, avantVerrou.y + avantVerrou.height / 2, { steps: 10 })
+  await page.mouse.up()
+  await page.waitForTimeout(200)
+  const apresVerrou = await verrouillee.boundingBox()
+  check(
+    Math.hypot(apresVerrou.x - avantVerrou.x, apresVerrou.y - avantVerrou.y) < 2,
+    'une commande verrouillée refuse de bouger'
+  )
+
   // Mode d'appui propre à une commande : verrouillant alors que le réglage
   // général est en appui direct.
+  await page.locator('.control-panel').getByRole('button', { name: /^(Désélectionner|Deselect|Deseleccionar)$/ }).click()
+  await page.waitForTimeout(150)
   await bouton(/^(Appui direct|Direct press|Pulsación directa)$/).first().click()
   await page.locator('[data-control="faceE"]').click()
   await page.waitForTimeout(150)

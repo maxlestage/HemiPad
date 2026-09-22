@@ -14,9 +14,20 @@ import {
   type RingSpec
 } from '../lib/reach.ts'
 
-const CANVAS = { width: 320, height: 470 }
-/** Bande haute occupée par le bandeau d'état, comme dans l'application. */
-const TOP_BAND = 96
+/**
+ * Deux appareils, l'iPad en premier.
+ *
+ * Ce n'est pas un détail de présentation : sur un iPad posé sur une table ou
+ * un support, la main valide ne porte plus l'appareil et l'écran offre des
+ * cibles bien plus grandes. C'est l'appareil que le projet met en avant.
+ */
+const DEVICES = {
+  ipad: { canvas: { width: 420, height: 560 }, topBand: 104 },
+  iphone: { canvas: { width: 320, height: 470 }, topBand: 96 }
+} as const
+
+type Device = keyof typeof DEVICES
+
 const MARGIN = 6
 
 function ringsFor(profile: ConsoleProfile, target: number): RingSpec[] {
@@ -47,15 +58,17 @@ export function ReachDemo() {
   const [mode, setMode] = useState<ActivationMode>('latch')
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('arc')
   const [preferences, setPreferences] = useState<Preferences>({})
+  const [device, setDevice] = useState<Device>('ipad')
   const [consoleIndex, setConsoleIndex] = useState(0)
   const [active, setActive] = useState<Set<string>>(new Set())
   const [pending, setPending] = useState<string | null>(null)
   const [isEditing, setEditing] = useState(false)
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dragged, setDragged] = useState<{ id: string; center: { x: number; y: number } } | null>(null)
 
   const svgRef = useRef<SVGSVGElement | null>(null)
   const profile = consoles[consoleIndex] ?? consoles[0]!
+  const { canvas: CANVAS, topBand: TOP_BAND } = DEVICES[device]
 
   const layout = useMemo(
     () =>
@@ -70,7 +83,7 @@ export function ReachDemo() {
         preferences,
         rings: ringsFor(profile, target)
       }),
-    [hand, target, spacing, layoutMode, preferences, profile]
+    [hand, target, spacing, layoutMode, preferences, profile, CANVAS, TOP_BAND]
   )
 
   const hiddenIds = useMemo(
@@ -88,8 +101,11 @@ export function ReachDemo() {
     setPreferences((current) => {
       const next = { ...current }
       const updated = change(current[id] ?? {})
+      // Le verrou fait partie de l'état : l'oublier ici effacerait la
+      // préférence au moment même où on la pose.
       const isNeutral =
         !updated.hidden &&
+        !updated.locked &&
         updated.freePosition === undefined &&
         updated.activation === undefined &&
         (updated.sizeScale === undefined || Math.abs(updated.sizeScale - 1) < 0.001)
@@ -97,6 +113,21 @@ export function ReachDemo() {
       else next[id] = updated
       return next
     })
+  }
+
+  const toggleSelection = (id: string) => {
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  /// Applique un changement à toute la sélection : régler quatre boutons un
+  /// par un est exactement la corvée que le projet cherche à supprimer.
+  const applyToSelection = (change: (current: Preferences[string]) => Preferences[string]) => {
+    for (const id of selected) updatePreference(id, change)
   }
 
   const press = (id: string) => {
@@ -145,12 +176,19 @@ export function ReachDemo() {
     }
   }
 
+  /// Un vrai déplacement a-t-il eu lieu ? Sans cette distinction, lâcher une
+  /// commande après l'avoir traînée la sélectionnerait aussi, et le panneau
+  /// s'ouvrirait à chaque glissement.
+  const hasMoved = useRef(false)
+
   const startDrag = (placement: Placement, event: PointerEvent) => {
     if (!isEditing || layoutMode !== 'free') return
+    // Une commande verrouillée ne se déplace pas : c'est tout l'intérêt.
+    if (preferences[placement.id]?.locked) return
     const point = toCanvas(event)
     if (!point) return
     event.currentTarget.setPointerCapture(event.pointerId)
-    setSelected(placement.id)
+    hasMoved.current = false
     setDragged({ id: placement.id, center: clampTo(point, placement) })
   }
 
@@ -158,17 +196,24 @@ export function ReachDemo() {
     if (!dragged || dragged.id !== placement.id) return
     const point = toCanvas(event)
     if (!point) return
+    hasMoved.current = true
     setDragged({ id: placement.id, center: clampTo(point, placement) })
   }
 
-  const endDrag = (placement: Placement) => {
-    if (!dragged || dragged.id !== placement.id) return
-    const center = dragged.center
-    updatePreference(placement.id, (current) => ({
-      ...current,
-      freePosition: { x: center.x / CANVAS.width, y: center.y / CANVAS.height }
-    }))
+  /// Renvoie vrai si la commande a réellement été déplacée.
+  const endDrag = (placement: Placement): boolean => {
+    if (!dragged || dragged.id !== placement.id) return false
+    const moved = hasMoved.current
+    if (moved) {
+      const center = dragged.center
+      updatePreference(placement.id, (current) => ({
+        ...current,
+        freePosition: { x: center.x / CANVAS.width, y: center.y / CANVAS.height }
+      }))
+    }
     setDragged(null)
+    hasMoved.current = false
+    return moved
   }
 
   const clampTo = (point: { x: number; y: number }, placement: Placement) =>
@@ -176,9 +221,7 @@ export function ReachDemo() {
 
   const currentMode = t.demo.modes.find((item) => item.id === mode)
   const handLabel = hand === 'right' ? t.demo.handRight : t.demo.handLeft
-  const selectedPlacement = selected
-    ? layout.placements.find((placement) => placement.id === selected)
-    : undefined
+  const selectedIds = [...selected]
 
   return (
     <section className="demo" id="demo" aria-labelledby="demo-titre">
@@ -189,7 +232,12 @@ export function ReachDemo() {
       </div>
 
       <div className="demo-grid">
-        <div className="phone" role="img" aria-label={t.demo.screenLabel(profile.name, handLabel)}>
+        <div
+          className={`phone ${device === 'ipad' ? 'is-ipad' : 'is-iphone'}`}
+          data-device={device}
+          role="img"
+          aria-label={`${device === 'ipad' ? t.demo.device.ipad : t.demo.device.iphone} · ${t.demo.screenLabel(profile.name, handLabel)}`}
+        >
           <svg
             ref={svgRef}
             viewBox={`0 0 ${CANVAS.width} ${CANVAS.height}`}
@@ -261,12 +309,22 @@ export function ReachDemo() {
                   isActive={active.has(placement.id)}
                   isPending={pending === placement.id}
                   isEditing={isEditing}
-                  isSelected={selected === placement.id}
+                  isSelected={selected.has(placement.id)}
                   overlaps={layout.overlapping.includes(placement.id)}
-                  onPress={() => (isEditing ? setSelected(placement.id) : press(placement.id))}
-                  onPointerDown={(event) => startDrag(placement, event)}
+                  isLocked={preferences[placement.id]?.locked === true}
+                  onActivate={() => (isEditing ? toggleSelection(placement.id) : press(placement.id))}
+                  onPointerDown={(event) => {
+                    if (isEditing) startDrag(placement, event)
+                    else press(placement.id)
+                  }}
                   onPointerMove={(event) => moveDrag(placement, event)}
-                  onPointerUp={() => endDrag(placement)}
+                  onPointerUp={() => {
+                    if (!isEditing) return
+                    // Un glissement place la commande ; un simple appui la
+                    // sélectionne. Confondre les deux rendrait le panneau
+                    // incontrôlable.
+                    if (!endDrag(placement)) toggleSelection(placement.id)
+                  }}
                 />
               )
             })}
@@ -278,16 +336,36 @@ export function ReachDemo() {
                   id={id}
                   index={index}
                   total={hiddenIds.length}
+                  canvas={CANVAS}
+                  isSelected={selected.has(id)}
                   label={t.controlNames[id] ?? id}
                   glyph={profile.glyphs[id] ?? ''}
-                  onSelect={() => setSelected(id)}
+                  onSelect={() => toggleSelection(id)}
                 />
               ))}
           </svg>
-          <div className="phone-notch" aria-hidden="true" />
+          {device === 'iphone' && <div className="phone-notch" aria-hidden="true" />}
         </div>
 
         <div className="demo-controls">
+          <fieldset className="control-block">
+            <legend>{t.demo.device.label}</legend>
+            <div className="segmented">
+              {(['ipad', 'iphone'] as const).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={device === item ? 'is-active' : ''}
+                  aria-pressed={device === item}
+                  onClick={() => setDevice(item)}
+                >
+                  {item === 'ipad' ? t.demo.device.ipad : t.demo.device.iphone}
+                </button>
+              ))}
+            </div>
+            <p className="hint">{t.demo.device.hint}</p>
+          </fieldset>
+
           <fieldset className="control-block">
             <legend>{t.demo.layout.label}</legend>
             <div className="segmented segmented-wrap">
@@ -316,7 +394,7 @@ export function ReachDemo() {
                 aria-pressed={isEditing}
                 onClick={() => {
                   setEditing((current) => !current)
-                  setSelected(null)
+                  setSelected(new Set())
                 }}
               >
                 {isEditing ? t.demo.edit.done : t.demo.edit.start}
@@ -351,25 +429,18 @@ export function ReachDemo() {
             )}
           </fieldset>
 
-          {isEditing && selectedPlacement && (
+          {isEditing && selectedIds.length > 0 && (
             <ControlPanel
-              id={selectedPlacement.id}
-              label={t.controlNames[selectedPlacement.id] ?? selectedPlacement.id}
+              ids={selectedIds}
+              label={
+                selectedIds.length > 1
+                  ? t.demo.control.multiple(selectedIds.length)
+                  : t.controlNames[selectedIds[0]!] ?? selectedIds[0]!
+              }
               preferences={preferences}
               layoutMode={layoutMode}
-              onChange={updatePreference}
-              onClose={() => setSelected(null)}
-            />
-          )}
-
-          {isEditing && !selectedPlacement && selected && (
-            <ControlPanel
-              id={selected}
-              label={t.controlNames[selected] ?? selected}
-              preferences={preferences}
-              layoutMode={layoutMode}
-              onChange={updatePreference}
-              onClose={() => setSelected(null)}
+              onApply={applyToSelection}
+              onClose={() => setSelected(new Set())}
             />
           )}
 
@@ -487,8 +558,9 @@ interface ControlShapeProps {
   isPending: boolean
   isEditing: boolean
   isSelected: boolean
+  isLocked: boolean
   overlaps: boolean
-  onPress: () => void
+  onActivate: () => void
   onPointerDown: (event: PointerEvent) => void
   onPointerMove: (event: PointerEvent) => void
   onPointerUp: () => void
@@ -503,8 +575,9 @@ function ControlShape({
   isPending,
   isEditing,
   isSelected,
+  isLocked,
   overlaps,
-  onPress,
+  onActivate,
   onPointerDown,
   onPointerMove,
   onPointerUp
@@ -521,19 +594,14 @@ function ControlShape({
         isPending ? 'is-pending' : '',
         isEditing ? 'is-editing' : '',
         isSelected ? 'is-selected' : '',
+        isLocked ? 'is-locked' : '',
         overlaps ? 'is-overlapping' : ''
       ]
         .filter(Boolean)
         .join(' ')}
-      onPointerDown={(event) => {
-        onPointerDown(event)
-        if (!isEditing) onPress()
-      }}
+      onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerUp={() => {
-        onPointerUp()
-        if (isEditing) onPress()
-      }}
+      onPointerUp={onPointerUp}
       role="button"
       tabIndex={0}
       data-control={id}
@@ -542,7 +610,7 @@ function ControlShape({
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
-          onPress()
+          onActivate()
         }
       }}
       style={{ '--accent': accent } as CSSProperties}
@@ -582,6 +650,17 @@ function ControlShape({
           {glyph}
         </text>
       )}
+
+      {isLocked && isEditing && (
+        <text
+          x={center.x - size.width / 2 + 6}
+          y={center.y + size.height / 2 - 4}
+          className="control-lock"
+          style={{ fontSize: 13 }}
+        >
+          🔒
+        </text>
+      )}
     </g>
   )
 }
@@ -592,26 +671,30 @@ function HiddenChip({
   id,
   index,
   total,
+  canvas,
   label,
   glyph,
+  isSelected,
   onSelect
 }: {
   id: string
   index: number
   total: number
+  canvas: { width: number; height: number }
   label: string
   glyph: string
+  isSelected: boolean
   onSelect: () => void
 }) {
   const side = 34
   const gap = 10
   const width = total * side + (total - 1) * gap
-  const x = (CANVAS.width - width) / 2 + index * (side + gap) + side / 2
-  const y = CANVAS.height - side / 2 - 10
+  const x = (canvas.width - width) / 2 + index * (side + gap) + side / 2
+  const y = canvas.height - side / 2 - 10
 
   return (
     <g
-      className="control is-hidden-control"
+      className={`control is-hidden-control ${isSelected ? 'is-selected' : ''}`}
       role="button"
       tabIndex={0}
       data-hidden-control={id}
@@ -640,25 +723,28 @@ function HiddenChip({
   )
 }
 
-/** Réglages d'une commande : visible, mode d'appui, taille, position. */
+/** Réglages d'une commande — ou de toute une sélection. */
 function ControlPanel({
-  id,
+  ids,
   label,
   preferences,
   layoutMode,
-  onChange,
+  onApply,
   onClose
 }: {
-  id: string
+  ids: string[]
   label: string
   preferences: Preferences
   layoutMode: LayoutMode
-  onChange: (id: string, change: (current: Preferences[string]) => Preferences[string]) => void
+  onApply: (change: (current: Preferences[string]) => Preferences[string]) => void
   onClose: () => void
 }) {
   const { t } = useI18n()
-  const preference = preferences[id] ?? {}
-  const isHidden = preference.hidden === true
+  const every = (predicate: (preference: Preferences[string]) => boolean) =>
+    ids.every((id) => predicate(preferences[id] ?? {}))
+  const first = preferences[ids[0]!] ?? {}
+  const isHidden = every((preference) => preference.hidden === true)
+  const isLocked = every((preference) => preference.locked === true)
 
   return (
     <fieldset className="control-block control-panel">
@@ -666,39 +752,53 @@ function ControlPanel({
 
       <p className="panel-title">
         {label}
+        {ids.length > 1 && (
+          <span className="panel-badge">{t.demo.control.selection(ids.length)}</span>
+        )}
         {isHidden && <span className="panel-badge">{t.demo.control.hiddenBadge}</span>}
+        {isLocked && <span className="panel-badge">{t.demo.control.lockedBadge}</span>}
       </p>
 
       <div className="panel-row">
         <button
           type="button"
+          className={`chip ${isLocked ? 'is-active' : ''}`}
+          aria-pressed={isLocked}
+          onClick={() => onApply((current) => ({ ...current, locked: !isLocked }))}
+        >
+          {isLocked ? t.demo.control.unlock : t.demo.control.lock}
+        </button>
+        <button
+          type="button"
           className={`chip ${isHidden ? '' : 'is-active'}`}
           aria-pressed={!isHidden}
-          onClick={() => onChange(id, (current) => ({ ...current, hidden: !isHidden }))}
+          onClick={() => onApply((current) => ({ ...current, hidden: !isHidden }))}
         >
           {isHidden ? t.demo.control.show : t.demo.control.hide}
         </button>
-        {layoutMode === 'free' && preference.freePosition && (
+        {layoutMode === 'free' && !isLocked && first.freePosition && (
           <button
             type="button"
             className="chip"
-            onClick={() => onChange(id, (current) => ({ ...current, freePosition: undefined }))}
+            onClick={() => onApply((current) => ({ ...current, freePosition: undefined }))}
           >
             {t.demo.control.reposition}
           </button>
         )}
-        <button type="button" className="chip" onClick={() => onChange(id, () => ({}))}>
+        <button type="button" className="chip" onClick={() => onApply(() => ({}))}>
           {t.demo.control.reset}
         </button>
       </div>
+
+      <p className="hint">{t.demo.control.lockedHint}</p>
 
       <p className="panel-label">{t.demo.control.activation}</p>
       <div className="segmented segmented-wrap">
         <button
           type="button"
-          className={preference.activation === undefined ? 'is-active' : ''}
-          aria-pressed={preference.activation === undefined}
-          onClick={() => onChange(id, (current) => ({ ...current, activation: undefined }))}
+          className={every((preference) => preference.activation === undefined) ? 'is-active' : ''}
+          aria-pressed={every((preference) => preference.activation === undefined)}
+          onClick={() => onApply((current) => ({ ...current, activation: undefined }))}
         >
           {t.demo.control.inherit}
         </button>
@@ -706,9 +806,9 @@ function ControlPanel({
           <button
             key={item.id}
             type="button"
-            className={preference.activation === item.id ? 'is-active' : ''}
-            aria-pressed={preference.activation === item.id}
-            onClick={() => onChange(id, (current) => ({ ...current, activation: item.id }))}
+            className={every((preference) => preference.activation === item.id) ? 'is-active' : ''}
+            aria-pressed={every((preference) => preference.activation === item.id)}
+            onClick={() => onApply((current) => ({ ...current, activation: item.id }))}
           >
             {item.label}
           </button>
@@ -716,23 +816,26 @@ function ControlPanel({
       </div>
 
       <p className="panel-label">
-        {t.demo.control.size} <span className="value">×{(preference.sizeScale ?? 1).toFixed(2)}</span>
+        {t.demo.control.size} <span className="value">×{(first.sizeScale ?? 1).toFixed(2)}</span>
       </p>
       <input
         type="range"
         min={0.7}
         max={2}
         step={0.05}
-        value={preference.sizeScale ?? 1}
+        value={first.sizeScale ?? 1}
         aria-label={t.demo.control.size}
-        onChange={(event) =>
-          onChange(id, (current) => ({ ...current, sizeScale: Number(event.target.value) }))
-        }
+        onChange={(event) => {
+          const sizeScale = Number(event.target.value)
+          onApply((current) => ({ ...current, sizeScale }))
+        }}
       />
 
-      <button type="button" className="chip panel-close" onClick={onClose}>
-        {t.demo.control.close}
-      </button>
+      <div className="panel-row panel-footer">
+        <button type="button" className="chip" onClick={onClose}>
+          {t.demo.control.deselect}
+        </button>
+      </div>
     </fieldset>
   )
 }

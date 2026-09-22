@@ -70,6 +70,13 @@ export const es: Dictionary = {
       overlap: (count) => `${count} controles se superponen: seguirán siendo difíciles de acertar.`,
       resetPositions: 'Recolocar todo'
     },
+    device: {
+      label: 'Dispositivo',
+      ipad: 'iPad',
+      iphone: 'iPhone',
+      hint:
+        'El iPad es el dispositivo de referencia: su pantalla ofrece objetivos mucho más grandes y se apoya en una mesa o un soporte, lo que libera a la mano hábil del peso del aparato. El iPhone sigue siendo perfectamente utilizable, con controles más juntos.'
+    },
     control: {
       settings: 'Ajustes del control',
       visibility: 'Visibilidad',
@@ -80,8 +87,16 @@ export const es: Dictionary = {
       inherit: 'Ajuste general',
       size: 'Tamaño',
       reposition: 'Volver a su lugar automático',
-      reset: 'Restablecer este control',
-      close: 'Cerrar'
+      reset: 'Restablecer',
+      close: 'Cerrar',
+      lock: 'Bloquear',
+      unlock: 'Desbloquear',
+      lockedBadge: 'bloqueado',
+      lockedHint:
+        'Un control bloqueado ya no se mueve, ni siquiera en disposición libre: un arrastre involuntario no deshace lo que has preparado.',
+      selection: (count) => `${count} seleccionado${count > 1 ? 's' : ''}`,
+      deselect: 'Deseleccionar',
+      multiple: (count) => `${count} controles`
     },
     active: (count) => `${count} activo${count > 1 ? 's' : ''}`,
     screenLabel: (console, hand) => `Mando ${console} dispuesto para la mano ${hand}`,
@@ -105,7 +120,7 @@ export const es: Dictionary = {
   },
   features: {
     eyebrow: 'Accesibilidad',
-    title: 'Ocho gestos imposibles, ocho respuestas',
+    title: 'Nueve gestos imposibles, nueve respuestas',
     lede:
       'La hemiplejía no es un modo de visualización. Cada regla elimina un gesto que exigía dos manos, o un esfuerzo que agota la única mano disponible.',
     problemTag: 'El problema',
@@ -152,6 +167,12 @@ export const es: Dictionary = {
         title: 'Joystick que mantiene posición',
         problem: 'Avanzar recto obliga a dejar el pulgar pegado arriba.',
         answer: 'El autocentrado se puede desactivar: sueltas y el personaje sigue.'
+      },
+      {
+        icon: '▭',
+        title: 'Primero el iPad',
+        problem: 'Sostener un teléfono con una mano y jugar con esa misma mano exige que un solo pulgar cargue y apunte a la vez.',
+        answer: 'Apoyado en una mesa o un soporte, el iPad libera a la mano del peso del aparato y ofrece objetivos mucho mayores. El iPhone sigue siendo compatible, en segundo lugar.'
       },
       {
         icon: '◉',
