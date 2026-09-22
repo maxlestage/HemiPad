@@ -21,6 +21,22 @@ const app = express()
 app.disable('x-powered-by')
 app.use(compression())
 
+// Le service worker et le manifeste ne doivent jamais être servis depuis un
+// cache périmé : c'est par eux que passe toute mise à jour de l'application
+// installée. Un service worker figé garderait une version obsolète pour
+// toujours.
+app.get('/sw.js', (_request, response) => {
+  response.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+  response.type('application/javascript')
+  response.sendFile(path.join(distribution, 'sw.js'))
+})
+
+app.get('/manifest.webmanifest', (_request, response) => {
+  response.set('Cache-Control', 'no-cache')
+  response.type('application/manifest+json')
+  response.sendFile(path.join(distribution, 'manifest.webmanifest'))
+})
+
 // Les fichiers versionnés par Vite (assets/nom.hash.js) ne changent jamais :
 // cache long. L'index, lui, doit être revalidé à chaque visite, sinon une mise
 // en ligne reste invisible pendant des heures.

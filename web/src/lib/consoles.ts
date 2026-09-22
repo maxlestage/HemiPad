@@ -1,9 +1,13 @@
-/** Profils de consoles : étiquettes et teintes, comme dans l'application. */
+/** Profils de consoles : étiquettes et teintes, comme dans l'application.
+ *
+ * Les noms de machines et les glyphes ne se traduisent pas — « A » reste « A ».
+ * Le résumé, lui, est une phrase : il vit dans les dictionnaires de langue,
+ * retrouvé par l'identifiant du profil.
+ */
 
 export interface ConsoleProfile {
   id: string
   name: string
-  summary: string
   accent: string
   glyphs: Record<string, string>
   /** Certaines machines n'ont pas de bouton de capture. */
@@ -16,7 +20,6 @@ export const consoles: ConsoleProfile[] = [
   {
     id: 'switch',
     name: 'Nintendo Switch',
-    summary: 'Pro Controller · A et B inversés',
     accent: '#ff4d5e',
     glyphs: {
       faceS: 'B',
@@ -37,7 +40,6 @@ export const consoles: ConsoleProfile[] = [
   {
     id: 'playstation',
     name: 'PlayStation',
-    summary: 'DualSense · ✕ ○ □ △',
     accent: '#4d8dff',
     glyphs: {
       faceS: '✕',
@@ -58,7 +60,6 @@ export const consoles: ConsoleProfile[] = [
   {
     id: 'xbox',
     name: 'Xbox',
-    summary: 'Series X|S · A B X Y',
     accent: '#4ce660',
     glyphs: {
       faceS: 'A',
@@ -79,7 +80,6 @@ export const consoles: ConsoleProfile[] = [
   {
     id: 'steam',
     name: 'Steam Deck / PC',
-    summary: 'XInput + clavier de code',
     accent: '#8b7dff',
     glyphs: {
       faceS: 'A',
@@ -100,7 +100,6 @@ export const consoles: ConsoleProfile[] = [
   {
     id: 'retro',
     name: 'Rétro / Émulateur',
-    summary: 'Huit boutons, jeux 2D',
     accent: '#ffa33d',
     omits: ['capture'],
     glyphs: {
@@ -121,7 +120,6 @@ export const consoles: ConsoleProfile[] = [
   {
     id: 'desktop',
     name: 'Ordinateur',
-    summary: 'Clavier de code à une main',
     accent: '#00e5ff',
     omits: ['capture'],
     glyphs: {
@@ -144,19 +142,3 @@ export const consoles: ConsoleProfile[] = [
 export const faceIds = ['faceW', 'faceN', 'faceS', 'faceE']
 export const shoulderIds = ['L1', 'L2', 'R2', 'R1']
 export const systemIds = ['select', 'home', 'capture', 'start']
-
-export const controlNames: Record<string, string> = {
-  directional: 'Stick ou croix directionnelle',
-  faceW: 'Bouton gauche',
-  faceN: 'Bouton haut',
-  faceS: 'Bouton bas',
-  faceE: 'Bouton droite',
-  L1: 'Tranche gauche',
-  L2: 'Gâchette gauche',
-  R2: 'Gâchette droite',
-  R1: 'Tranche droite',
-  select: 'Sélection',
-  home: 'Accueil',
-  capture: 'Capture',
-  start: 'Menu'
-}

@@ -12,7 +12,8 @@ des raccourcis clavier — en découle.
 | | |
 |---|---|
 | **Application** | iOS 16+, Swift, SwiftUI, CoreBluetooth, CoreMotion |
-| **Site vitrine** | React 18, TypeScript, Vite, servi par Express |
+| **Site vitrine** | React 18, TypeScript, Vite, servi par Express · application installable (PWA) |
+| **Langues** | Français, anglais, espagnol · thèmes clair, sombre et automatique |
 | **Cibles** | Nintendo Switch, PlayStation, Xbox, Steam Deck / PC, émulateurs, ordinateur (clavier) |
 | **Mise en ligne** | Heroku, pilotable à 100 % depuis un téléphone |
 
@@ -57,6 +58,22 @@ d'en masquer une**, et des tests vérifient, sur cinq tailles d'écran, les deux
 mains et les six profils de consoles, qu'aucune commande ne sort de l'écran ni
 n'en recouvre une autre.
 
+## Le site vitrine
+
+Le site n'est pas qu'une plaquette : il **rejoue le solveur de disposition de
+l'application**, porté en TypeScript. Basculer la main ou agrandir les cibles
+recalcule vraiment la géométrie, avec les mêmes règles que sur l'iPhone.
+
+- **Trois langues** — français, anglais, espagnol. La langue est détectée
+  depuis le navigateur, changeable dans le pied de page, et mémorisée.
+- **Trois thèmes** — clair, sombre et automatique (le mode par défaut, qui suit
+  le réglage du système). Le thème est appliqué avant le premier rendu, sans
+  l'éclair blanc habituel.
+- **Application installable** — manifeste, icônes adaptatives, service worker :
+  le site s'ajoute à l'écran d'accueil et reste consultable hors connexion.
+- **Fiche de partage** — image d'aperçu 1200 × 630 pour les messageries, plus
+  un bouton qui utilise le partage natif du téléphone, ou copie le lien.
+
 ## Organisation du dépôt
 
 ```
@@ -85,6 +102,20 @@ npm run build        # construction du site
 npm start            # serveur de production sur $PORT (3000 par défaut)
 ```
 
+Deux outils demandent en plus un Chromium (via `playwright-core`) et ne sont
+donc pas branchés sur l'intégration continue :
+
+```bash
+npm run assets       # régénère icônes et image de partage
+npm run verify:site  # 67 vérifications dans un vrai navigateur
+```
+
+`verify:site` contrôle ce qu'aucun test unitaire ne voit : les trois langues,
+les trois thèmes, l'absence de défilement horizontal de 320 à 1280 px,
+l'espacement et la taille des cibles, le contraste du texte dans les deux
+thèmes, l'installation de l'application, son fonctionnement hors connexion et
+la fiche de partage.
+
 Côté iOS :
 
 ```bash
@@ -108,7 +139,15 @@ un téléphone. La marche à suivre est détaillée dans
 - l'application iOS est compilée et testée par GitHub Actions sur un Mac fourni
   par GitHub, sans qu'aucun Mac ne soit nécessaire de votre côté.
 
-## Licence
+## Conditions d'utilisation
 
-MIT. Les noms de consoles appartiennent à leurs détenteurs respectifs ; ce
-projet n'est affilié à aucun d'entre eux.
+**Logiciel propriétaire — tous droits réservés.** HemiPad n'est pas un projet
+libre et ne le deviendra pas : aucune licence open source n'est accordée, et
+toute reproduction, modification ou redistribution du code demande une
+autorisation écrite. Voir [LICENSE.md](LICENSE.md).
+
+Le dépôt peut être consultable sans être libre : la visibilité d'un dépôt et
+les droits accordés sur son code sont deux choses distinctes.
+
+Les noms de consoles appartiennent à leurs détenteurs respectifs ; ce projet
+n'est affilié à aucun d'entre eux.

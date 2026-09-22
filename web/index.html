@@ -1,14 +1,20 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="auto">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#05060d" />
+    <meta name="color-scheme" content="dark light" />
     <title>HemiPad · la manette qui s'adapte à votre main</title>
     <meta
       name="description"
       content="HemiPad transforme un iPhone en manette de jeu et en clavier de code utilisables d'une seule main. Conçue avec et pour les personnes hémiplégiques."
     />
+    <meta name="author" content="Maxime Nathan Lestage" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Fiche de partage : ce que voient les messageries et les réseaux -->
+    <meta property="og:site_name" content="HemiPad" />
     <meta property="og:title" content="HemiPad · la manette qui s'adapte à votre main" />
     <meta
       property="og:description"
@@ -16,13 +22,60 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="fr_FR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:image" content="/partage.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="HemiPad : la manette tactile qui s'adapte à une seule main."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="HemiPad · la manette qui s'adapte à votre main" />
+    <meta
+      name="twitter:description"
+      content="Une manette tactile iOS pour toutes les consoles, et un clavier de code pour l'ordinateur. Pensée pour une seule main valide."
+    />
+    <meta name="twitter:image" content="/partage.png" />
+
+    <!-- Application installable -->
+    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/hemipad-mark.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="HemiPad" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap"
       rel="stylesheet"
     />
+
+    <script>
+      // Thème et langue appliqués avant le premier rendu : sans cela, une
+      // personne en mode clair verrait une page noire pendant un instant.
+      ;(function () {
+        try {
+          var theme = localStorage.getItem('hemipad.theme') || 'auto'
+          document.documentElement.dataset.theme = theme
+          var locale = localStorage.getItem('hemipad.locale')
+          if (locale) document.documentElement.lang = locale
+          var prefersLight =
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+          var dark = theme === 'dark' || (theme === 'auto' && !prefersLight)
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+          var meta = document.querySelector('meta[name="theme-color"]')
+          if (meta) meta.setAttribute('content', dark ? '#05060d' : '#f4f6fc')
+        } catch (error) {
+          // Stockage inaccessible : le thème automatique s'applique quand même.
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
