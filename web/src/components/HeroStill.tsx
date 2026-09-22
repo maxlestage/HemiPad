@@ -30,6 +30,20 @@ export function HeroStill({ className }: { className?: string }) {
       role="img"
       aria-label="Un iPad montrant les commandes posées sur l'arc que le pouce atteint"
     >
+      {/*
+        Mêmes ombres que la scène animée, en filtres SVG : Safari ne peint pas
+        un `drop-shadow` CSS sur un élément de dessin. Deux filtres, parce
+        qu'une pastille ambrée ne projette pas une ombre bleue.
+      */}
+      <defs>
+        <filter id="ombre-accueil-accent" x="-60%" y="-60%" width="220%" height="220%">
+          <feDropShadow dx="0" dy="5" stdDeviation="7" style={{ floodColor: 'var(--accent)' }} floodOpacity="0.55" />
+        </filter>
+        <filter id="ombre-accueil-chaud" x="-60%" y="-60%" width="220%" height="220%">
+          <feDropShadow dx="0" dy="5" stdDeviation="7" style={{ floodColor: 'var(--warn)' }} floodOpacity="0.55" />
+        </filter>
+      </defs>
+
       <rect
         x={2}
         y={2}
@@ -67,6 +81,7 @@ export function HeroStill({ className }: { className?: string }) {
             rx={croix ? Math.min(size.width, size.height) / 4 : Math.min(size.width, size.height) / 2}
             fill={système ? 'var(--warn)' : 'var(--accent)'}
             opacity={croix ? 0.28 : premier ? 0.95 : 0.6}
+            filter={croix ? undefined : système ? 'url(#ombre-accueil-chaud)' : 'url(#ombre-accueil-accent)'}
           />
         )
       })}
