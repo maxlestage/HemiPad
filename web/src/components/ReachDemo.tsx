@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 
 import { useI18n } from '../i18n/index.tsx'
+import { useAppareil, type Appareil } from '../lib/appareil.tsx'
 import { consoles, faceIds, shoulderIds, systemIds, type ConsoleProfile } from '../lib/consoles.ts'
 import {
   arcPath,
@@ -24,9 +25,7 @@ import {
 const DEVICES = {
   ipad: { canvas: { width: 420, height: 560 }, topBand: 104 },
   iphone: { canvas: { width: 320, height: 470 }, topBand: 96 }
-} as const
-
-type Device = keyof typeof DEVICES
+} as const satisfies Record<Appareil, unknown>
 
 const MARGIN = 6
 
@@ -58,7 +57,9 @@ export function ReachDemo() {
   const [mode, setMode] = useState<ActivationMode>('latch')
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('arc')
   const [preferences, setPreferences] = useState<Preferences>({})
-  const [device, setDevice] = useState<Device>('ipad')
+  // Le choix d'appareil est partagé avec le haut de page : les deux
+  // sélecteurs pilotent la même valeur.
+  const { appareil: device, setAppareil: setDevice } = useAppareil()
   const [consoleIndex, setConsoleIndex] = useState(0)
   const [active, setActive] = useState<Set<string>>(new Set())
   const [pending, setPending] = useState<string | null>(null)
@@ -288,7 +289,28 @@ export function ReachDemo() {
               <circle cx={layout.pivot.x} cy={layout.pivot.y} r={7} className="pivot" />
             )}
 
-            <g className="screen-status" aria-hidden="true">
+            {/*
+              La Dynamic Island est dessinée dans l'écran lui-même, pas posée
+              par-dessus : elle suit alors la mise à l'échelle du dessin, au
+              lieu de dériver d'un cadre à l'autre. La bande d'état descend
+              sous elle — l'île cachait le nom de la console.
+            */}
+            {device === 'iphone' && (
+              <rect
+                className="phone-island"
+                x={(CANVAS.width - 96) / 2}
+                y={12}
+                width={96}
+                height={26}
+                rx={13}
+              />
+            )}
+
+            <g
+              className="screen-status"
+              aria-hidden="true"
+              transform={device === 'iphone' ? 'translate(0 22)' : undefined}
+            >
               <rect x={14} y={22} width={CANVAS.width - 28} height={46} rx={14} />
               <circle cx={34} cy={45} r={5} fill={profile.accent} />
               <text x={50} y={39} className="status-title">
@@ -363,7 +385,6 @@ export function ReachDemo() {
                 />
               ))}
           </svg>
-          {device === 'iphone' && <div className="phone-notch" aria-hidden="true" />}
         </div>
 
         <div className="demo-controls">
