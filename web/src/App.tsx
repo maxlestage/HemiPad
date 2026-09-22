@@ -8,9 +8,11 @@ import { Nav } from './components/Nav.tsx'
 import { ReachDemo } from './components/ReachDemo.tsx'
 import { ShareCard } from './components/ShareCard.tsx'
 import { useI18n } from './i18n/index.tsx'
+import { useScrollReveal } from './lib/useScrollReveal.ts'
 
 export function App() {
   const { t } = useI18n()
+  useScrollReveal()
 
   return (
     <div className="page" id="top">

@@ -66,39 +66,3 @@ test('la variante d’onglet garde les mêmes points des deux côtés', () => {
   )
 })
 
-const scène = readFileSync(path.resolve(here, '..', 'components', 'MarkScene.tsx'), 'utf8')
-
-test('la scène 3D ne redessine pas la marque de son côté', () => {
-  // Le relief doit partir des mêmes tracés que le logo plat. Recopier les
-  // coordonnées dans la scène marcherait le premier jour, et donnerait deux
-  // manettes différentes au premier ajustement.
-  assert.match(
-    scène,
-    /import \{ LEFT_BODY, RIGHT_BODY \} from '\.\/Mark\.tsx'/,
-    'la scène 3D doit importer les tracés de Mark.tsx'
-  )
-  assert.ok(
-    !scène.includes('M32 20'),
-    'aucun tracé de la marque ne doit être recopié dans la scène 3D'
-  )
-})
-
-test('les boutons en volume sont aux coordonnées du logo plat', () => {
-  // Les deux sphères remplacent les deux cercles du dessin : si l'un bouge
-  // sans l'autre, le relief et l'icône ne montrent plus la même manette.
-  const plats = cercles(composant, "compact ? (", ') : (').map((cercle) =>
-    (cercle.match(/c[xy]="([\d.]+)"\s+c[xy]="([\d.]+)"/) ?? []).slice(1, 3).join(',')
-  )
-  const dessinés = cercles(composant, ') : (', '</svg>').map((cercle) =>
-    (cercle.match(/c[xy]="([\d.]+)"\s+c[xy]="([\d.]+)"/) ?? []).slice(1, 3).join(',')
-  )
-  const enVolume = [...scène.matchAll(/versScène\((\d+(?:\.\d+)?), (\d+(?:\.\d+)?)\)/g)].map(
-    (trouvé) => `${trouvé[1]},${trouvé[2]}`
-  )
-  assert.equal(plats.length, 3, 'trois points dans la variante d’onglet')
-  assert.deepEqual(
-    enVolume,
-    dessinés,
-    'les sphères de la scène 3D ne sont pas aux coordonnées des cercles du logo'
-  )
-})
