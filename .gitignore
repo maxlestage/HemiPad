@@ -1,0 +1,20 @@
+# macOS / Xcode
+.DS_Store
+xcuserdata/
+*.xcuserstate
+build/
+DerivedData/
+*.xcarchive
+*.ipa
+
+# Node / web
+node_modules/
+dist/
+.vite/
+*.local
+npm-debug.log*
+
+# Divers
+.env
+.env.*
+!.env.example

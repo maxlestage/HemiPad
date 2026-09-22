@@ -1,0 +1,594 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		FAE7F7816F311F1604B1F112 /* HemiplegiaProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A5CACA701444DD23FBA833E /* HemiplegiaProfile.swift */; };
+		123EAE95D50D0FEA545F5821 /* InputArbiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41FBF95DDC6455DB674EB81B /* InputArbiter.swift */; };
+		FE861049303E1E2D217438DF /* MacroEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D959020A86AA25AFEB8B5E /* MacroEngine.swift */; };
+		2F8CA988BDC0B07A268E9145 /* ReachEnvelope.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A72960F288FBB9C979B659 /* ReachEnvelope.swift */; };
+		74075F20970379D468913B57 /* StickyModifierEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E764CF651598F5C5D166BB6A /* StickyModifierEngine.swift */; };
+		179E076A52653806DDB6638F /* TiltStick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F0B20EAA993C348923F6C4B /* TiltStick.swift */; };
+		3B823A5D90A668ADF8D9B563 /* TremorFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1198059DD52EAA44973E3CB /* TremorFilter.swift */; };
+		E86400771BF883F5AACDDB75 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8030FDA981F5D7FA1176F83F /* AppState.swift */; };
+		EFF099A380CFF822B5082784 /* HemiPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 241BCE0F292702C69827CB1A /* HemiPadApp.swift */; };
+		BEC255EDB57EFC1A88EE6CFD /* GamepadReportEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A08952A9C570CB345B4D592 /* GamepadReportEncoder.swift */; };
+		094832A3EF2E511ACB121F2B /* HIDReportDescriptors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 320BC5F89658A324AC230FFA /* HIDReportDescriptors.swift */; };
+		8A1BF0E798394B7D03CCD567 /* KeyboardReportEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 951244714C4124EE7275753C /* KeyboardReportEncoder.swift */; };
+		CE7AE526C38FD42325B98FE7 /* KeyboardUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0F29055F64711FA914EA564 /* KeyboardUsage.swift */; };
+		A45D8925CEF1382A625CBE82 /* ConsoleProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F67475BA41131780983E156 /* ConsoleProfile.swift */; };
+		402F95D5BFEE6C10EDDBA58E /* ControlID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7763058D3E43AEEA9EB67B7F /* ControlID.swift */; };
+		9F91E75284792597FEDAD2EB /* ControllerLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69F77A8FF1D39227AE686CA8 /* ControllerLayout.swift */; };
+		3E5148DB5B08263FDDD3C506 /* GamepadState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D4C596333CCBDA2697FF957 /* GamepadState.swift */; };
+		A728C0C91803BE840FDE71B4 /* EnvironmentInjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6577CA5F597CC6F8457F47D /* EnvironmentInjection.swift */; };
+		3EC0A594F8E7C3B7B83811E9 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D59D702F23397B57362B8F /* Haptics.swift */; };
+		85EE1D9E7D5846D7AB94B8D5 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B9E3C26373B22DD1039056 /* Persistence.swift */; };
+		EB79075BB20705C1C8DEB86F /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE98764A66BFA8D65C191D4 /* Theme.swift */; };
+		CB1AE04E11AD43098D148374 /* BLEHIDPeripheralTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */; };
+		188DD51375A807069D17F206 /* ControllerTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */; };
+		52F1F51463F7143D5022D810 /* LoopbackTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */; };
+		7BF045128E25E225C1AA778E /* NetworkBridgeTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD759A51A14661CDA2A0435 /* NetworkBridgeTransport.swift */; };
+		4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */; };
+		DF529476E6552026367555CA /* CalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */; };
+		E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C35973498C6132B703FF4AB /* ConnectScreen.swift */; };
+		D781A304F7B42A5ABCB13E28 /* ControllerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */; };
+		4A012A90A5153FC679B78E41 /* KeyboardScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B5B932433AD55C695654D5 /* KeyboardScreen.swift */; };
+		7ACCA459423F2BE08BDE732C /* PadButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */; };
+		AF21049D695385DD82B95BD5 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46C9B80F0EB803C47383289 /* RootView.swift */; };
+		C35731ABCE27DF5B979215D8 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BFDF7EDBAC8B720FC0456C2 /* SettingsScreen.swift */; };
+		A4DB31F399504837D4F0A7B3 /* StatusBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20EAE7E8860C68D522FB17D /* StatusBarView.swift */; };
+		D9FEED05890AF71768FF6D2F /* ThumbstickView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7123F399F0DF6A760FB50902 /* ThumbstickView.swift */; };
+		B79A0C9F7FBE3034550D4F63 /* AccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB437C691563EC152EDF116 /* AccessibilityTests.swift */; };
+		D7560EDA67799A7B259B68EF /* HIDEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */; };
+		E9456B9D0BC68D4B5AC276D6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A272734AF51988E48B135C0E /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		99F923D9C26893C1467A1DE4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C4001CE3EDCB5CF45045001B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 28C67CAE7CCF435F59284777;
+			remoteInfo = HemiPad;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0A5CACA701444DD23FBA833E /* HemiplegiaProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HemiplegiaProfile.swift; sourceTree = "<group>"; };
+		41FBF95DDC6455DB674EB81B /* InputArbiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputArbiter.swift; sourceTree = "<group>"; };
+		B4D959020A86AA25AFEB8B5E /* MacroEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroEngine.swift; sourceTree = "<group>"; };
+		C0A72960F288FBB9C979B659 /* ReachEnvelope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachEnvelope.swift; sourceTree = "<group>"; };
+		E764CF651598F5C5D166BB6A /* StickyModifierEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickyModifierEngine.swift; sourceTree = "<group>"; };
+		1F0B20EAA993C348923F6C4B /* TiltStick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TiltStick.swift; sourceTree = "<group>"; };
+		F1198059DD52EAA44973E3CB /* TremorFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TremorFilter.swift; sourceTree = "<group>"; };
+		8030FDA981F5D7FA1176F83F /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		241BCE0F292702C69827CB1A /* HemiPadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HemiPadApp.swift; sourceTree = "<group>"; };
+		0A08952A9C570CB345B4D592 /* GamepadReportEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamepadReportEncoder.swift; sourceTree = "<group>"; };
+		320BC5F89658A324AC230FFA /* HIDReportDescriptors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDReportDescriptors.swift; sourceTree = "<group>"; };
+		951244714C4124EE7275753C /* KeyboardReportEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardReportEncoder.swift; sourceTree = "<group>"; };
+		B0F29055F64711FA914EA564 /* KeyboardUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardUsage.swift; sourceTree = "<group>"; };
+		0F67475BA41131780983E156 /* ConsoleProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleProfile.swift; sourceTree = "<group>"; };
+		7763058D3E43AEEA9EB67B7F /* ControlID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlID.swift; sourceTree = "<group>"; };
+		69F77A8FF1D39227AE686CA8 /* ControllerLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerLayout.swift; sourceTree = "<group>"; };
+		2D4C596333CCBDA2697FF957 /* GamepadState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamepadState.swift; sourceTree = "<group>"; };
+		B6577CA5F597CC6F8457F47D /* EnvironmentInjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentInjection.swift; sourceTree = "<group>"; };
+		D4D59D702F23397B57362B8F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
+		26B9E3C26373B22DD1039056 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		1DE98764A66BFA8D65C191D4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEHIDPeripheralTransport.swift; sourceTree = "<group>"; };
+		025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerTransport.swift; sourceTree = "<group>"; };
+		6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopbackTransport.swift; sourceTree = "<group>"; };
+		3FD759A51A14661CDA2A0435 /* NetworkBridgeTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkBridgeTransport.swift; sourceTree = "<group>"; };
+		9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportCoordinator.swift; sourceTree = "<group>"; };
+		B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationView.swift; sourceTree = "<group>"; };
+		3C35973498C6132B703FF4AB /* ConnectScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectScreen.swift; sourceTree = "<group>"; };
+		76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerScreen.swift; sourceTree = "<group>"; };
+		52B5B932433AD55C695654D5 /* KeyboardScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardScreen.swift; sourceTree = "<group>"; };
+		8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadButtonView.swift; sourceTree = "<group>"; };
+		D46C9B80F0EB803C47383289 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		0BFDF7EDBAC8B720FC0456C2 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		E20EAE7E8860C68D522FB17D /* StatusBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarView.swift; sourceTree = "<group>"; };
+		7123F399F0DF6A760FB50902 /* ThumbstickView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbstickView.swift; sourceTree = "<group>"; };
+		0AB437C691563EC152EDF116 /* AccessibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityTests.swift; sourceTree = "<group>"; };
+		984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDEncodingTests.swift; sourceTree = "<group>"; };
+		A272734AF51988E48B135C0E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A74B09C24ECBD2C0D11C6212 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6CB7409450D58760321454B4 /* HemiPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HemiPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1E6688AEF4BCA9300342FCC /* HemiPadTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HemiPadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B835678095CB2D1E8B01E73E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A343A1F79BDEC61D23D457FE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3F1A6F6EF684BF876E735D9F = {
+			isa = PBXGroup;
+			children = (
+				F9119E6DDDB6A04AD2F1B594 /* HemiPad */,
+				BCD516230FA3A6EA6C83F380 /* HemiPadTests */,
+				C863DA5204F95EC573510473 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C863DA5204F95EC573510473 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6CB7409450D58760321454B4 /* HemiPad.app */,
+				E1E6688AEF4BCA9300342FCC /* HemiPadTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		72A52077ACE911F4C3EB9304 /* Accessibility */ = {
+			isa = PBXGroup;
+			children = (
+				0A5CACA701444DD23FBA833E /* HemiplegiaProfile.swift */,
+				41FBF95DDC6455DB674EB81B /* InputArbiter.swift */,
+				B4D959020A86AA25AFEB8B5E /* MacroEngine.swift */,
+				C0A72960F288FBB9C979B659 /* ReachEnvelope.swift */,
+				E764CF651598F5C5D166BB6A /* StickyModifierEngine.swift */,
+				1F0B20EAA993C348923F6C4B /* TiltStick.swift */,
+				F1198059DD52EAA44973E3CB /* TremorFilter.swift */,
+			);
+			path = Accessibility;
+			sourceTree = "<group>";
+		};
+		AF19A6510A2F16FC4E348639 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				8030FDA981F5D7FA1176F83F /* AppState.swift */,
+				241BCE0F292702C69827CB1A /* HemiPadApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		DC62EABBC84C917BF1CBC660 /* HID */ = {
+			isa = PBXGroup;
+			children = (
+				0A08952A9C570CB345B4D592 /* GamepadReportEncoder.swift */,
+				320BC5F89658A324AC230FFA /* HIDReportDescriptors.swift */,
+				951244714C4124EE7275753C /* KeyboardReportEncoder.swift */,
+				B0F29055F64711FA914EA564 /* KeyboardUsage.swift */,
+			);
+			path = HID;
+			sourceTree = "<group>";
+		};
+		052E1D80EEC6C127E9EE7019 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				0F67475BA41131780983E156 /* ConsoleProfile.swift */,
+				7763058D3E43AEEA9EB67B7F /* ControlID.swift */,
+				69F77A8FF1D39227AE686CA8 /* ControllerLayout.swift */,
+				2D4C596333CCBDA2697FF957 /* GamepadState.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		75D2A272E136CFB9B7E39E2A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A272734AF51988E48B135C0E /* Assets.xcassets */,
+				A74B09C24ECBD2C0D11C6212 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		D332256CB4A3B8BBC1ECA96D /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				B6577CA5F597CC6F8457F47D /* EnvironmentInjection.swift */,
+				D4D59D702F23397B57362B8F /* Haptics.swift */,
+				26B9E3C26373B22DD1039056 /* Persistence.swift */,
+				1DE98764A66BFA8D65C191D4 /* Theme.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		4A1A6693D61080D16C21DA7B /* Transport */ = {
+			isa = PBXGroup;
+			children = (
+				4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */,
+				025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */,
+				6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */,
+				3FD759A51A14661CDA2A0435 /* NetworkBridgeTransport.swift */,
+				9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */,
+			);
+			path = Transport;
+			sourceTree = "<group>";
+		};
+		2CF8D1CF0013B3E6A60E0637 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */,
+				3C35973498C6132B703FF4AB /* ConnectScreen.swift */,
+				76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */,
+				52B5B932433AD55C695654D5 /* KeyboardScreen.swift */,
+				8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */,
+				D46C9B80F0EB803C47383289 /* RootView.swift */,
+				0BFDF7EDBAC8B720FC0456C2 /* SettingsScreen.swift */,
+				E20EAE7E8860C68D522FB17D /* StatusBarView.swift */,
+				7123F399F0DF6A760FB50902 /* ThumbstickView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		F9119E6DDDB6A04AD2F1B594 /* HemiPad */ = {
+			isa = PBXGroup;
+			children = (
+				72A52077ACE911F4C3EB9304 /* Accessibility */,
+				AF19A6510A2F16FC4E348639 /* App */,
+				DC62EABBC84C917BF1CBC660 /* HID */,
+				052E1D80EEC6C127E9EE7019 /* Models */,
+				75D2A272E136CFB9B7E39E2A /* Resources */,
+				D332256CB4A3B8BBC1ECA96D /* Support */,
+				4A1A6693D61080D16C21DA7B /* Transport */,
+				2CF8D1CF0013B3E6A60E0637 /* Views */,
+			);
+			path = HemiPad;
+			sourceTree = "<group>";
+		};
+		BCD516230FA3A6EA6C83F380 /* HemiPadTests */ = {
+			isa = PBXGroup;
+			children = (
+				0AB437C691563EC152EDF116 /* AccessibilityTests.swift */,
+				984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */,
+			);
+			path = HemiPadTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		28C67CAE7CCF435F59284777 /* HemiPad */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 271404B05277C74906EC99B8 /* Build configuration list for PBXNativeTarget "HemiPad" */;
+			buildPhases = (
+				9F715A1E481090FF98F56B32 /* Sources */,
+				B835678095CB2D1E8B01E73E /* Frameworks */,
+				053DE3356CA1518F6AD10C1C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HemiPad;
+			productName = HemiPad;
+			productReference = 6CB7409450D58760321454B4 /* HemiPad.app */;
+			productType = "com.apple.product-type.application";
+		};
+		31E5A6C7EED048C363403F90 /* HemiPadTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 787442B41B60EFFDD7F73102 /* Build configuration list for PBXNativeTarget "HemiPadTests" */;
+			buildPhases = (
+				520A629278A43E78856AB62E /* Sources */,
+				A343A1F79BDEC61D23D457FE /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				071BADAE335029D271E5FBBD /* PBXTargetDependency */,
+			);
+			name = HemiPadTests;
+			productName = HemiPadTests;
+			productReference = E1E6688AEF4BCA9300342FCC /* HemiPadTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C4001CE3EDCB5CF45045001B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					28C67CAE7CCF435F59284777 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					31E5A6C7EED048C363403F90 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 28C67CAE7CCF435F59284777;
+					};
+				};
+			};
+			buildConfigurationList = 887D4B5F61EA6AAAF609F3AC /* Build configuration list for PBXProject "HemiPad" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = fr;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				fr,
+				Base,
+			);
+			mainGroup = 3F1A6F6EF684BF876E735D9F;
+			productRefGroup = C863DA5204F95EC573510473 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				28C67CAE7CCF435F59284777 /* HemiPad */,
+				31E5A6C7EED048C363403F90 /* HemiPadTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		053DE3356CA1518F6AD10C1C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E9456B9D0BC68D4B5AC276D6 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9F715A1E481090FF98F56B32 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FAE7F7816F311F1604B1F112 /* HemiplegiaProfile.swift in Sources */,
+				123EAE95D50D0FEA545F5821 /* InputArbiter.swift in Sources */,
+				FE861049303E1E2D217438DF /* MacroEngine.swift in Sources */,
+				2F8CA988BDC0B07A268E9145 /* ReachEnvelope.swift in Sources */,
+				74075F20970379D468913B57 /* StickyModifierEngine.swift in Sources */,
+				179E076A52653806DDB6638F /* TiltStick.swift in Sources */,
+				3B823A5D90A668ADF8D9B563 /* TremorFilter.swift in Sources */,
+				E86400771BF883F5AACDDB75 /* AppState.swift in Sources */,
+				EFF099A380CFF822B5082784 /* HemiPadApp.swift in Sources */,
+				BEC255EDB57EFC1A88EE6CFD /* GamepadReportEncoder.swift in Sources */,
+				094832A3EF2E511ACB121F2B /* HIDReportDescriptors.swift in Sources */,
+				8A1BF0E798394B7D03CCD567 /* KeyboardReportEncoder.swift in Sources */,
+				CE7AE526C38FD42325B98FE7 /* KeyboardUsage.swift in Sources */,
+				A45D8925CEF1382A625CBE82 /* ConsoleProfile.swift in Sources */,
+				402F95D5BFEE6C10EDDBA58E /* ControlID.swift in Sources */,
+				9F91E75284792597FEDAD2EB /* ControllerLayout.swift in Sources */,
+				3E5148DB5B08263FDDD3C506 /* GamepadState.swift in Sources */,
+				A728C0C91803BE840FDE71B4 /* EnvironmentInjection.swift in Sources */,
+				3EC0A594F8E7C3B7B83811E9 /* Haptics.swift in Sources */,
+				85EE1D9E7D5846D7AB94B8D5 /* Persistence.swift in Sources */,
+				EB79075BB20705C1C8DEB86F /* Theme.swift in Sources */,
+				CB1AE04E11AD43098D148374 /* BLEHIDPeripheralTransport.swift in Sources */,
+				188DD51375A807069D17F206 /* ControllerTransport.swift in Sources */,
+				52F1F51463F7143D5022D810 /* LoopbackTransport.swift in Sources */,
+				7BF045128E25E225C1AA778E /* NetworkBridgeTransport.swift in Sources */,
+				4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */,
+				DF529476E6552026367555CA /* CalibrationView.swift in Sources */,
+				E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */,
+				D781A304F7B42A5ABCB13E28 /* ControllerScreen.swift in Sources */,
+				4A012A90A5153FC679B78E41 /* KeyboardScreen.swift in Sources */,
+				7ACCA459423F2BE08BDE732C /* PadButtonView.swift in Sources */,
+				AF21049D695385DD82B95BD5 /* RootView.swift in Sources */,
+				C35731ABCE27DF5B979215D8 /* SettingsScreen.swift in Sources */,
+				A4DB31F399504837D4F0A7B3 /* StatusBarView.swift in Sources */,
+				D9FEED05890AF71768FF6D2F /* ThumbstickView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		520A629278A43E78856AB62E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B79A0C9F7FBE3034550D4F63 /* AccessibilityTests.swift in Sources */,
+				D7560EDA67799A7B259B68EF /* HIDEncodingTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		071BADAE335029D271E5FBBD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 28C67CAE7CCF435F59284777 /* HemiPad */;
+			targetProxy = 99F923D9C26893C1467A1DE4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A1FEF218C4C57CE118AD5A8A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D49EF4AC7029FD1A8C1140E0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		18BDD93BD23AF3EC331D395C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HemiPad/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.hemipad;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9078B7D9D1147AE33163AB5F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HemiPad/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.hemipad;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D78277A0F8492835CF13D273 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.hemipad.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HemiPad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HemiPad";
+			};
+			name = Debug;
+		};
+		DC3D6AF18B82C514A9FE1857 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.hemipad.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HemiPad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HemiPad";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		887D4B5F61EA6AAAF609F3AC /* Build configuration list for PBXProject "HemiPad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1FEF218C4C57CE118AD5A8A /* Debug */,
+				D49EF4AC7029FD1A8C1140E0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		271404B05277C74906EC99B8 /* Build configuration list for PBXNativeTarget "HemiPad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				18BDD93BD23AF3EC331D395C /* Debug */,
+				9078B7D9D1147AE33163AB5F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		787442B41B60EFFDD7F73102 /* Build configuration list for PBXNativeTarget "HemiPadTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D78277A0F8492835CF13D273 /* Debug */,
+				DC3D6AF18B82C514A9FE1857 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C4001CE3EDCB5CF45045001B /* Project object */;
+}
