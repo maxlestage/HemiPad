@@ -164,6 +164,8 @@ export interface Dictionary {
     languageTitle: string
     themeTitle: string
     themes: { auto: string; light: string; dark: string }
+    motionTitle: string
+    motions: { auto: string; full: string; reduced: string }
     rights: string
     proprietary: string
     trademarks: string

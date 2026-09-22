@@ -34,7 +34,11 @@ function check(condition, label, detail = '') {
 }
 
 const browser = await chromium.launch({
-  executablePath: process.env.PLAYWRIGHT_EXECUTABLE || '/opt/pw-browsers/chromium'
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE || '/opt/pw-browsers/chromium',
+  // Sans carte graphique, Chromium refuse WebGL et la scène 3D basculerait sur
+  // le logo plat — la vérification passerait sans avoir rien vérifié. On lui
+  // impose le rendu logiciel pour tester le vrai chemin.
+  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
 })
 
 // --- Langues ---------------------------------------------------------------
@@ -80,9 +84,10 @@ const browser = await chromium.launch({
       meta: document.querySelector('meta[name="theme-color"]')?.getAttribute('content')
     }))
 
-  // Les sélecteurs de thème vivent dans le pied de page : la démo a elle
-  // aussi un bouton « Automatique », pour la disposition.
-  const preferences = page.locator('.footer-preferences')
+  // Les sélecteurs de thème vivent dans le pied de page, et « Automatique »
+  // y apparaît deux fois : une fois pour le thème, une fois pour les
+  // animations. On vise le groupe, jamais le seul libellé.
+  const preferences = page.locator('.preference-theme')
   await preferences.getByRole('button', { name: /^(Clair|Light|Claro)$/ }).click()
   await page.waitForTimeout(120)
   const light = await readTheme()
@@ -518,6 +523,128 @@ for (const scheme of ['dark', 'light']) {
   check(/copié|copied|copiado/i.test(label), 'le bouton confirme la copie du lien', label)
   const clipboard = await page.evaluate(() => navigator.clipboard.readText())
   check(clipboard.startsWith('http'), 'lien réellement copié', clipboard)
+  await context.close()
+}
+
+// --- La scène 3D du hero ---------------------------------------------------
+
+{
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await context.newPage()
+  const errors = []
+  page.on('pageerror', (error) => errors.push(String(error)))
+  await page.goto(base, { waitUntil: 'networkidle' })
+
+  const zone = page.locator('.hero-scene')
+  check(await zone.count() === 1, 'la zone de la marque existe dans le hero')
+
+  // La réserve de hauteur est là avant l'arrivée du morceau 3D : sans elle,
+  // le texte sauterait au moment où la scène se charge.
+  const hauteur = await zone.evaluate((n) => Math.round(n.getBoundingClientRect().height))
+  check(hauteur > 120, 'la zone réserve sa hauteur avant le chargement', `${hauteur}px`)
+
+  await page.waitForFunction(() => Boolean(document.querySelector('.hero-scene canvas')), null, {
+    timeout: 15000
+  }).catch(() => undefined)
+
+  const rendu = await page.evaluate(() => {
+    const canevas = document.querySelector('.hero-scene canvas')
+    return {
+      mode: document.querySelector('.hero-scene')?.getAttribute('data-scene'),
+      largeur: canevas?.width ?? 0,
+      hauteur: canevas?.height ?? 0
+    }
+  })
+  check(rendu.mode === 'relief', 'la marque est rendue en relief', String(rendu.mode))
+  check(rendu.largeur > 0 && rendu.hauteur > 0, 'le canevas WebGL a une taille réelle', JSON.stringify(rendu))
+
+  // Une scène immobile ne serait qu'une image : deux captures espacées
+  // doivent différer.
+  //
+  // La comparaison passe par des captures d'écran, pas par `toDataURL` : sans
+  // `preserveDrawingBuffer`, le tampon de dessin WebGL est vidé une fois
+  // l'image composée, et `toDataURL` ne renvoie qu'un rectangle vide — deux
+  // rectangles vides se ressemblent beaucoup, et la vérification passerait
+  // sans rien avoir vérifié.
+  const avant = await zone.screenshot()
+  await page.waitForTimeout(900)
+  const apres = await zone.screenshot()
+  check(
+    avant.length > 0 && !avant.equals(apres),
+    'la scène bouge réellement entre deux captures',
+    `${avant.length} / ${apres.length} octets`
+  )
+
+  check(errors.length === 0, 'aucune erreur JavaScript avec la scène 3D', errors.join(' | '))
+  await context.close()
+}
+
+// Réglage système « Réduire les animations » : rien ne doit bouger, et le
+// morceau 3D ne doit même pas être téléchargé.
+{
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    reducedMotion: 'reduce'
+  })
+  const page = await context.newPage()
+  const telecharges = []
+  page.on('request', (requete) => telecharges.push(requete.url()))
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(600)
+
+  const mode = await page.locator('.hero-scene').getAttribute('data-scene')
+  check(mode === 'plate', 'animations réduites : la marque reste à plat', String(mode))
+  check(
+    (await page.locator('.hero-scene canvas').count()) === 0,
+    'animations réduites : aucun canevas WebGL'
+  )
+  check(
+    !telecharges.some((url) => /HeroCanvas|three/i.test(url)),
+    'animations réduites : le morceau 3D n\'est pas téléchargé',
+    telecharges.filter((url) => /HeroCanvas|three/i.test(url)).join(' ')
+  )
+  await context.close()
+}
+
+// Le réglage du pied de page doit pouvoir contredire le système, dans les
+// deux sens : apaiser une machine qui ne demande rien, et animer une machine
+// qui demande le calme.
+{
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+
+  const animations = page.locator('.preference-animation')
+  check(await animations.count() === 1, 'le réglage des animations est dans le pied de page')
+
+  await animations.getByRole('button', { name: /^(Apaisées|Calm|En calma)$/ }).click()
+  await page.waitForTimeout(250)
+  check(
+    (await page.locator('.hero-scene').getAttribute('data-scene')) === 'plate',
+    'le réglage « apaisées » arrête la scène'
+  )
+  check(
+    (await page.evaluate(() => document.documentElement.dataset.motion)) === 'reduced',
+    'le choix est exposé au CSS'
+  )
+
+  // Le choix doit survivre à un rechargement : un réglage d'accessibilité
+  // qu'il faut reprendre à chaque visite n'en est pas un.
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.waitForTimeout(250)
+  check(
+    (await page.locator('.hero-scene').getAttribute('data-scene')) === 'plate',
+    'le réglage « apaisées » survit au rechargement'
+  )
+
+  await page.locator('.preference-animation').getByRole('button', { name: /^(Animées|Animated|Animadas)$/ }).click()
+  await page.waitForFunction(() => Boolean(document.querySelector('.hero-scene canvas')), null, {
+    timeout: 15000
+  }).catch(() => undefined)
+  check(
+    (await page.locator('.hero-scene canvas').count()) === 1,
+    'le réglage « animées » rallume la scène'
+  )
   await context.close()
 }
 

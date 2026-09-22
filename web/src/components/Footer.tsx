@@ -1,4 +1,5 @@
 import { useI18n, type Locale } from '../i18n/index.tsx'
+import { motionChoices, useMotion, type MotionChoice } from '../lib/motion.tsx'
 import { Mark } from './Mark.tsx'
 import { themeChoices, useTheme, type ThemeChoice } from '../lib/theme.tsx'
 
@@ -13,12 +14,19 @@ import { themeChoices, useTheme, type ThemeChoice } from '../lib/theme.tsx'
 export function Footer() {
   const { t, locale, setLocale, available } = useI18n()
   const { choice, setChoice } = useTheme()
+  const { choice: motion, setChoice: setMotion } = useMotion()
   const year = new Date().getFullYear()
 
   const themeLabels: Record<ThemeChoice, string> = {
     auto: t.footer.themes.auto,
     light: t.footer.themes.light,
     dark: t.footer.themes.dark
+  }
+
+  const motionLabels: Record<MotionChoice, string> = {
+    auto: t.footer.motions.auto,
+    full: t.footer.motions.full,
+    reduced: t.footer.motions.reduced
   }
 
   return (
@@ -55,7 +63,7 @@ export function Footer() {
         </nav>
 
         <div className="footer-preferences">
-          <fieldset className="preference">
+          <fieldset className="preference preference-langue">
             <legend>{t.footer.languageTitle}</legend>
             <div className="segmented segmented-compact">
               {available.map((item) => (
@@ -74,7 +82,7 @@ export function Footer() {
             </div>
           </fieldset>
 
-          <fieldset className="preference">
+          <fieldset className="preference preference-theme">
             <legend>{t.footer.themeTitle}</legend>
             <div className="segmented segmented-compact">
               {themeChoices.map((item) => (
@@ -86,6 +94,23 @@ export function Footer() {
                   onClick={() => setChoice(item)}
                 >
                   {themeLabels[item]}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="preference preference-animation">
+            <legend>{t.footer.motionTitle}</legend>
+            <div className="segmented segmented-compact">
+              {motionChoices.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={motion === item ? 'is-active' : ''}
+                  aria-pressed={motion === item}
+                  onClick={() => setMotion(item)}
+                >
+                  {motionLabels[item]}
                 </button>
               ))}
             </div>
