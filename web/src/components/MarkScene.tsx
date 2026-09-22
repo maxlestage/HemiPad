@@ -8,6 +8,7 @@ import {
   avancementSurArc,
   heroLayout
 } from '../lib/heroLayout.ts'
+import { inclinaison } from '../lib/inclinaison.ts'
 import { pointOnArc, type Placement } from '../lib/reach.ts'
 
 /**
@@ -308,11 +309,19 @@ export function MarkScene({ theme }: { theme: 'dark' | 'light' }) {
   const hauteur = CANVAS.height * UNITE + BORDURE * 2
   const échelle = Math.min(viewport.width / (ECRAN + 0.6), viewport.height / hauteur) * 0.92
 
-  useFrame(({ clock, pointer }, delta) => {
+  useFrame(({ clock }, delta) => {
     if (!groupe.current) return
     const t = clock.elapsedTime
-    const cibleY = -0.34 + pointer.x * 0.3 + Math.sin(t * 0.33) * 0.05
-    const cibleX = 0.16 - pointer.y * 0.18 + Math.sin(t * 0.27) * 0.04
+    // L'inclinaison vient de la souris ou du téléphone (voir
+    // `lib/inclinaison.ts`). Quand le téléphone mène, on lui donne un peu plus
+    // d'amplitude et on retire le balancement automatique : c'est la main qui
+    // décide, et deux mouvements superposés se contrediraient.
+    const téléphone = inclinaison.source === 'orientation'
+    const balancement = téléphone ? 0 : 1
+    const cibleY =
+      -0.34 + inclinaison.x * (téléphone ? 0.42 : 0.3) + Math.sin(t * 0.33) * 0.05 * balancement
+    const cibleX =
+      0.16 - inclinaison.y * (téléphone ? 0.3 : 0.18) + Math.sin(t * 0.27) * 0.04 * balancement
     const amorti = 1 - Math.pow(0.0015, delta)
     groupe.current.rotation.y += (cibleY - groupe.current.rotation.y) * amorti
     groupe.current.rotation.x += (cibleX - groupe.current.rotation.x) * amorti

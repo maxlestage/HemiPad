@@ -30,7 +30,23 @@ export const fr: Dictionary = {
       { label: 'Commandes atteignables', value: '100 %' },
       { label: 'Doigts nécessaires', value: '1' },
       { label: 'Profils de machines', value: '6' }
-    ]
+    ],
+    tilt: {
+      follow: "Suivre l'inclinaison",
+      following: 'Inclinaison suivie',
+      asking: 'Autorisation…',
+      denied:
+        "Accès aux mouvements refusé. iOS ne repose la question qu'après avoir rouvert la page.",
+      unavailable: "Aucun capteur d'orientation n'a répondu sur cet appareil."
+    }
+  },
+  pager: {
+    next: 'Suivant',
+    nextLabel: 'Aller à la section suivante : {nom}',
+    top: 'Haut de page',
+    topLabel: 'Revenir en haut de la page',
+    arrived: 'Section : {nom}',
+    footer: 'Pied de page'
   },
   demo: {
     eyebrow: 'Démonstration',

@@ -30,7 +30,22 @@ export const en: Dictionary = {
       { label: 'Controls within reach', value: '100%' },
       { label: 'Fingers required', value: '1' },
       { label: 'Machine profiles', value: '6' }
-    ]
+    ],
+    tilt: {
+      follow: 'Follow the tilt',
+      following: 'Following the tilt',
+      asking: 'Asking…',
+      denied: 'Motion access was refused. iOS only asks again once the page is reopened.',
+      unavailable: 'No orientation sensor responded on this device.'
+    }
+  },
+  pager: {
+    next: 'Next',
+    nextLabel: 'Go to the next section: {nom}',
+    top: 'Back to top',
+    topLabel: 'Go back to the top of the page',
+    arrived: 'Section: {nom}',
+    footer: 'Footer'
   },
   demo: {
     eyebrow: 'Live demo',

@@ -6,6 +6,7 @@ import { Hero } from './components/Hero.tsx'
 import { KeyboardDemo } from './components/KeyboardDemo.tsx'
 import { Nav } from './components/Nav.tsx'
 import { ReachDemo } from './components/ReachDemo.tsx'
+import { SectionSuivante } from './components/SectionSuivante.tsx'
 import { ShareCard } from './components/ShareCard.tsx'
 import { useI18n } from './i18n/index.tsx'
 import { useScrollReveal } from './lib/useScrollReveal.ts'
@@ -30,6 +31,7 @@ export function App() {
         <ShareCard />
       </main>
       <Footer />
+      <SectionSuivante />
     </div>
   )
 }
