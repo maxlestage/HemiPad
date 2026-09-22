@@ -747,6 +747,273 @@ for (const scheme of ['dark', 'light']) {
   await context.close()
 }
 
+// --- Le bouton « Suivant » ---------------------------------------------------
+
+// Sur plusieurs tailles, et surtout celles de l'iPad. Quand l'écran est assez
+// haut pour que les dernières sections y tiennent ensemble, elles ne peuvent
+// plus remonter jusqu'à leur marge : sans garde, le bouton restait bloqué sur
+// « partage » ou « pied », en boucle, sans jamais proposer de remonter. Le
+// défaut ne se voyait ni sur téléphone ni sur un écran d'ordinateur portable —
+// seulement sur l'appareil que le projet met en avant.
+for (const [largeur, hauteur, tactile] of [
+  [390, 844, true],
+  [1280, 800, false],
+  [1024, 1366, true],
+  [1366, 1024, true]
+]) {
+  const à = ` (${largeur}×${hauteur})`
+  const context = await browser.newContext({
+    viewport: { width: largeur, height: hauteur },
+    isMobile: tactile,
+    hasTouch: tactile
+  })
+  const page = await context.newPage()
+  const errors = []
+  page.on('pageerror', (error) => errors.push(String(error)))
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(400)
+
+  const pager = page.locator('.pager')
+  check(await pager.count() === 1, 'le bouton « Suivant » existe' + à)
+  // Posé sur les boutons du hero, il en cachait un : il attend qu'on les ait
+  // dépassés.
+  check(
+    (await pager.getAttribute('aria-hidden')) === 'true',
+    'en haut de page, « Suivant » laisse la place aux boutons du hero' + à
+  )
+
+  // Le saut est instantané : la page défile en douceur par défaut, et une
+  // attente fixe se retrouvait parfois à mesurer un défilement encore en cours.
+  await page.evaluate(() => {
+    const actions = document.querySelector('.hero-actions')
+    window.scrollTo({
+      top: actions.getBoundingClientRect().bottom + window.scrollY + 20,
+      behavior: 'instant'
+    })
+  })
+  const apparu = await page
+    .waitForFunction(
+      () => document.querySelector('.pager')?.getAttribute('aria-hidden') === 'false',
+      null,
+      { timeout: 3000 }
+    )
+    .then(() => true)
+    .catch(() => false)
+  check(apparu, 'une fois le hero dépassé, « Suivant » apparaît' + à)
+
+  // Le parcours complet : chaque appui mène à la section suivante, dont le
+  // titre doit rester visible sous la barre collante.
+  const finDuDéfilement = () =>
+    page.evaluate(
+      () =>
+        new Promise((résoudre) => {
+          let dernier = -1
+          let stable = 0
+          const regarder = () => {
+            stable = window.scrollY === dernier ? stable + 1 : 0
+            dernier = window.scrollY
+            // Immobile pendant dix images d'affilée : le défilement est fini.
+            if (stable >= 10) résoudre()
+            else requestAnimationFrame(regarder)
+          }
+          requestAnimationFrame(regarder)
+        })
+    )
+
+  const visitées = []
+  const cachées = []
+  const malPlacées = []
+  let remonté = false
+  for (let appui = 0; appui < 12; appui += 1) {
+    const cible = await pager.getAttribute('data-pager-target')
+    await (tactile ? pager.tap() : pager.click())
+    await page.waitForTimeout(80)
+    await finDuDéfilement()
+    if (cible === 'haut') {
+      remonté = true
+      const y = await page.evaluate(() => window.scrollY)
+      check(y === 0, 'au bout du parcours, le même bouton ramène en haut' + à, `scrollY = ${y}`)
+      break
+    }
+    visitées.push(cible)
+    const position = await page.evaluate((id) => {
+      const élément = id === 'pied' ? document.querySelector('footer') : document.getElementById(id)
+      return {
+        haut: élément.getBoundingClientRect().top,
+        attendu: parseFloat(getComputedStyle(élément).scrollMarginTop) || 0,
+        // Au bout de la page, on ne peut plus descendre : la dernière étape
+        // s'arrête où elle peut, plus bas que sa marge.
+        auBout:
+          Math.ceil(window.scrollY + window.innerHeight) >= document.documentElement.scrollHeight - 1,
+        barre: document.querySelector('.nav').getBoundingClientRect().bottom
+      }
+    }, cible)
+    // Deux exigences distinctes. Arriver *sur* la section, à sa marge près —
+    // pas quelque part au-dessus ou en dessous. Et ne jamais finir sous la
+    // barre, quand elle est à l'écran.
+    const surPlace = position.auBout
+      ? position.haut >= position.attendu - 2
+      : Math.abs(position.haut - position.attendu) <= 2
+    if (!surPlace) {
+      malPlacées.push(`${cible} à ${Math.round(position.haut)} px au lieu de ${position.attendu}`)
+    }
+    if (position.haut < position.barre - 1) {
+      cachées.push(`${cible} (${Math.round(position.haut)} < ${Math.round(position.barre)})`)
+    }
+  }
+  // Sans cette exigence, une boucle qui n'atteint jamais « haut » finissait
+  // simplement ses douze tours, et rien n'échouait.
+  check(remonté, 'le parcours se termine bien par « Haut de page »' + à, visitées.join(' → '))
+  check(visitées.length >= 6, '« Suivant » parcourt toutes les sections' + à, visitées.join(' → '))
+  check(malPlacées.length === 0, '« Suivant » arrive exactement au début de chaque section' + à, malPlacées.join(', '))
+  check(cachées.length === 0, 'aucun titre ne finit caché sous la barre de navigation' + à, cachées.join(', '))
+  check(errors.length === 0, 'aucune erreur JavaScript pendant le parcours' + à, errors.join(' | '))
+  await context.close()
+}
+
+// La barre colle en haut là où elle porte le menu, et défile sur téléphone,
+// où elle ne montre que le logo.
+for (const [largeur, collante] of [[1280, true], [390, false]]) {
+  const context = await browser.newContext({ viewport: { width: largeur, height: 800 } })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.evaluate(() => window.scrollTo({ top: 1600, behavior: 'instant' }))
+  await page.waitForTimeout(200)
+  const haut = await page.evaluate(() => document.querySelector('.nav').getBoundingClientRect().top)
+  check(
+    collante ? Math.abs(haut) < 1 : haut < -40,
+    collante
+      ? `à ${largeur} px, la barre de navigation reste en haut`
+      : `à ${largeur} px, la barre de navigation laisse l’écran au contenu`,
+    `haut de la barre : ${Math.round(haut)} px`
+  )
+  await context.close()
+}
+
+// Les liens du menu profitent de la même marge : c'est la même ancre.
+{
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.locator('.nav-links a[href="#clavier"]').click()
+  await page.waitForTimeout(1100)
+  const position = await page.evaluate(() => ({
+    haut: document.getElementById('clavier').getBoundingClientRect().top,
+    barre: document.querySelector('.nav').getBoundingClientRect().bottom
+  }))
+  check(
+    position.haut >= position.barre - 1,
+    'un lien du menu ne cache plus le titre sous la barre',
+    `${Math.round(position.haut)} px sous une barre de ${Math.round(position.barre)} px`
+  )
+  await context.close()
+}
+
+// --- Suivre l'inclinaison du téléphone -------------------------------------
+
+// Sur ordinateur : pas de bouton, mais la souris doit atteindre la scène.
+{
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.waitForFunction(() => Boolean(document.querySelector('.hero-scene canvas')), null, {
+    timeout: 15000
+  }).catch(() => undefined)
+  check(
+    (await page.locator('.hero-tilt-button').count()) === 0,
+    'sur ordinateur, pas de bouton d’inclinaison — la souris suffit'
+  )
+  await page.mouse.move(200, 300)
+  await page.mouse.move(1000, 400, { steps: 5 })
+  const source = await page.evaluate(() => document.documentElement.dataset.inclinaison)
+  check(source === 'pointeur', 'la souris atteint bien la scène 3D', String(source))
+  await context.close()
+}
+
+// Sur téléphone, avec un gyroscope qui répond.
+{
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true
+  })
+  const page = await context.newPage()
+  const errors = []
+  page.on('pageerror', (error) => errors.push(String(error)))
+  await page.goto(base, { waitUntil: 'networkidle' })
+
+  const bouton = page.locator('.hero-tilt-button')
+  check(await bouton.count() === 1, 'sur téléphone, le bouton d’inclinaison est proposé')
+  check((await bouton.getAttribute('aria-pressed')) === 'false', 'le suivi est éteint par défaut')
+
+  await bouton.tap()
+  await page.evaluate(() => {
+    for (const [beta, gamma] of [[50, 0], [54, 9], [57, 16]]) {
+      window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma }))
+    }
+  })
+  // Au-delà du délai d'attente du capteur : il doit rester allumé.
+  await page.waitForTimeout(2000)
+  check((await bouton.getAttribute('aria-pressed')) === 'true', 'le suivi reste allumé quand le capteur répond')
+  check(
+    (await page.evaluate(() => document.documentElement.dataset.inclinaison)) === 'orientation',
+    'le gyroscope atteint bien la scène 3D'
+  )
+  check(
+    ((await page.locator('.hero-tilt-message').textContent()) ?? '').trim() === '',
+    'aucun message d’erreur quand tout fonctionne'
+  )
+
+  await bouton.tap()
+  await page.waitForTimeout(200)
+  check((await bouton.getAttribute('aria-pressed')) === 'false', 'un second appui éteint le suivi')
+  check(
+    (await page.evaluate(() => document.documentElement.dataset.inclinaison)) === 'aucune',
+    'éteindre le suivi remet la scène droite'
+  )
+  check(errors.length === 0, 'aucune erreur JavaScript avec le suivi', errors.join(' | '))
+  await context.close()
+}
+
+// Sur un appareil tactile sans capteur : on le dit, on ne fait pas semblant.
+{
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true
+  })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.locator('.hero-tilt-button').tap()
+  await page.waitForTimeout(2000)
+  check(
+    (await page.locator('.hero-tilt-button').getAttribute('aria-pressed')) === 'false',
+    'sans capteur, le suivi ne prétend pas être allumé'
+  )
+  check(
+    ((await page.locator('.hero-tilt-message').textContent()) ?? '').trim().length > 0,
+    'sans capteur, un message l’explique'
+  )
+  await context.close()
+}
+
+// Animations réduites : suivre l'inclinaison est un mouvement comme un autre.
+{
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    reducedMotion: 'reduce'
+  })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  check(
+    (await page.locator('.hero-tilt-button').count()) === 0,
+    'animations réduites : pas de suivi d’inclinaison proposé'
+  )
+  await context.close()
+}
+
 // --- Captures pour le manifeste -------------------------------------------
 
 await mkdir(shots, { recursive: true })
