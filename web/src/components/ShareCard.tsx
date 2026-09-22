@@ -50,7 +50,7 @@ export function ShareCard() {
   }
 
   return (
-    <section className="share" id="partage" aria-labelledby="partage-titre">
+    <section className="share reveal" id="partage" aria-labelledby="partage-titre">
       <div className="section-head">
         <p className="eyebrow">{t.share.eyebrow}</p>
         <h2 id="partage-titre">{t.share.title}</h2>

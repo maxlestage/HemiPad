@@ -224,7 +224,7 @@ export function ReachDemo() {
   const selectedIds = [...selected]
 
   return (
-    <section className="demo" id="demo" aria-labelledby="demo-titre">
+    <section className="demo reveal" id="demo" aria-labelledby="demo-titre">
       <div className="section-head">
         <p className="eyebrow">{t.demo.eyebrow}</p>
         <h2 id="demo-titre">{t.demo.title}</h2>
@@ -303,6 +303,7 @@ export function ReachDemo() {
                 <ControlShape
                   key={placement.id}
                   placement={{ ...placement, center }}
+                  isDragged={dragged?.id === placement.id}
                   label={t.controlNames[placement.id] ?? placement.id}
                   glyph={profile.glyphs[placement.id] ?? ''}
                   accent={profile.accent}
@@ -559,6 +560,7 @@ interface ControlShapeProps {
   isEditing: boolean
   isSelected: boolean
   isLocked: boolean
+  isDragged: boolean
   overlaps: boolean
   onActivate: () => void
   onPointerDown: (event: PointerEvent) => void
@@ -576,6 +578,7 @@ function ControlShape({
   isEditing,
   isSelected,
   isLocked,
+  isDragged,
   overlaps,
   onActivate,
   onPointerDown,
@@ -587,7 +590,13 @@ function ControlShape({
   const isDirectional = id === 'directional'
 
   return (
+    // La commande est dessinée à l'origine et déplacée par une translation.
+    // C'est ce qui permet de la faire *glisser* d'une disposition à l'autre :
+    // une transformation s'anime dans tous les navigateurs, alors qu'un
+    // attribut `cx` posé en dur saute d'un point à l'autre. Et voir les
+    // commandes se déplacer, c'est voir le solveur travailler.
     <g
+      transform={`translate(${center.x} ${center.y})`}
       className={[
         'control',
         isActive ? 'is-active' : '',
@@ -595,6 +604,7 @@ function ControlShape({
         isEditing ? 'is-editing' : '',
         isSelected ? 'is-selected' : '',
         isLocked ? 'is-locked' : '',
+        isDragged ? 'is-dragged' : '',
         overlaps ? 'is-overlapping' : ''
       ]
         .filter(Boolean)
@@ -617,31 +627,28 @@ function ControlShape({
     >
       {isPill ? (
         <rect
-          x={center.x - size.width / 2}
-          y={center.y - size.height / 2}
+          x={-size.width / 2}
+          y={-size.height / 2}
           width={size.width}
           height={size.height}
           rx={size.height / 2}
           className="control-shape"
         />
       ) : (
-        <circle cx={center.x} cy={center.y} r={size.width / 2} className="control-shape" />
+        <circle cx={0} cy={0} r={size.width / 2} className="control-shape" />
       )}
 
       {isDirectional && (
         <>
-          <circle cx={center.x} cy={center.y} r={size.width * 0.22} className="stick-knob" />
-          <path
-            d={`M ${center.x - 10} ${center.y} H ${center.x + 10} M ${center.x} ${center.y - 10} V ${center.y + 10}`}
-            className="stick-cross"
-          />
+          <circle cx={0} cy={0} r={size.width * 0.22} className="stick-knob" />
+          <path d="M -10 0 H 10 M 0 -10 V 10" className="stick-cross" />
         </>
       )}
 
       {!isDirectional && (
         <text
-          x={center.x}
-          y={center.y}
+          x={0}
+          y={0}
           className="control-glyph"
           textAnchor="middle"
           dominantBaseline="central"
@@ -653,8 +660,8 @@ function ControlShape({
 
       {isLocked && isEditing && (
         <text
-          x={center.x - size.width / 2 + 6}
-          y={center.y + size.height / 2 - 4}
+          x={-size.width / 2 + 6}
+          y={size.height / 2 - 4}
           className="control-lock"
           style={{ fontSize: 13 }}
         >

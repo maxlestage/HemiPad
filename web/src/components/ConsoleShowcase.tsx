@@ -7,7 +7,7 @@ export function ConsoleShowcase() {
   const { t } = useI18n()
 
   return (
-    <section className="consoles" id="consoles" aria-labelledby="consoles-titre">
+    <section className="consoles reveal" id="consoles" aria-labelledby="consoles-titre">
       <div className="section-head">
         <p className="eyebrow">{t.consoles.eyebrow}</p>
         <h2 id="consoles-titre">{t.consoles.title}</h2>

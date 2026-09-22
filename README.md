@@ -83,15 +83,21 @@ recalcule vraiment la géométrie, avec les mêmes règles que sur l'iPhone.
   le site s'ajoute à l'écran d'accueil et reste consultable hors connexion.
 - **Fiche de partage** — image d'aperçu 1200 × 630 pour les messageries, plus
   un bouton qui utilise le partage natif du téléphone, ou copie le lien.
-- **La marque en relief** — le logo est modélisé en 3D (React Three Fiber) au
-  sommet de la page : une moitié pleine, une moitié en nuage de points qui
-  respire. Voir plus bas pour ce que cela coûte, et comment on l'éteint.
+- **L'arc de portée en volume** — au sommet de la page, un iPad modélisé en 3D
+  (React Three Fiber) montre la disposition que le solveur calcule vraiment, et
+  une lueur parcourt l'arc en allumant chaque commande au passage.
+- **Des commandes qui glissent** — dans la démonstration, changer de main ou
+  écarter les cibles fait *voyager* les commandes au lieu de les téléporter :
+  on voit le solveur travailler.
 
-### La scène 3D, et son interrupteur
+### Les animations, et leur interrupteur
 
-La marque du hero est une vraie scène WebGL, construite à partir des **mêmes
-tracés** que le logo plat et les icônes — un test refuse que la géométrie soit
-recopiée d'un côté ou de l'autre.
+La scène du hero n'est pas un objet décoratif : c'est un iPad qui affiche la
+sortie de `solveLayout`, le même code que la démonstration et que
+l'application. Les commandes sont là où le solveur les met, la lueur suit
+l'angle réel de chaque cible sur l'arc du pouce. Changez les règles de
+placement, la page d'accueil change avec elles — et quatre tests unitaires
+couvrent cette disposition sans avoir besoin d'un navigateur.
 
 Animer un site qui parle d'accessibilité demande quelques garanties, et elles
 sont toutes tenues :
@@ -104,15 +110,21 @@ sont toutes tenues :
   automatique, animées, apaisées* — est offert dans le pied de page, dans les
   deux sens : il peut apaiser une machine qui ne demande rien, et animer une
   machine réglée en calme.
-- **Quatre replis vers le logo plat** : calme demandé, WebGL absent, morceau
-  pas encore arrivé, scène en échec. La page ne montre jamais un trou à la
-  place de sa marque.
+- **Quatre replis vers une image fixe** : calme demandé, WebGL absent, morceau
+  pas encore arrivé, scène en échec. L'image fixe dessine **la même
+  disposition**, issue du même solveur : couper les animations change le relief
+  de l'image, jamais son sujet.
+- **L'apparition des sections ne cache rien.** L'état masqué n'existe que si le
+  script a pris la main ; sans JavaScript, tout s'affiche d'emblée. Une page
+  dont le contenu dépend d'une animation pour exister est une page cassée.
 - **La boucle de rendu s'arrête** dès que la scène sort de l'écran ou que
   l'onglet passe en arrière-plan, et la zone réserve sa hauteur d'avance : le
   texte ne saute pas quand la 3D arrive.
 
-Dix vérifications dans un vrai navigateur couvrent tout cela, y compris le fait
-que la scène **bouge réellement** — deux captures espacées doivent différer.
+Vingt-six vérifications dans un vrai navigateur couvrent tout cela, y compris
+le fait que la scène **bouge réellement** — deux captures espacées doivent
+différer — et qu'une commande **glisse au lieu de sauter** quand on change de
+main.
 
 ## Identité visuelle
 

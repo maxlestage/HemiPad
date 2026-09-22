@@ -1,7 +1,7 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { useMotion } from '../lib/motion.tsx'
-import { Mark } from './Mark.tsx'
+import { HeroStill } from './HeroStill.tsx'
 
 const HeroCanvas = lazy(() => import('./HeroCanvas.tsx'))
 
@@ -53,8 +53,9 @@ class GardeFou extends Component<{ secours: ReactNode; children: ReactNode }, { 
  *
  * Quatre raisons de rester à plat, et elles comptent toutes autant :
  * la personne a demandé le calme, le WebGL manque, le morceau 3D n'est pas
- * encore arrivé, ou la scène a échoué. Dans les quatre cas on affiche le même
- * logo — la page ne montre jamais un trou à la place de la marque.
+ * encore arrivé, ou la scène a échoué. Dans les quatre cas on affiche la même
+ * disposition, dessinée à plat : couper les animations change le relief de
+ * l'image, jamais son sujet.
  */
 export function HeroScene() {
   const { reduced } = useMotion()
@@ -80,9 +81,7 @@ export function HeroScene() {
     return () => document.removeEventListener('visibilitychange', suivre)
   }, [])
 
-  const plat = (
-    <Mark className="hero-scene-plat" title="HemiPad — une moitié pleine, une moitié en pointillés" />
-  )
+  const plat = <HeroStill className="hero-scene-plat" />
 
   return (
     <div
