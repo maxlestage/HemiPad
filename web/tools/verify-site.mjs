@@ -1035,6 +1035,59 @@ for (const [largeur, collante] of [[1280, true], [390, false]]) {
   await context.close()
 }
 
+// --- Les ombres des éléments colorés --------------------------------------
+
+for (const thème of ['dark', 'light']) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.evaluate((t) => localStorage.setItem('hemipad.theme', t), thème)
+  await page.reload({ waitUntil: 'networkidle' })
+
+  const relevé = await page.evaluate(() => {
+    const style = (sélecteur) => {
+      const élément = document.querySelector(sélecteur)
+      return élément ? getComputedStyle(élément) : null
+    }
+    const forme = document.querySelector('[data-control] .control-shape')
+    return {
+      bouton: style('.button.primary')?.boxShadow ?? 'absent',
+      icône: style('.feature-icon')?.boxShadow ?? 'absent',
+      titre: style('.gradient-text')?.filter ?? 'absent',
+      chiffres: style('.hero-stats dd')?.textShadow ?? 'absent',
+      surtitre: style('.eyebrow')?.textShadow ?? 'absent',
+      filtreCommande: forme?.getAttribute('filter') ?? 'absent',
+      filtreCssCommande: forme ? getComputedStyle(forme).filter : 'absent',
+      filtreDéfini: Boolean(document.getElementById('ombre-commande'))
+    }
+  })
+
+  const à = ` (${thème === 'dark' ? 'sombre' : 'clair'})`
+  check(relevé.bouton !== 'none' && relevé.bouton !== 'absent', 'le bouton principal porte une ombre' + à, relevé.bouton)
+  check(relevé.icône !== 'none' && relevé.icône !== 'absent', 'les icônes colorées portent une ombre' + à, relevé.icône)
+  check(relevé.titre.includes('drop-shadow'), 'le titre en dégradé porte une ombre' + à, relevé.titre)
+  check(relevé.chiffres !== 'none' && relevé.chiffres !== 'absent', 'les chiffres colorés portent une ombre' + à, relevé.chiffres)
+  // Le petit texte coloré n'en a pas : une ombre sur des lettres de onze
+  // pixels les brouille. C'est un choix, on le garde.
+  check(relevé.surtitre === 'none', 'le petit texte coloré reste net, sans ombre' + à, relevé.surtitre)
+  // Safari ne peint pas un `drop-shadow` CSS posé sur un élément de dessin
+  // SVG : l'ombre des commandes doit passer par le filtre SVG, sans quoi elle
+  // serait visible partout sauf sur un iPhone.
+  check(
+    relevé.filtreDéfini && relevé.filtreCommande === 'url(#ombre-commande)',
+    'les commandes de la démo portent le filtre d’ombre SVG' + à,
+    relevé.filtreCommande
+  )
+  // L'attribut SVG se reflète dans le style calculé (`url("#…")`) : c'est
+  // normal. Ce qui est interdit, c'est une *fonction* de filtre CSS.
+  check(
+    !relevé.filtreCssCommande.includes('drop-shadow'),
+    'aucune ombre de commande ne passe par un filtre CSS, invisible sur Safari' + à,
+    relevé.filtreCssCommande
+  )
+  await context.close()
+}
+
 // --- Captures pour le manifeste -------------------------------------------
 
 await mkdir(shots, { recursive: true })

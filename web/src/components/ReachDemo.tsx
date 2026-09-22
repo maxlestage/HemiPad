@@ -248,6 +248,24 @@ export function ReachDemo() {
                 <stop offset="0%" stopColor={profile.accent} stopOpacity="0.28" />
                 <stop offset="100%" stopColor={profile.accent} stopOpacity="0" />
               </radialGradient>
+              {/*
+                L'ombre des commandes, en filtre SVG et pas en `filter` CSS :
+                Safari ne peint pas un `drop-shadow` CSS posé sur un élément
+                de dessin SVG — vérifié au pixel près dans WebKit. L'ombre
+                aurait été visible partout sauf sur un iPhone.
+
+                Elle est teintée de la couleur de la console affichée : l'écran
+                est sombre, et une ombre noire n'y laisserait aucune trace.
+              */}
+              <filter id="ombre-commande" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow
+                  dx="0"
+                  dy="3"
+                  stdDeviation="4.5"
+                  floodColor={profile.accent}
+                  floodOpacity="0.5"
+                />
+              </filter>
             </defs>
 
             <circle
@@ -633,9 +651,16 @@ function ControlShape({
           height={size.height}
           rx={size.height / 2}
           className="control-shape"
+          filter="url(#ombre-commande)"
         />
       ) : (
-        <circle cx={0} cy={0} r={size.width / 2} className="control-shape" />
+        <circle
+          cx={0}
+          cy={0}
+          r={size.width / 2}
+          className="control-shape"
+          filter="url(#ombre-commande)"
+        />
       )}
 
       {isDirectional && (
