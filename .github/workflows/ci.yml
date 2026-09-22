@@ -47,6 +47,59 @@ jobs:
           curl -sf http://localhost:4173/ | grep -q '<div id="root">'
           kill $serveur
 
+  navigateur:
+    name: Vérifications dans un navigateur
+    runs-on: ubuntu-latest
+    # Le garde-fou le plus complet du projet : cent six contrôles dans un vrai
+    # Chromium — les trois langues, les trois thèmes, le contraste, le
+    # débordement de 320 à 1280 px, l'application installable et le mode hors
+    # connexion, les réglages par commande, les animations et leur
+    # interrupteur. Rien de tout cela n'est visible depuis un test unitaire.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Installer Chromium
+        # playwright-core ne télécharge aucun navigateur à l'installation :
+        # c'est justement ce qui le rend léger pour le reste du projet. Il faut
+        # donc le demander, et « --with-deps » apporte les bibliothèques
+        # système qu'un Chromium sans bureau réclame.
+        run: node node_modules/playwright-core/cli.js install --with-deps chromium
+
+      - name: Construire le site
+        run: npm run build
+
+      - name: Vérifier le site dans le navigateur
+        run: |
+          PORT=4173 node server/index.mjs &
+          serveur=$!
+          for tentative in $(seq 1 20); do
+            if curl -sf http://localhost:4173/healthz > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl -sf http://localhost:4173/healthz > /dev/null \
+            || { echo "::error::le serveur n'a pas démarré"; exit 1; }
+          npm run verify:site
+          kill $serveur
+
+      - name: Conserver les captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captures-du-site
+          path: web/public/screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
+
   projet-xcode:
     name: Projet Xcode régénérable
     runs-on: ubuntu-latest
