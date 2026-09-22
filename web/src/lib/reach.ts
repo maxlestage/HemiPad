@@ -60,8 +60,12 @@ export interface Layout {
   target: number
 }
 
-/** Espacement minimal entre deux voisines, en proportion de leur taille. */
-const SPACING = 1.1
+/**
+ * Espacement minimal entre deux voisines, en proportion de leur taille.
+ * Même valeur que l'application : deux cibles qui se frôlent sont deux cibles
+ * qu'un doigt tremblant confond.
+ */
+const SPACING = 1.18
 const MIN_TARGET = 28
 
 export function halfExtent(size: Size): number {

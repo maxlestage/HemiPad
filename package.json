@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Site vitrine de HemiPad, la manette tactile accessible pour consoles et ordinateurs.",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "workspaces": [
     "web"
   ],
@@ -18,6 +18,8 @@
     "typecheck": "npm run typecheck --workspace=web",
     "test": "npm run test --workspace=web",
     "start": "node server/index.mjs",
+    "verify:site": "node web/tools/verify-site.mjs",
+    "assets": "node web/tools/generate-assets.mjs",
     "heroku-postbuild": "npm run build --workspace=web"
   },
   "dependencies": {

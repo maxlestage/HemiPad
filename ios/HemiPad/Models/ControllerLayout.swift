@@ -80,8 +80,10 @@ struct ControllerLayout {
     static let sideMargin: CGFloat = 8
     /// Bande haute réservée au bandeau d'état et aux sélecteurs.
     static let topBand: CGFloat = 118
-    /// Espacement minimal entre deux cibles voisines, en proportion.
-    static let spacingFactor: CGFloat = 1.1
+    /// Espacement minimal entre deux cibles voisines, en proportion de leur
+    /// taille. 1,18 laisse un vide franc : deux cercles qui se frôlent sont
+    /// deux cibles qu'un doigt tremblant confond.
+    static let spacingFactor: CGFloat = 1.18
     /// Plancher d'Apple pour une cible tactile.
     static let minimumTargetSize: CGFloat = 44
 
