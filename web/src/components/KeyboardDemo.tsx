@@ -58,7 +58,7 @@ export function KeyboardDemo() {
   }
 
   return (
-    <section className="keyboard" id="clavier" aria-labelledby="clavier-titre">
+    <section className="keyboard reveal" id="clavier" aria-labelledby="clavier-titre">
       <div className="section-head">
         <p className="eyebrow">{t.keyboard.eyebrow}</p>
         <h2 id="clavier-titre">{t.keyboard.title}</h2>

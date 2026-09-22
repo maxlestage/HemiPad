@@ -4,7 +4,7 @@ export function Architecture() {
   const { t } = useI18n()
 
   return (
-    <section className="architecture" id="technique" aria-labelledby="technique-titre">
+    <section className="architecture reveal" id="technique" aria-labelledby="technique-titre">
       <div className="section-head">
         <p className="eyebrow">{t.architecture.eyebrow}</p>
         <h2 id="technique-titre">{t.architecture.title}</h2>

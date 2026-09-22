@@ -431,10 +431,10 @@ for (const scheme of ['dark', 'light']) {
     .locator('.demo-controls')
     .getByLabel(/^(Espacement|Spacing|Separación)$/)
   await curseur.fill('1.05')
-  await page.waitForTimeout(250)
+  await page.waitForTimeout(700)
   const serre = await ecartMinimal()
   await curseur.fill('1.6')
-  await page.waitForTimeout(250)
+  await page.waitForTimeout(700)
   const large = await ecartMinimal()
 
   check(large > serre, "le curseur d'espacement écarte réellement les commandes", `${serre.toFixed(1)} px → ${large.toFixed(1)} px`)
@@ -644,6 +644,101 @@ for (const scheme of ['dark', 'light']) {
   check(
     (await page.locator('.hero-scene canvas').count()) === 1,
     'le réglage « animées » rallume la scène'
+  )
+  await context.close()
+}
+
+// --- Les commandes glissent, elles ne sautent pas -------------------------
+
+{
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.locator('#demo').scrollIntoViewIfNeeded()
+  await page.waitForTimeout(500)
+
+  const position = () =>
+    page.evaluate(() => {
+      const commande = document.querySelector('[data-control="directional"]')
+      if (!commande) return null
+      // La translation appliquée à l'instant, transition comprise : c'est ce
+      // que le navigateur dessine, pas ce que React a demandé.
+      const matrice = new DOMMatrixReadOnly(getComputedStyle(commande).transform)
+      return matrice.e
+    })
+
+  const départ = await position()
+  // Basculer la main renvoie toutes les commandes de l'autre côté : c'est le
+  // plus grand déplacement que la démonstration sache produire.
+  await page.getByRole('button', { name: /^(Gauche|Left|Izquierda)$/ }).click()
+  const aussitôt = await position()
+  await page.waitForTimeout(700)
+  const arrivée = await position()
+
+  check(
+    départ !== null && arrivée !== null && Math.abs(arrivée - départ) > 150,
+    'changer de main renvoie la commande de l’autre côté',
+    `${départ} → ${arrivée}`
+  )
+  // Si la commande était déjà arrivée à la première mesure, c'est qu'elle a
+  // sauté : la transition ne s'applique pas.
+  check(
+    aussitôt !== null && arrivée !== null && Math.abs(aussitôt - arrivée) > 8,
+    'la commande glisse au lieu de sauter',
+    `mesure immédiate ${aussitôt}, arrivée ${arrivée}`
+  )
+  await context.close()
+}
+
+// --- Apparition des sections au défilement --------------------------------
+
+{
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+
+  const opacité = (sélecteur) =>
+    page.evaluate(
+      (s) => Number(getComputedStyle(document.querySelector(s)).opacity),
+      sélecteur
+    )
+
+  check(await opacité('#partage') < 1, 'une section hors écran attend son tour')
+  await page.locator('#partage').scrollIntoViewIfNeeded()
+  await page.waitForTimeout(900)
+  check(await opacité('#partage') === 1, 'la section apparaît quand on arrive dessus')
+
+  // Aucune section ne doit rester coincée une fois la page parcourue.
+  for (const ancre of ['#demo', '#accessibilite', '#clavier', '#consoles', '#technique']) {
+    await page.locator(ancre).scrollIntoViewIfNeeded()
+    await page.waitForTimeout(250)
+  }
+  await page.waitForTimeout(700)
+  const restées = await page.evaluate(() =>
+    [...document.querySelectorAll('.reveal')]
+      .filter((n) => Number(getComputedStyle(n).opacity) < 1)
+      .map((n) => n.id || n.className)
+  )
+  check(restées.length === 0, 'aucune section ne reste cachée après le parcours', restées.join(' '))
+  await context.close()
+}
+
+// Animations réduites : aucune section ne doit dépendre d'une apparition.
+{
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    reducedMotion: 'reduce'
+  })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(400)
+  const opacités = await page.evaluate(() =>
+    [...document.querySelectorAll('.reveal')].map((n) => Number(getComputedStyle(n).opacity))
+  )
+  check(
+    opacités.length > 0 && opacités.every((valeur) => valeur === 1),
+    'animations réduites : toutes les sections sont visibles d\'emblée',
+    opacités.join(' ')
   )
   await context.close()
 }
