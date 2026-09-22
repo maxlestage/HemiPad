@@ -1,22 +1,22 @@
 import CoreGraphics
 import Foundation
 
-/// Plan de la manette : quelle commande, sur quel arc, à quelle taille.
+/// Plan de la manette : quelle commande, où, à quelle taille.
 ///
-/// La disposition vit ici plutôt que dans la vue pour une raison précise :
-/// « aucune commande hors de l'écran, aucune commande sur une autre » est une
-/// règle d'accessibilité, pas un détail visuel. Une cible partiellement cachée
-/// ou collée à sa voisine, pour une main qui tremble, revient à une cible
-/// inutilisable. La règle est donc calculée ici et vérifiée par des tests.
+/// Deux modes coexistent.
 ///
-/// Le solveur travaille en trois temps :
-/// 1. il déduit le rayon minimal de chaque arc de la taille des commandes,
-///    en imposant un espacement entre voisines ;
-/// 2. il place l'ensemble, puis translate le bloc entier si une commande
-///    dépasse du cadre — les distances relatives, donc le geste appris, sont
-///    conservées ;
-/// 3. si le bloc reste trop grand pour l'écran, il réduit la taille des cibles
-///    et recommence, sans jamais descendre sous les 44 points d'Apple.
+/// **Automatique** — les commandes se posent sur des arcs centrés sur
+/// l'articulation du pouce. Le solveur déduit les rayons de la taille des
+/// cibles, translate le bloc entier s'il déborde, puis, s'il le faut, réduit
+/// les cibles et enfin l'espacement. Réduire plutôt que masquer est une règle :
+/// une commande absente oblige à changer d'écran en plein jeu.
+///
+/// **Libre** — la personne place elle-même chaque commande. Le mode
+/// automatique sert de point de départ, et rien n'est imposé : les
+/// chevauchements sont autorisés, simplement signalés.
+///
+/// Dans les deux cas, chaque commande peut être masquée, agrandie, et avoir son
+/// propre mode d'appui.
 struct ControllerLayout {
     enum Element: Equatable {
         /// Commande directionnelle principale : stick ou croix, au choix.
@@ -32,6 +32,14 @@ struct ControllerLayout {
             case .button(let control), .pill(let control): return control
             }
         }
+
+        /// Clé de préférences, stable et écrite sur le disque.
+        var key: String {
+            switch self {
+            case .directional: return ControlKey.directional
+            case .button(let control), .pill(let control): return ControlKey.key(for: control)
+            }
+        }
     }
 
     struct Placement: Equatable, Identifiable {
@@ -39,13 +47,7 @@ struct ControllerLayout {
         let center: CGPoint
         let size: CGSize
 
-        var id: String {
-            switch element {
-            case .directional: return "directional"
-            case .button(let control): return "button.\(control.rawValue)"
-            case .pill(let control): return "pill.\(control.rawValue)"
-            }
-        }
+        var id: String { element.key }
 
         /// Rayon du cercle englobant : c'est cette distance qui sert au calcul
         /// de non-chevauchement, y compris pour les gélules.
@@ -70,20 +72,46 @@ struct ControllerLayout {
         let envelope: ReachEnvelope
         /// Taille de cible réellement retenue, éventuellement réduite pour tenir.
         let targetSize: CGFloat
+        /// Espacement réellement appliqué, éventuellement réduit pour tenir.
+        let spacing: CGFloat
         /// Rayons retenus, du plus proche au plus lointain (tracé du guide).
         let radii: [CGFloat]
         /// Vrai si la taille demandée par la personne a dû être réduite.
-        var wasDownscaled: Bool
+        let wasDownscaled: Bool
+        /// Vrai si l'espacement demandé a dû être resserré.
+        let wasTightened: Bool
+        /// Mode ayant produit ce plan.
+        let mode: LayoutMode
+
+        func placement(for key: String) -> Placement? {
+            placements.first { $0.id == key }
+        }
+
+        /// Paires de commandes qui se chevauchent. Toujours vide en mode
+        /// automatique ; en mode libre, c'est un avertissement, pas un blocage.
+        var overlapping: Set<String> {
+            var result: Set<String> = []
+            for i in placements.indices {
+                for j in placements.indices where j > i {
+                    let a = placements[i]
+                    let b = placements[j]
+                    let distance = hypot(a.center.x - b.center.x, a.center.y - b.center.y)
+                    if distance < a.halfExtent + b.halfExtent - 0.5 {
+                        result.insert(a.id)
+                        result.insert(b.id)
+                    }
+                }
+            }
+            return result
+        }
     }
 
     // Marges de sécurité, en points.
     static let sideMargin: CGFloat = 8
     /// Bande haute réservée au bandeau d'état et aux sélecteurs.
     static let topBand: CGFloat = 118
-    /// Espacement minimal entre deux cibles voisines, en proportion de leur
-    /// taille. 1,18 laisse un vide franc : deux cercles qui se frôlent sont
-    /// deux cibles qu'un doigt tremblant confond.
-    static let spacingFactor: CGFloat = 1.18
+    /// Espacement en deçà duquel on ne descend jamais, même à l'étroit.
+    static let minimumSpacing: CGFloat = 1.06
     /// Plancher d'Apple pour une cible tactile.
     static let minimumTargetSize: CGFloat = 44
 
@@ -92,30 +120,64 @@ struct ControllerLayout {
     static let systemOrder: [ControlID] = [.select, .home, .capture, .start]
     static let pillSize = CGSize(width: 78, height: 38)
 
+    /// Toutes les commandes qu'une console propose, masquées comprises : c'est
+    /// la liste que l'écran de réglages parcourt.
+    static func allElements(for console: ConsoleProfile) -> [Element] {
+        var elements: [Element] = [.directional]
+        elements.append(contentsOf: faceOrder.filter(console.has).map(Element.button))
+        elements.append(contentsOf: shoulderOrder.filter(console.has).map(Element.button))
+        elements.append(contentsOf: systemOrder.filter(console.has).map(Element.pill))
+        return elements
+    }
+
     /// Résout la disposition pour une taille de vue donnée.
     static func solve(profile: HemiplegiaProfile, console: ConsoleProfile, size: CGSize) -> Solution {
-        let requested = profile.baseTargetSize
-        var target = requested
+        let arc = solveArc(profile: profile, console: console, size: size)
+        guard profile.layoutMode == .free else { return arc }
+        return applyFreePositions(to: arc, profile: profile, size: size)
+    }
+
+    // MARK: - Mode automatique
+
+    private static func solveArc(
+        profile: HemiplegiaProfile,
+        console: ConsoleProfile,
+        size: CGSize
+    ) -> Solution {
+        let requestedTarget = profile.baseTargetSize
+        let requestedSpacing = max(profile.controlSpacing, minimumSpacing)
         let baseEnvelope = ReachEnvelope(profile: profile, size: size)
+        var spacing = requestedSpacing
 
         while true {
-            if let solution = attempt(
-                target: target,
-                requested: requested,
-                profile: profile,
-                console: console,
-                size: size,
-                envelope: baseEnvelope
-            ) {
-                return solution
+            var target = requestedTarget
+            while true {
+                if let solution = attempt(
+                    target: target,
+                    spacing: spacing,
+                    requestedTarget: requestedTarget,
+                    requestedSpacing: requestedSpacing,
+                    profile: profile,
+                    console: console,
+                    size: size,
+                    envelope: baseEnvelope
+                ) {
+                    return solution
+                }
+                let nextTarget = target - max(2, target * 0.04)
+                guard nextTarget >= minimumTargetSize else { break }
+                target = nextTarget
             }
-            let next = target - max(2, target * 0.04)
-            guard next >= minimumTargetSize else {
-                // Écran trop petit même pour des cibles au minimum réglementaire :
-                // on rend quand même une disposition, la vue défilera.
+
+            // Les cibles sont au plancher : c'est l'espacement qui cède ensuite,
+            // jamais l'inverse. Un bouton sous 44 pt n'est plus une cible.
+            let nextSpacing = spacing - 0.04
+            guard nextSpacing >= minimumSpacing else {
                 return attempt(
                     target: minimumTargetSize,
-                    requested: requested,
+                    spacing: minimumSpacing,
+                    requestedTarget: requestedTarget,
+                    requestedSpacing: requestedSpacing,
                     profile: profile,
                     console: console,
                     size: size,
@@ -125,33 +187,55 @@ struct ControllerLayout {
                     placements: [],
                     envelope: baseEnvelope,
                     targetSize: minimumTargetSize,
+                    spacing: minimumSpacing,
                     radii: [],
-                    wasDownscaled: true
+                    wasDownscaled: true,
+                    wasTightened: true,
+                    mode: profile.layoutMode
                 )
             }
-            target = next
+            spacing = nextSpacing
         }
     }
 
     private struct Ring {
         let elements: [Element]
-        let size: CGSize
+        let sizes: [CGSize]
+
+        var maximumHalfExtent: CGFloat {
+            sizes.map(halfExtent(of:)).max() ?? 0
+        }
     }
 
-    private static func rings(target: CGFloat, console: ConsoleProfile) -> [Ring] {
-        [
-            Ring(
-                elements: faceOrder.filter(console.has).map(Element.button),
-                size: CGSize(width: target, height: target)
-            ),
-            Ring(
-                elements: shoulderOrder.filter(console.has).map(Element.button),
-                size: CGSize(width: target * 0.82, height: target * 0.82)
-            ),
-            Ring(
-                elements: systemOrder.filter(console.has).map(Element.pill),
-                size: pillSize
-            )
+    /// Anneaux réellement affichés : les commandes masquées n'y figurent pas,
+    /// et chaque commande porte sa propre taille.
+    private static func rings(
+        target: CGFloat,
+        profile: HemiplegiaProfile,
+        console: ConsoleProfile
+    ) -> [Ring] {
+        func build(_ controls: [ControlID], scale: CGFloat, makeElement: (ControlID) -> Element) -> Ring {
+            let visible = controls.filter { console.has($0) && profile.isVisible(ControlKey.key(for: $0)) }
+            let sizes = visible.map { control -> CGSize in
+                let side = target * scale * profile.preference(control).sizeScale
+                return CGSize(width: side, height: side)
+            }
+            return Ring(elements: visible.map(makeElement), sizes: sizes)
+        }
+
+        func buildPills(_ controls: [ControlID]) -> Ring {
+            let visible = controls.filter { console.has($0) && profile.isVisible(ControlKey.key(for: $0)) }
+            let sizes = visible.map { control -> CGSize in
+                let scale = profile.preference(control).sizeScale
+                return CGSize(width: pillSize.width * scale, height: pillSize.height * scale)
+            }
+            return Ring(elements: visible.map(Element.pill), sizes: sizes)
+        }
+
+        return [
+            build(faceOrder, scale: 1, makeElement: Element.button),
+            build(shoulderOrder, scale: 0.82, makeElement: Element.button),
+            buildPills(systemOrder)
         ].filter { !$0.elements.isEmpty }
     }
 
@@ -163,51 +247,60 @@ struct ControllerLayout {
 
     private static func attempt(
         target: CGFloat,
-        requested: CGFloat,
+        spacing: CGFloat,
+        requestedTarget: CGFloat,
+        requestedSpacing: CGFloat,
         profile: HemiplegiaProfile,
         console: ConsoleProfile,
         size: CGSize,
         envelope: ReachEnvelope,
         forced: Bool = false
     ) -> Solution? {
-        let rings = rings(target: target, console: console)
-        guard !rings.isEmpty else { return nil }
+        let rings = rings(target: target, profile: profile, console: console)
+        let directionalVisible = profile.isVisible(ControlKey.directional)
+        guard !rings.isEmpty || directionalVisible else { return nil }
 
         // 1. Rayon minimal de chaque arc.
         var radii: [CGFloat] = []
         var previous: (radius: CGFloat, halfExtent: CGFloat)?
         for ring in rings {
-            let half = halfExtent(of: ring.size)
+            let half = ring.maximumHalfExtent
             var radius: CGFloat = 0
             if ring.elements.count > 1 {
                 // Corde entre deux voisines : 2·r·sin(Δθ/2) ≥ écartement requis.
                 let step = envelope.angularStep(count: ring.elements.count)
-                radius = (2 * half * spacingFactor) / (2 * sin(step / 2))
+                radius = (2 * half * spacing) / (2 * sin(step / 2))
             }
             if let previous {
-                radius = max(radius, previous.radius + (previous.halfExtent + half) * spacingFactor)
+                radius = max(radius, previous.radius + (previous.halfExtent + half) * spacing)
             }
             radii.append(radius)
             previous = (radius, half)
         }
 
         // 2. Commande directionnelle, au plus près du pouce et sous le premier arc.
-        let directionalSize = target * 1.6
-        let firstRadius = radii[0]
-        let firstHalf = halfExtent(of: rings[0].size)
-        let maximumDirectional = firstRadius - (directionalSize / 2 + firstHalf) * spacingFactor
-        guard maximumDirectional > 0 || forced else { return nil }
-        let preferred = max(envelope.innerRadius, directionalSize * 0.35)
-        let directionalRadius = max(min(preferred, maximumDirectional), directionalSize * 0.25)
+        var placements: [Placement] = []
+        var directionalRadius: CGFloat = 0
+        if directionalVisible {
+            let directionalSize = target * 1.6 * profile.preference(ControlKey.directional).sizeScale
+            if let firstRadius = radii.first, let firstRing = rings.first {
+                let maximum = firstRadius - (directionalSize / 2 + firstRing.maximumHalfExtent) * spacing
+                guard maximum > 0 || forced else { return nil }
+                let preferred = max(envelope.innerRadius, directionalSize * 0.35)
+                directionalRadius = max(min(preferred, maximum), directionalSize * 0.25)
+            } else {
+                directionalRadius = max(envelope.innerRadius, directionalSize * 0.5)
+            }
+            placements.append(
+                Placement(
+                    element: .directional,
+                    center: envelope.position(radius: directionalRadius, index: 1, count: 4),
+                    size: CGSize(width: directionalSize, height: directionalSize)
+                )
+            )
+        }
 
         // 3. Placement brut.
-        var placements: [Placement] = [
-            Placement(
-                element: .directional,
-                center: envelope.position(radius: directionalRadius, index: 1, count: 4),
-                size: CGSize(width: directionalSize, height: directionalSize)
-            )
-        ]
         for (ringIndex, ring) in rings.enumerated() {
             for (index, element) in ring.elements.enumerated() {
                 placements.append(
@@ -218,11 +311,13 @@ struct ControllerLayout {
                             index: index,
                             count: ring.elements.count
                         ),
-                        size: ring.size
+                        size: ring.sizes[index]
                     )
                 )
             }
         }
+
+        guard !placements.isEmpty else { return nil }
 
         // 4. Le bloc tient-il dans le cadre ? Sinon, on réduira les cibles.
         let frames = placements.map(\.frame)
@@ -264,8 +359,72 @@ struct ControllerLayout {
             placements: placements,
             envelope: envelope.offset(by: delta),
             targetSize: target,
-            radii: [directionalRadius] + radii,
-            wasDownscaled: target < requested - 0.5
+            spacing: spacing,
+            radii: directionalVisible ? [directionalRadius] + radii : radii,
+            wasDownscaled: target < requestedTarget - 0.5,
+            wasTightened: spacing < requestedSpacing - 0.005,
+            mode: profile.layoutMode
         )
+    }
+
+    // MARK: - Mode libre
+
+    /// Remplace les positions calculées par celles choisies, et garde chaque
+    /// commande entièrement visible : une cible à moitié hors de l'écran n'est
+    /// plus une cible.
+    private static func applyFreePositions(
+        to arc: Solution,
+        profile: HemiplegiaProfile,
+        size: CGSize
+    ) -> Solution {
+        let placements = arc.placements.map { placement -> Placement in
+            guard let stored = profile.preference(placement.id).freePosition else { return placement }
+            let center = clamp(
+                CGPoint(x: stored.x * size.width, y: stored.y * size.height),
+                size: placement.size,
+                in: size
+            )
+            return Placement(element: placement.element, center: center, size: placement.size)
+        }
+
+        return Solution(
+            placements: placements,
+            envelope: arc.envelope,
+            targetSize: arc.targetSize,
+            spacing: arc.spacing,
+            radii: arc.radii,
+            wasDownscaled: arc.wasDownscaled,
+            wasTightened: arc.wasTightened,
+            mode: .free
+        )
+    }
+
+    /// Ramène un centre de commande dans le cadre, marges comprises.
+    ///
+    /// La bande haute est exclue même en mode libre : le bandeau d'état y est
+    /// dessiné par-dessus, et une commande placée dessous ne recevrait aucun
+    /// appui. Une liberté qui produit un bouton inutilisable n'en est pas une.
+    static func clamp(
+        _ center: CGPoint,
+        size: CGSize,
+        in bounds: CGSize,
+        topInset: CGFloat = topBand
+    ) -> CGPoint {
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
+        let minX = sideMargin + halfWidth
+        let maxX = max(minX, bounds.width - sideMargin - halfWidth)
+        let minY = topInset + halfHeight
+        let maxY = max(minY, bounds.height - sideMargin - halfHeight)
+        return CGPoint(
+            x: min(max(center.x, minX), maxX),
+            y: min(max(center.y, minY), maxY)
+        )
+    }
+
+    /// Position normalisée (0…1) à enregistrer pour une position à l'écran.
+    static func normalized(_ center: CGPoint, in bounds: CGSize) -> CGPoint {
+        guard bounds.width > 0, bounds.height > 0 else { return .zero }
+        return CGPoint(x: center.x / bounds.width, y: center.y / bounds.height)
     }
 }

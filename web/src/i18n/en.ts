@@ -48,6 +48,41 @@ export const en: Dictionary = {
     console: 'Console',
     releaseAll: 'Release everything',
     connected: 'Connected',
+    layout: {
+      label: 'Layout',
+      arc: 'Automatic',
+      free: 'Free',
+      arcDetail:
+        'Controls sit on the arc your thumb reaches, and rearrange themselves whenever a setting changes.',
+      freeDetail:
+        'You place every control yourself. The automatic layout is the starting point.'
+    },
+    spacing: 'Spacing',
+    spacingHint:
+      'Minimum gap between neighbours. The larger it is, the further apart they sit — and the more they shrink on a narrow screen.',
+    tightened:
+      'The screen is too narrow: spacing had to tighten once targets had already reached their minimum size.',
+    edit: {
+      start: 'Edit',
+      done: 'Done',
+      hint: 'Tap a control to adjust it. Switch to the free layout to move it.',
+      hintFree: 'Drag a control to place it, tap it to adjust it.',
+      overlap: (count) => `${count} controls overlap: they will stay hard to aim at.`,
+      resetPositions: 'Reset positions'
+    },
+    control: {
+      settings: 'Control settings',
+      visibility: 'Visibility',
+      show: 'Show',
+      hide: 'Hide',
+      hiddenBadge: 'hidden',
+      activation: 'Press mode',
+      inherit: 'General setting',
+      size: 'Size',
+      reposition: 'Back to its automatic place',
+      reset: 'Reset this control',
+      close: 'Close'
+    },
     active: (count) => `${count} active`,
     screenLabel: (console, hand) => `${console} controller laid out for the ${hand}`,
     modes: [

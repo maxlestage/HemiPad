@@ -48,6 +48,41 @@ export const es: Dictionary = {
     console: 'Consola',
     releaseAll: 'Soltar todo',
     connected: 'Conectado',
+    layout: {
+      label: 'Disposición',
+      arc: 'Automática',
+      free: 'Libre',
+      arcDetail:
+        'Los controles se sitúan sobre el arco que alcanza tu pulgar y se reorganizan con cada ajuste.',
+      freeDetail:
+        'Colocas cada control donde quieras. La disposición automática es el punto de partida.'
+    },
+    spacing: 'Separación',
+    spacingHint:
+      'Distancia mínima entre vecinos. Cuanto mayor es, más separados quedan — y más se reducen en una pantalla estrecha.',
+    tightened:
+      'La pantalla es demasiado estrecha: la separación tuvo que reducirse después de que los objetivos llegaran a su tamaño mínimo.',
+    edit: {
+      start: 'Editar',
+      done: 'Hecho',
+      hint: 'Toca un control para ajustarlo. Cambia a disposición libre para moverlo.',
+      hintFree: 'Arrastra un control para colocarlo, tócalo para ajustarlo.',
+      overlap: (count) => `${count} controles se superponen: seguirán siendo difíciles de acertar.`,
+      resetPositions: 'Recolocar todo'
+    },
+    control: {
+      settings: 'Ajustes del control',
+      visibility: 'Visibilidad',
+      show: 'Mostrar',
+      hide: 'Ocultar',
+      hiddenBadge: 'oculto',
+      activation: 'Modo de pulsación',
+      inherit: 'Ajuste general',
+      size: 'Tamaño',
+      reposition: 'Volver a su lugar automático',
+      reset: 'Restablecer este control',
+      close: 'Cerrar'
+    },
     active: (count) => `${count} activo${count > 1 ? 's' : ''}`,
     screenLabel: (console, hand) => `Mando ${console} dispuesto para la mano ${hand}`,
     modes: [

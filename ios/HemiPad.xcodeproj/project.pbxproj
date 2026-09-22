@@ -22,6 +22,7 @@
 		CE7AE526C38FD42325B98FE7 /* KeyboardUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0F29055F64711FA914EA564 /* KeyboardUsage.swift */; };
 		A45D8925CEF1382A625CBE82 /* ConsoleProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F67475BA41131780983E156 /* ConsoleProfile.swift */; };
 		402F95D5BFEE6C10EDDBA58E /* ControlID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7763058D3E43AEEA9EB67B7F /* ControlID.swift */; };
+		4EBD8A20FAD75EC4633112D5 /* ControlPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014AFB76CDA9C6C1CD679D00 /* ControlPreference.swift */; };
 		9F91E75284792597FEDAD2EB /* ControllerLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69F77A8FF1D39227AE686CA8 /* ControllerLayout.swift */; };
 		3E5148DB5B08263FDDD3C506 /* GamepadState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D4C596333CCBDA2697FF957 /* GamepadState.swift */; };
 		A728C0C91803BE840FDE71B4 /* EnvironmentInjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6577CA5F597CC6F8457F47D /* EnvironmentInjection.swift */; };
@@ -35,6 +36,7 @@
 		4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */; };
 		DF529476E6552026367555CA /* CalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */; };
 		E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C35973498C6132B703FF4AB /* ConnectScreen.swift */; };
+		D1815133DD2CA24546BF12AE /* ControlEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3028267CDB8EE7C7D6BFA2 /* ControlEditorView.swift */; };
 		D781A304F7B42A5ABCB13E28 /* ControllerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */; };
 		4A012A90A5153FC679B78E41 /* KeyboardScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B5B932433AD55C695654D5 /* KeyboardScreen.swift */; };
 		7ACCA459423F2BE08BDE732C /* PadButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */; };
@@ -73,6 +75,7 @@
 		B0F29055F64711FA914EA564 /* KeyboardUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardUsage.swift; sourceTree = "<group>"; };
 		0F67475BA41131780983E156 /* ConsoleProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleProfile.swift; sourceTree = "<group>"; };
 		7763058D3E43AEEA9EB67B7F /* ControlID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlID.swift; sourceTree = "<group>"; };
+		014AFB76CDA9C6C1CD679D00 /* ControlPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPreference.swift; sourceTree = "<group>"; };
 		69F77A8FF1D39227AE686CA8 /* ControllerLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerLayout.swift; sourceTree = "<group>"; };
 		2D4C596333CCBDA2697FF957 /* GamepadState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamepadState.swift; sourceTree = "<group>"; };
 		B6577CA5F597CC6F8457F47D /* EnvironmentInjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentInjection.swift; sourceTree = "<group>"; };
@@ -86,6 +89,7 @@
 		9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportCoordinator.swift; sourceTree = "<group>"; };
 		B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationView.swift; sourceTree = "<group>"; };
 		3C35973498C6132B703FF4AB /* ConnectScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectScreen.swift; sourceTree = "<group>"; };
+		1B3028267CDB8EE7C7D6BFA2 /* ControlEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlEditorView.swift; sourceTree = "<group>"; };
 		76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerScreen.swift; sourceTree = "<group>"; };
 		52B5B932433AD55C695654D5 /* KeyboardScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardScreen.swift; sourceTree = "<group>"; };
 		8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadButtonView.swift; sourceTree = "<group>"; };
@@ -176,6 +180,7 @@
 			children = (
 				0F67475BA41131780983E156 /* ConsoleProfile.swift */,
 				7763058D3E43AEEA9EB67B7F /* ControlID.swift */,
+				014AFB76CDA9C6C1CD679D00 /* ControlPreference.swift */,
 				69F77A8FF1D39227AE686CA8 /* ControllerLayout.swift */,
 				2D4C596333CCBDA2697FF957 /* GamepadState.swift */,
 			);
@@ -219,6 +224,7 @@
 			children = (
 				B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */,
 				3C35973498C6132B703FF4AB /* ConnectScreen.swift */,
+				1B3028267CDB8EE7C7D6BFA2 /* ControlEditorView.swift */,
 				76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */,
 				52B5B932433AD55C695654D5 /* KeyboardScreen.swift */,
 				8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */,
@@ -360,6 +366,7 @@
 				CE7AE526C38FD42325B98FE7 /* KeyboardUsage.swift in Sources */,
 				A45D8925CEF1382A625CBE82 /* ConsoleProfile.swift in Sources */,
 				402F95D5BFEE6C10EDDBA58E /* ControlID.swift in Sources */,
+				4EBD8A20FAD75EC4633112D5 /* ControlPreference.swift in Sources */,
 				9F91E75284792597FEDAD2EB /* ControllerLayout.swift in Sources */,
 				3E5148DB5B08263FDDD3C506 /* GamepadState.swift in Sources */,
 				A728C0C91803BE840FDE71B4 /* EnvironmentInjection.swift in Sources */,
@@ -373,6 +380,7 @@
 				4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */,
 				DF529476E6552026367555CA /* CalibrationView.swift in Sources */,
 				E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */,
+				D1815133DD2CA24546BF12AE /* ControlEditorView.swift in Sources */,
 				D781A304F7B42A5ABCB13E28 /* ControllerScreen.swift in Sources */,
 				4A012A90A5153FC679B78E41 /* KeyboardScreen.swift in Sources */,
 				7ACCA459423F2BE08BDE732C /* PadButtonView.swift in Sources */,

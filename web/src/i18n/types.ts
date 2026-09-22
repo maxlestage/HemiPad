@@ -59,6 +59,37 @@ export interface Dictionary {
     console: string
     releaseAll: string
     connected: string
+    layout: {
+      label: string
+      arc: string
+      free: string
+      arcDetail: string
+      freeDetail: string
+    }
+    spacing: string
+    spacingHint: string
+    tightened: string
+    edit: {
+      start: string
+      done: string
+      hint: string
+      hintFree: string
+      overlap: (count: number) => string
+      resetPositions: string
+    }
+    control: {
+      settings: string
+      visibility: string
+      show: string
+      hide: string
+      hiddenBadge: string
+      activation: string
+      inherit: string
+      size: string
+      reposition: string
+      reset: string
+      close: string
+    }
     active: (count: number) => string
     screenLabel: (console: string, hand: string) => string
     modes: { id: 'direct' | 'latch' | 'dwell'; label: string; detail: string }[]

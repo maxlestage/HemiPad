@@ -43,6 +43,9 @@ quelle manette ou clavier USB — puis les achemine par l'un des deux chemins :
 | Geste impossible ou coûteux | Réponse de HemiPad |
 |---|---|
 | Traverser l'écran avec le pouce | Toutes les commandes sont posées sur des **arcs d'atteinte** centrés sur l'articulation du pouce, calibrables en traçant un geste |
+| Une disposition qui ne convient à personne | **Disposition libre** : chaque commande se déplace au doigt, l'automatique servant de point de départ |
+| Un réglage unique pour des commandes différentes | **Chaque commande** a son mode d'appui, sa taille et sa visibilité |
+| Des boutons trop serrés | **Espacement réglable** ; à l'étroit, les cibles rétrécissent d'abord, l'espacement ne cède qu'ensuite |
 | Maintenir une gâchette | **Appui verrouillant** : un appui active, un appui désactive |
 | Appuyer franchement | **Survol prolongé** : poser le doigt et attendre suffit |
 | Spasme qui rejoue l'appui | **Anti-rebond** réglable |
@@ -57,6 +60,10 @@ un solveur (`ControllerLayout`) qui **réduit la taille des cibles plutôt que
 d'en masquer une**, et des tests vérifient, sur cinq tailles d'écran, les deux
 mains et les six profils de consoles, qu'aucune commande ne sort de l'écran ni
 n'en recouvre une autre.
+
+En disposition libre, l'application cesse d'imposer et se contente
+d'avertir : les positions choisies sont respectées, simplement ramenées dans
+l'écran, et les chevauchements sont signalés au lieu d'être corrigés.
 
 ## Le site vitrine
 

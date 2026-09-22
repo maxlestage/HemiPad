@@ -48,6 +48,40 @@ export const fr: Dictionary = {
     console: 'Console',
     releaseAll: 'Tout relâcher',
     connected: 'Connecté',
+    layout: {
+      label: 'Disposition',
+      arc: 'Automatique',
+      free: 'Libre',
+      arcDetail:
+        "Les commandes se posent sur l'arc que votre pouce atteint, et se réorganisent à chaque réglage.",
+      freeDetail:
+        "Vous placez chaque commande où vous voulez. La disposition automatique sert de point de départ."
+    },
+    spacing: 'Espacement',
+    spacingHint:
+      "Écart minimal entre deux voisines. Plus il est grand, plus elles sont séparées — et plus elles rétrécissent quand l'écran est étroit.",
+    tightened: "L'écran est trop étroit : l'espacement a dû être resserré après que les cibles ont atteint leur taille minimale.",
+    edit: {
+      start: 'Modifier',
+      done: 'Terminé',
+      hint: 'Touchez une commande pour la régler. Passez en disposition libre pour la déplacer.',
+      hintFree: 'Faites glisser une commande pour la placer, touchez-la pour la régler.',
+      overlap: (count) => `${count} commandes se chevauchent : elles resteront difficiles à viser.`,
+      resetPositions: 'Tout replacer'
+    },
+    control: {
+      settings: 'Réglages de la commande',
+      visibility: 'Affichage',
+      show: 'Afficher',
+      hide: 'Masquer',
+      hiddenBadge: 'masquée',
+      activation: "Mode d'appui",
+      inherit: 'Réglage général',
+      size: 'Taille',
+      reposition: 'Remettre à sa place automatique',
+      reset: 'Réinitialiser cette commande',
+      close: 'Fermer'
+    },
     active: (count) => `${count} actif${count > 1 ? 's' : ''}`,
     screenLabel: (console, hand) => `Manette ${console} disposée pour la ${hand}`,
     modes: [
