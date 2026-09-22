@@ -9,7 +9,7 @@ export function FeatureGrid() {
   const { t } = useI18n()
 
   return (
-    <section className="features" id="accessibilite" aria-labelledby="features-titre">
+    <section className="features reveal" id="accessibilite" aria-labelledby="features-titre">
       <div className="section-head">
         <p className="eyebrow">{t.features.eyebrow}</p>
         <h2 id="features-titre">{t.features.title}</h2>
