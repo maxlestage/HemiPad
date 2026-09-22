@@ -1,0 +1,60 @@
+name: Application iOS
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+  pull_request:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+# Ce travail est la raison pour laquelle le projet est développable sans
+# ordinateur : c'est ici que le code Swift est réellement compilé et que les
+# tests d'accessibilité tournent, sur un Mac fourni par GitHub.
+jobs:
+  build-et-tests:
+    name: Compilation et tests
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode disponible
+        run: xcodebuild -version
+
+      - name: Choisir un simulateur iPhone
+        id: simulateur
+        run: |
+          nom=$(xcrun simctl list devices available --json \
+            | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];n=[x['name'] for v in d.values() for x in v if x['name'].startswith('iPhone')];print(sorted(n)[-1] if n else '')")
+          if [ -z "$nom" ]; then
+            echo "aucun simulateur iPhone disponible" >&2
+            exit 1
+          fi
+          echo "nom=$nom" >> "$GITHUB_OUTPUT"
+          echo "simulateur retenu : $nom"
+
+      - name: Compiler et tester
+        run: |
+          xcodebuild test \
+            -project ios/HemiPad.xcodeproj \
+            -scheme HemiPad \
+            -destination "platform=iOS Simulator,name=${{ steps.simulateur.outputs.nom }}" \
+            -resultBundlePath resultats.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Conserver le rapport de tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultats-xcode
+          path: resultats.xcresult
+          if-no-files-found: ignore
