@@ -83,6 +83,36 @@ recalcule vraiment la géométrie, avec les mêmes règles que sur l'iPhone.
   le site s'ajoute à l'écran d'accueil et reste consultable hors connexion.
 - **Fiche de partage** — image d'aperçu 1200 × 630 pour les messageries, plus
   un bouton qui utilise le partage natif du téléphone, ou copie le lien.
+- **La marque en relief** — le logo est modélisé en 3D (React Three Fiber) au
+  sommet de la page : une moitié pleine, une moitié en nuage de points qui
+  respire. Voir plus bas pour ce que cela coûte, et comment on l'éteint.
+
+### La scène 3D, et son interrupteur
+
+La marque du hero est une vraie scène WebGL, construite à partir des **mêmes
+tracés** que le logo plat et les icônes — un test refuse que la géométrie soit
+recopiée d'un côté ou de l'autre.
+
+Animer un site qui parle d'accessibilité demande quelques garanties, et elles
+sont toutes tenues :
+
+- **Rien n'est téléchargé de force.** three.js et le rendu pèsent près d'un
+  mégaoctet ; ils vivent dans un morceau à part, chargé seulement si la scène
+  doit tourner. Le reste du site n'a pas bougé de plus de deux kilo-octets.
+- **« Réduire les animations » est respecté**, et le morceau 3D n'est alors
+  même pas demandé au serveur. Un réglage explicite — *Animations :
+  automatique, animées, apaisées* — est offert dans le pied de page, dans les
+  deux sens : il peut apaiser une machine qui ne demande rien, et animer une
+  machine réglée en calme.
+- **Quatre replis vers le logo plat** : calme demandé, WebGL absent, morceau
+  pas encore arrivé, scène en échec. La page ne montre jamais un trou à la
+  place de sa marque.
+- **La boucle de rendu s'arrête** dès que la scène sort de l'écran ou que
+  l'onglet passe en arrière-plan, et la zone réserve sa hauteur d'avance : le
+  texte ne saute pas quand la 3D arrive.
+
+Dix vérifications dans un vrai navigateur couvrent tout cela, y compris le fait
+que la scène **bouge réellement** — deux captures espacées doivent différer.
 
 ## Identité visuelle
 
