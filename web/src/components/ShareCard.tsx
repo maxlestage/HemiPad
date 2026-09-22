@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { useI18n } from '../i18n/index.tsx'
+import { Mark } from './Mark.tsx'
 import { useInstallPrompt } from '../lib/pwa.ts'
 
 /**
@@ -59,26 +60,7 @@ export function ShareCard() {
       <div className="share-panel">
         <article className="share-card" aria-label={t.share.cardRole}>
           <div className="share-card-visual" aria-hidden="true">
-            <svg viewBox="0 0 64 64">
-              <path
-                d="M14 46a30 30 0 0 1 30-30"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-                opacity="0.45"
-              />
-              <path
-                d="M14 46a22 22 0 0 1 22-22"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-              <circle cx="44" cy="16" r="5" fill="currentColor" />
-              <circle cx="34" cy="21" r="4" fill="currentColor" opacity="0.7" />
-              <circle cx="14" cy="46" r="4" fill="currentColor" opacity="0.85" />
-            </svg>
+            <Mark />
           </div>
           <div className="share-card-body">
             <p className="share-card-name">HemiPad</p>

@@ -86,7 +86,24 @@ recalcule vraiment la géométrie, avec les mêmes règles que sur l'iPhone.
 
 ## Identité visuelle
 
-Six directions de marque sont proposées dans
+La marque retenue est **« la moitié manquante »** : une manette dont une moitié
+est pleine et l'autre en pointillés. *Hémi*, littéralement — et la moitié
+absente n'est pas un manque, c'est ce que l'application remplace. La croix
+directionnelle est un **trou** dans le corps, pas une forme posée dessus : un
+trou se voit sur n'importe quel fond, une forme peinte suppose de connaître
+celui-ci.
+
+Tout part d'un seul fichier, [`web/tools/mark.mjs`](web/tools/mark.mjs) :
+l'icône iOS 1024 px, la favicon, les icônes installables, l'image de partage.
+Le composant React [`web/src/components/Mark.tsx`](web/src/components/Mark.tsx)
+en reprend les tracés, et un test compare les deux fichiers pour qu'ils ne
+puissent pas diverger en silence.
+
+Deux variantes, chacune pour une contrainte réelle : la marque complète à
+partir de 32 px, et une variante d'onglet en dessous — à 16 px le pointillé
+n'est plus qu'une bouillie grise, trois points pleins gardent l'idée.
+
+Les six directions comparées avant le choix restent consultables dans
 [`docs/logos/propositions.html`](docs/logos/propositions.html), également servie
 par le site à l'adresse `/logos/`. Chaque proposition s'y teste sur fond clair,
 sur fond sombre et sur l'écran de l'application, jusqu'à 16 pixels — la taille

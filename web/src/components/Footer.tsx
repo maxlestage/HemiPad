@@ -1,4 +1,5 @@
 import { useI18n, type Locale } from '../i18n/index.tsx'
+import { Mark } from './Mark.tsx'
 import { themeChoices, useTheme, type ThemeChoice } from '../lib/theme.tsx'
 
 /**
@@ -25,25 +26,7 @@ export function Footer() {
       <div className="footer-inner">
         <div className="footer-brand">
           <a className="footer-mark" href="#top" aria-label="HemiPad">
-            <svg viewBox="0 0 64 64" aria-hidden="true">
-              <path
-                d="M14 46a30 30 0 0 1 30-30"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-                opacity="0.5"
-              />
-              <path
-                d="M14 46a22 22 0 0 1 22-22"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-              <circle cx="44" cy="16" r="5" fill="currentColor" />
-              <circle cx="14" cy="46" r="4" fill="currentColor" opacity="0.8" />
-            </svg>
+            <Mark compact />
             <span>HemiPad</span>
           </a>
           <p className="footer-tagline">{t.footer.tagline}</p>

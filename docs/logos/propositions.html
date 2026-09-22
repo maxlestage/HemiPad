@@ -337,7 +337,7 @@
       <button type="button" data-tile="dark" aria-pressed="false">Sombre</button>
       <button type="button" data-tile="screen" aria-pressed="false">Écran de l'app</button>
     </div>
-    <p class="chosen-note" id="chosen">Aucun choix pour l'instant.</p>
+    <p class="chosen-note" id="chosen">Choix retenu&nbsp;: <strong>n° 03 — La moitié manquante</strong>. C'est le logo en place dans l'application, sur le site et dans les icônes.</p>
   </div>
 
   <main class="grid" id="grid"></main>
@@ -346,8 +346,12 @@
     <p><strong>Comment choisir&nbsp;:</strong> regardez d'abord la colonne 16 px. Une marque qui
       s'effondre à cette taille ne fera jamais une bonne icône d'onglet, quelle que soit sa beauté
       en grand.</p>
-    <p>Dites-moi le numéro retenu (ou deux, si vous hésitez) et je remplace le logo actuel dans
-      l'application, sur le site, dans les icônes installables et sur la fiche de partage.</p>
+    <p><strong>Décidé&nbsp;:</strong> la n° 03, «&nbsp;la moitié manquante&nbsp;», est désormais le
+      logo du projet — icône iOS, favicon, icônes installables et fiche de partage. Le pointillé
+      s'effaçant sous 32&nbsp;px, la variante d'onglet le remplace par trois points pleins&nbsp;;
+      les deux dessins sortent du même fichier, <code>web/tools/mark.mjs</code>.</p>
+    <p>Cette page reste en ligne comme trace du choix&nbsp;: les cinq autres pistes restent
+      comparables, et un autre numéro peut être retenu plus tard sans tout redessiner.</p>
   </footer>
 </div>
 
@@ -372,15 +376,14 @@
         <path d="M13.5 44C22 26 42 26 50.5 44" fill="none" stroke="var(--mark-accent)" stroke-width="6" stroke-linecap="round"/>
         <circle cx="32" cy="30" r="5" fill="var(--mark-warm)"/>
       </svg>`,
+    // Dessin définitif, repris tel quel de web/tools/mark.mjs : la croix est un
+    // trou dans le corps, pas une forme posée dessus, pour tenir sur tout fond.
     hemi: (id) => `
-      <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Marque ${id}">
-        <path d="M32 18h-9c-7 0-12 5-13 12l-2 10c-1 5 2 8 6 8 3 0 5-2 7-5l3-5h8z" fill="var(--mark-ink)"/>
-        <circle cx="17" cy="30" r="2.6" fill="var(--mark-accent)"/>
-        <rect x="14.4" y="34" width="5.2" height="2.4" rx="1.2" fill="var(--mark-accent)"/>
-        <rect x="15.8" y="32.6" width="2.4" height="5.2" rx="1.2" fill="var(--mark-accent)"/>
-        <path d="M32 18h9c7 0 12 5 13 12l2 10c1 5-2 8-6 8-3 0-5-2-7-5l-3-5h-8z" fill="none" stroke="var(--mark-accent)" stroke-width="2" stroke-dasharray="4 4" opacity=".85"/>
-        <circle cx="45" cy="28" r="3" fill="var(--mark-accent)"/>
-        <circle cx="50" cy="34" r="3" fill="var(--mark-warm)"/>
+      <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Marque ${id}" fill="none">
+        <path d="M32 20H20c-7 0-11 4-12.5 11L5.5 41c-1 5.5 2.5 9 6.5 9 3.5 0 6-2.5 8-5.5L22.5 41H32ZM17.2 27.8h3.6v3.8h3.8v3.6h-3.8v3.8h-3.6v-3.8h-3.8v-3.6h3.8Z" fill="var(--mark-ink)" fill-rule="evenodd"/>
+        <path d="M32 20h12c7 0 11 4 12.5 11L58.5 41c1 5.5-2.5 9-6.5 9-3.5 0-6-2.5-8-5.5L41.5 41H32Z" fill="none" stroke="var(--mark-accent)" stroke-width="2.6" stroke-linejoin="round" stroke-dasharray="5.5 4.5"/>
+        <circle cx="44.5" cy="29.5" r="3.4" fill="var(--mark-accent)"/>
+        <circle cx="50.5" cy="35.5" r="3.4" fill="var(--mark-warm)"/>
       </svg>`,
     cible: (id) => `
       <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Marque ${id}">
@@ -427,7 +430,7 @@
       key: 'hemi',
       name: 'La moitié manquante',
       why: "Une manette dont une moitié est pleine et l'autre en pointillés : hémi, littéralement. La moitié absente n'est pas un manque, c'est ce que l'application remplace.",
-      verdict: "Concept le plus fort. Le pointillé demande à être vérifié à 16 px."
+      verdict: "Retenue. Vérifiée à 16 px : sous 32 px le pointillé cède la place à trois points pleins."
     },
     {
       key: 'cible',
@@ -518,6 +521,11 @@
       // Stockage indisponible : le choix vaut pour cette visite, c'est assez.
     }
   })
+
+  // La n° 03 est le choix arrêté du projet : elle s'affiche comme telle même
+  // dans un navigateur qui n'a jamais vu cette page.
+  const RETENUE = 2
+  showChoice(RETENUE)
 
   try {
     const stored = localStorage.getItem('hemipad.logo.choice')
