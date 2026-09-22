@@ -8,8 +8,9 @@
  *
  *     node web/tools/verify-site.mjs [http://localhost:4173]
  *
- * Nécessite playwright-core et un Chromium (PLAYWRIGHT_EXECUTABLE pour en
- * désigner un déjà installé).
+ * Nécessite playwright-core et un Chromium. Le navigateur est cherché dans
+ * l'ordre décrit par `chromium.mjs` ; en intégration continue, il est installé
+ * par `playwright-core install chromium`.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -17,6 +18,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { chromium } from 'playwright-core'
+
+import { optionsDeLancement } from './chromium.mjs'
 
 const base = process.argv[2] || 'http://localhost:4173'
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -33,13 +36,14 @@ function check(condition, label, detail = '') {
   }
 }
 
-const browser = await chromium.launch({
-  executablePath: process.env.PLAYWRIGHT_EXECUTABLE || '/opt/pw-browsers/chromium',
-  // Sans carte graphique, Chromium refuse WebGL et la scène 3D basculerait sur
-  // le logo plat — la vérification passerait sans avoir rien vérifié. On lui
-  // impose le rendu logiciel pour tester le vrai chemin.
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
-})
+const browser = await chromium.launch(
+  optionsDeLancement({
+    // Sans carte graphique, Chromium refuse WebGL et la scène 3D basculerait
+    // sur l'image fixe — la vérification passerait sans avoir rien vérifié. On
+    // lui impose le rendu logiciel pour tester le vrai chemin.
+    args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
+  })
+)
 
 // --- Langues ---------------------------------------------------------------
 
