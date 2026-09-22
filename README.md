@@ -119,7 +119,7 @@ ios/                   Application Swift
     Models/            Contrôles, consoles, solveur de disposition
     Transport/         Bluetooth HID, pont réseau, mode démo
     Views/             Écrans SwiftUI
-  HemiPadTests/        28 tests unitaires
+  HemiPadTests/        58 tests unitaires
   tools/               Génération et vérification du projet Xcode
 web/                   Site vitrine React + TypeScript
 server/                Serveur Express de production
@@ -173,6 +173,12 @@ un téléphone. La marche à suivre est détaillée dans
   automatique branché sur GitHub ;
 - l'application iOS est compilée et testée par GitHub Actions sur un Mac fourni
   par GitHub, sans qu'aucun Mac ne soit nécessaire de votre côté ;
+- elle se livre sur **TestFlight** d'un appui sur un bouton, signature et
+  certificats compris — la marche à suivre complète est dans
+  [docs/build-ios-depuis-le-telephone.md](docs/build-ios-depuis-le-telephone.md) ;
+- le workflow **Aperçu dans le simulateur** lance l'application sur un Mac
+  distant et rapporte des captures d'écran : de quoi voir l'interface tourner
+  sans compte développeur et sans rien payer ;
 - une *pull request* dont toutes les vérifications passent est **fusionnée
   automatiquement sur `master`** — réservé aux *pull requests* du propriétaire
   du dépôt, et suspendu par l'étiquette `pas-de-fusion-auto`.
