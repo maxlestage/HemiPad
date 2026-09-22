@@ -26,6 +26,17 @@
   --code-bg: rgba(0, 0, 0, 0.45);
   --shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
 
+  /*
+   * Ombres des éléments colorés, en deux couches.
+   *
+   * Sur fond presque noir, une ombre noire ne se voit pas : c'est la couche
+   * teintée — la couleur de l'élément, diffusée sous lui — qui donne le relief.
+   * Sur fond clair, c'est l'inverse : la couche de contact, neutre et serrée,
+   * pose l'élément sur la page, et la teinte n'est qu'un reflet.
+   */
+  --ombre-force: 46%;
+  --ombre-contact: rgba(0, 0, 0, 0.5);
+
   /* L'écran du téléphone de démonstration reste sombre dans les deux thèmes :
      c'est l'application qui y est représentée, et elle est sombre. */
   --screen-bg: #05060d;
@@ -57,6 +68,8 @@
   --glow: rgba(74, 63, 208, 0.18);
   --code-bg: rgba(10, 14, 30, 0.06);
   --shadow: 0 24px 60px rgba(10, 20, 60, 0.16);
+  --ombre-force: 30%;
+  --ombre-contact: rgba(10, 20, 60, 0.18);
 }
 
 /* Thème automatique : le site suit le réglage du système. */
@@ -78,6 +91,8 @@
     --glow: rgba(74, 63, 208, 0.18);
     --code-bg: rgba(10, 14, 30, 0.06);
     --shadow: 0 24px 60px rgba(10, 20, 60, 0.16);
+    --ombre-force: 30%;
+    --ombre-contact: rgba(10, 20, 60, 0.18);
   }
 }
 
@@ -441,6 +456,9 @@ input {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  /* Filtre plutôt que `text-shadow` : sur un texte découpé dans un dégradé,
+     `text-shadow` se peint *par-dessus* le dégradé et le salit. */
+  filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--accent) var(--ombre-force), transparent));
 }
 
 .lede {
@@ -483,7 +501,6 @@ input {
 .button.primary {
   background: linear-gradient(110deg, var(--accent), var(--accent-2));
   color: var(--on-accent);
-  box-shadow: 0 10px 34px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .button.ghost {
@@ -519,6 +536,7 @@ input {
   font-size: clamp(1.15rem, 5vw, 1.5rem);
   font-weight: 700;
   color: var(--accent);
+  text-shadow: 0 4px 14px color-mix(in srgb, var(--accent) var(--ombre-force), transparent);
 }
 
 /* -------------------------------------------------------------- sections */
@@ -1697,4 +1715,63 @@ html {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ------------------------------------------------------------ relief */
+
+/*
+ * Une ombre sous chaque surface colorée.
+ *
+ * Seules les surfaces en reçoivent : boutons, pastilles, icônes, badges. Le
+ * petit texte coloré — surtitres, étiquettes, extraits de code — n'en a pas :
+ * une ombre sur des lettres de onze pixels les brouille, et la lisibilité
+ * passe avant le relief.
+ *
+ * Chaque élément teinte son ombre de sa propre couleur (`--ombre-teinte`) :
+ * une pastille ambrée ne projette pas une ombre bleue.
+ */
+.button.primary,
+.segmented button.is-active,
+.modifier.is-armed,
+.feature-icon,
+.hero-tilt-button.is-active,
+.chip.is-active,
+.path-steps li,
+.share-card-visual,
+.share-installed,
+.panel-badge,
+.modifier.is-locked {
+  --ombre-teinte: var(--accent);
+  box-shadow:
+    0 1px 2px var(--ombre-contact),
+    0 8px 22px -10px color-mix(in srgb, var(--ombre-teinte) var(--ombre-force), transparent);
+}
+
+.panel-badge,
+.modifier.is-locked {
+  --ombre-teinte: var(--warn);
+}
+
+/* L'appel principal porte un peu plus haut que le reste : c'est lui qu'on
+   cherche en arrivant. */
+.button.primary {
+  box-shadow:
+    0 1px 2px var(--ombre-contact),
+    0 12px 30px -10px color-mix(in srgb, var(--accent) var(--ombre-force), transparent);
+}
+
+/* Ces deux-là avaient déjà un liseré intérieur : il reste, l'ombre s'ajoute. */
+.chip.is-active {
+  --ombre-teinte: var(--chip-accent, var(--accent));
+  box-shadow:
+    inset 0 0 0 1px var(--chip-accent, var(--accent)),
+    0 1px 2px var(--ombre-contact),
+    0 8px 22px -10px color-mix(in srgb, var(--ombre-teinte) var(--ombre-force), transparent);
+}
+
+.modifier.is-locked {
+  box-shadow:
+    inset 0 0 0 2px var(--warn),
+    0 1px 2px var(--ombre-contact),
+    0 8px 22px -10px color-mix(in srgb, var(--warn) var(--ombre-force), transparent);
 }

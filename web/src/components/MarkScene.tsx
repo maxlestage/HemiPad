@@ -58,6 +58,35 @@ function versScène(x: number, y: number): [number, number] {
   return [(x - CANVAS.width / 2) * UNITE, (CANVAS.height / 2 - y) * UNITE]
 }
 
+/**
+ * La tache d'ombre douce posée sous chaque commande.
+ *
+ * Un dégradé radial peint une fois dans un petit canevas, puis partagé par
+ * toutes les commandes. L'écran est sombre : une ombre noire n'y laisserait
+ * aucune trace, c'est donc la couleur de la commande qui se diffuse sous elle.
+ */
+let texturePartagée: THREE.CanvasTexture | null = null
+
+function textureOmbre(): THREE.CanvasTexture {
+  if (texturePartagée) return texturePartagée
+  const taille = 64
+  const canevas = document.createElement('canvas')
+  canevas.width = taille
+  canevas.height = taille
+  const contexte = canevas.getContext('2d')!
+  const dégradé = contexte.createRadialGradient(
+    taille / 2, taille / 2, 0,
+    taille / 2, taille / 2, taille / 2
+  )
+  dégradé.addColorStop(0, 'rgba(255,255,255,1)')
+  dégradé.addColorStop(0.45, 'rgba(255,255,255,0.45)')
+  dégradé.addColorStop(1, 'rgba(255,255,255,0)')
+  contexte.fillStyle = dégradé
+  contexte.fillRect(0, 0, taille, taille)
+  texturePartagée = new THREE.CanvasTexture(canevas)
+  return texturePartagée
+}
+
 /** Rectangle à coins arrondis, base de la coque comme de l'écran. */
 function rectangleArrondi(largeur: number, hauteur: number, rayon: number): THREE.Shape {
   const forme = new THREE.Shape()
@@ -175,6 +204,8 @@ function Commandes({ placements, pivot, span, palette }: {
   palette: PaletteScène
 }) {
   const groupe = useRef<THREE.Group>(null)
+  const ombres = useRef<THREE.Group>(null)
+  const texture = useMemo(textureOmbre, [])
 
   const cibles = useMemo(
     () =>
@@ -197,6 +228,12 @@ function Commandes({ placements, pivot, span, palette }: {
         return {
           id: placement.id,
           position: [x, y, croix ? 0.01 : 0.012] as [number, number, number],
+          // L'ombre tombe un peu vers le bas, comme sous une lumière venue
+          // d'en haut, et déborde de la commande de chaque côté.
+          ombre: {
+            position: [x, y - hauteur * 0.14, 0.0085] as [number, number, number],
+            échelle: [largeur * 1.9, hauteur * 1.9] as [number, number]
+          },
           forme: rectangleArrondi(largeur, hauteur, rayon),
           couleur: systeme ? palette.chaud : palette.accent,
           base: croix ? 0.42 : shoulderIds.includes(placement.id) ? 0.78 : 1,
@@ -225,22 +262,54 @@ function Commandes({ placements, pivot, span, palette }: {
       const matériau = (enfant as THREE.Mesh).material as THREE.MeshBasicMaterial
       matériau.opacity = cible.base * (0.55 + intensité * 0.45)
       enfant.scale.setScalar(1 + intensité * 0.14)
+
+      // L'ombre suit la commande : plus dense et plus large quand la lueur
+      // la touche, comme si elle se soulevait un instant.
+      const ombre = ombres.current?.children[index]
+      if (ombre) {
+        const matériauOmbre = (ombre as THREE.Mesh).material as THREE.MeshBasicMaterial
+        matériauOmbre.opacity = cible.base * (0.32 + intensité * 0.3)
+        const [l, h] = cible.ombre.échelle
+        const gonflement = 1 + intensité * 0.18
+        ombre.scale.set(l * gonflement, h * gonflement, 1)
+      }
     })
   })
 
   return (
-    <group ref={groupe}>
-      {cibles.map((cible, index) => (
-        <mesh key={cible.id} geometry={géométries[index]} position={cible.position}>
-          <meshBasicMaterial
-            color={cible.couleur}
-            transparent
-            opacity={cible.base}
-            toneMapped={false}
-          />
-        </mesh>
-      ))}
-    </group>
+    <>
+      <group ref={ombres}>
+        {cibles.map((cible) => (
+          <mesh
+            key={cible.id}
+            position={cible.ombre.position}
+            scale={[cible.ombre.échelle[0], cible.ombre.échelle[1], 1]}
+          >
+            <planeGeometry args={[1, 1]} />
+            <meshBasicMaterial
+              map={texture}
+              color={cible.couleur}
+              transparent
+              opacity={cible.base * 0.32}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+        ))}
+      </group>
+      <group ref={groupe}>
+        {cibles.map((cible, index) => (
+          <mesh key={cible.id} geometry={géométries[index]} position={cible.position}>
+            <meshBasicMaterial
+              color={cible.couleur}
+              transparent
+              opacity={cible.base}
+              toneMapped={false}
+            />
+          </mesh>
+        ))}
+      </group>
+    </>
   )
 }
 
