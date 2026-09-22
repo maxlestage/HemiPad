@@ -81,7 +81,7 @@ struct ControllerLayout {
     /// Bande haute réservée au bandeau d'état et aux sélecteurs.
     static let topBand: CGFloat = 118
     /// Espacement minimal entre deux cibles voisines, en proportion.
-    static let spacingFactor: CGFloat = 1.06
+    static let spacingFactor: CGFloat = 1.1
     /// Plancher d'Apple pour une cible tactile.
     static let minimumTargetSize: CGFloat = 44
 
