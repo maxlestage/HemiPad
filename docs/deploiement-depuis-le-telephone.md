@@ -119,7 +119,7 @@ depuis n'importe quelle machine disposant de Python.
 ## 3. Compiler et tester l'application iOS sans Mac
 
 Le workflow `.github/workflows/ios.yml` s'exécute sur un **Mac fourni par
-GitHub** (`macos-14`). Il compile l'application et lance les 28 tests
+GitHub** (`macos-14`). Il compile l'application et lance les 58 tests
 unitaires — dont ceux qui vérifient qu'aucune commande ne sort de l'écran.
 
 - Il part tout seul à chaque *pull request* touchant `ios/`.
@@ -137,21 +137,32 @@ télécharger l'archive du dépôt. Le déploiement automatique décrit plus hau
 lui, continue de fonctionner : il passe par la connexion GitHub autorisée dans
 le tableau de bord Heroku.
 
-### Installer l'application sur votre iPhone
+### Voir l'application tourner, gratuitement
 
-Compiler ne suffit pas à installer : il faut signer. Trois voies, de la plus
-simple à la plus engageante :
+Le workflow **Aperçu dans le simulateur** lance réellement HemiPad sur le Mac
+de GitHub et rapporte des captures d'écran : *Actions* → **Aperçu dans le
+simulateur** → *Run workflow*, en choisissant l'appareil et le thème. Aucun
+compte développeur, aucun frais. C'est le bon réflexe avant chaque livraison.
 
-1. **TestFlight par GitHub Actions.** Ajoutez une étape `xcodebuild archive`
-   puis `xcrun altool --upload-app`, avec une clé App Store Connect stockée en
-   secret. C'est la seule voie entièrement téléphonique, mais elle suppose un
-   compte développeur Apple (99 €/an).
-2. **Swift Playgrounds sur iPad.** L'application s'y ouvre et s'y installe
-   directement, sans Mac. Il faut alors ajouter les fichiers à un projet
-   Playgrounds plutôt qu'au projet Xcode.
-3. **Un Mac emprunté, une fois.** Ouvrir `ios/HemiPad.xcodeproj`, choisir une
-   équipe de signature, lancer sur l'appareil. Une application signée avec un
-   compte gratuit reste installée sept jours.
+### Installer l'application sur votre iPhone et votre iPad
+
+Compiler ne suffit pas à installer : il faut signer. La chaîne complète est en
+place — **Livraison TestFlight** archive, signe, crée les certificats et envoie
+à Apple, sans qu'aucun Mac ne vous appartienne. Elle demande un compte
+développeur Apple (99 €/an) et quatre secrets, et tout se fait depuis Safari :
+
+→ **[docs/build-ios-depuis-le-telephone.md](build-ios-depuis-le-telephone.md)**,
+qui détaille chaque étape, du compte Apple jusqu'à l'icône sur l'écran
+d'accueil, avec un tableau des erreurs fréquentes.
+
+Deux solutions de repli existent, mentionnées pour être complet :
+
+- **Swift Playgrounds sur iPad** installe une application directement, sans
+  Mac — mais il faut alors porter les fichiers dans un projet Playgrounds
+  plutôt que dans le projet Xcode, et entretenir deux projets en parallèle.
+- **Un Mac emprunté, une fois.** Ouvrir `ios/HemiPad.xcodeproj`, choisir une
+  équipe de signature, lancer sur l'appareil. Une application signée avec un
+  compte gratuit reste installée sept jours.
 
 ---
 
@@ -170,5 +181,7 @@ démarrer avec la console.
 | Modifier le site ou l'application | GitHub Mobile, github.dev, Claude Code |
 | Vérifier le site | Actions → *Intégration continue* |
 | Vérifier l'application iOS | Actions → *Application iOS* (Mac de GitHub) |
+| Voir l'application tourner | Actions → *Aperçu dans le simulateur* |
+| Installer l'application sur l'appareil | Actions → *Livraison TestFlight*, puis l'app TestFlight |
 | Mettre le site en ligne | Automatique à chaque commit, ou bouton Heroku |
 | Surveiller la production | `/healthz` et les journaux Heroku |

@@ -1,0 +1,157 @@
+name: Aperçu dans le simulateur
+
+# À quoi ça sert, et pourquoi c'est un workflow à part.
+#
+# Tant qu'il n'y a pas de compte développeur Apple, il est impossible
+# d'installer HemiPad sur un vrai iPhone. Mais rien n'empêche de *voir*
+# l'application tourner : ce workflow la compile, la lance dans un simulateur
+# sur un Mac fourni par GitHub, et rapporte des captures d'écran.
+#
+# Il se déclenche à la main, jamais sur une pull request : lancer une
+# application et attendre qu'elle s'affiche est moins déterministe qu'une suite
+# de tests, et un aperçu capricieux n'a pas à bloquer une fusion.
+
+on:
+  workflow_dispatch:
+    inputs:
+      appareil:
+        description: 'Appareil simulé (une partie du nom suffit : iPad, iPhone 15, iPhone SE…)'
+        required: false
+        default: 'iPad'
+        type: string
+      mode_sombre:
+        description: 'Thème du système pendant les captures'
+        required: false
+        default: 'sombre'
+        type: choice
+        options: [sombre, clair]
+
+concurrency:
+  group: apercu-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apercu:
+    name: Captures d'écran
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode disponible
+        run: xcodebuild -version
+
+      - name: Choisir l'appareil simulé
+        id: appareil
+        env:
+          DEMANDE: ${{ inputs.appareil }}
+        run: |
+          # Les noms de simulateurs changent d'une image macOS à l'autre :
+          # on cherche le meilleur correspondant plutôt qu'un nom figé.
+          # Le JSON passe par un fichier, jamais par un tuyau : le texte du
+          # programme Python occupe déjà l'entrée standard.
+          xcrun simctl list devices available --json > appareils.json
+          choix=$(python3 - "$DEMANDE" appareils.json <<'PY'
+          import json, sys
+          demande = (sys.argv[1] or 'iPad').lower()
+          appareils = [
+              (a['name'], a['udid'])
+              for groupe in json.load(open(sys.argv[2]))['devices'].values()
+              for a in groupe
+          ]
+          retenus = [a for a in appareils if demande in a[0].lower()]
+          if not retenus:
+              retenus = [a for a in appareils if a[0].startswith('iPad')] or appareils
+          # Entre plusieurs correspondances, le grand écran d'abord : c'est
+          # l'iPad qui est mis en avant, et une disposition à l'étroit se voit
+          # moins bien qu'une disposition au large.
+          def rang(appareil):
+              nom = appareil[0]
+              return ('Pro' in nom, 'Air' in nom, nom)
+          if retenus:
+              nom, udid = max(retenus, key=rang)
+              print(f"{udid}\t{nom}")
+          PY
+          )
+          if [ -z "$choix" ]; then
+            echo "aucun simulateur disponible" >&2
+            exit 1
+          fi
+          # Un même nom existe parfois pour plusieurs versions d'iOS : simctl
+          # refuse alors le nom et n'accepte que l'identifiant.
+          udid=${choix%%$'\t'*}
+          nom=${choix#*$'\t'}
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          echo "nom=$nom" >> "$GITHUB_OUTPUT"
+          echo "simulateur retenu : $nom ($udid)"
+
+      - name: Compiler pour le simulateur
+        run: |
+          xcodebuild build \
+            -project ios/HemiPad.xcodeproj \
+            -scheme HemiPad \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=${{ steps.appareil.outputs.nom }}" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Démarrer le simulateur
+        run: |
+          xcrun simctl boot "${{ steps.appareil.outputs.udid }}" || true
+          xcrun simctl bootstatus "${{ steps.appareil.outputs.udid }}" -b
+
+      - name: Appliquer le thème demandé
+        run: |
+          theme=$([ "${{ inputs.mode_sombre }}" = "clair" ] && echo light || echo dark)
+          xcrun simctl ui booted appearance "$theme"
+
+      - name: Installer et lancer HemiPad
+        run: |
+          app=$(find build/Build/Products -name 'HemiPad.app' -maxdepth 3 | head -1)
+          if [ -z "$app" ]; then
+            echo "application introuvable après la compilation" >&2
+            exit 1
+          fi
+          echo "application : $app"
+          xcrun simctl install booted "$app"
+          xcrun simctl launch booted app.hemipad
+
+      - name: Capturer les écrans
+        run: |
+          mkdir -p captures
+          # Trois captures espacées : la première attrape l'écran de
+          # connexion, les suivantes laissent à l'interface le temps de se
+          # poser. Une seule capture prise trop tôt ne montre qu'un écran noir.
+          for i in 1 2 3; do
+            sleep 4
+            xcrun simctl io booted screenshot "captures/hemipad-$i.png"
+            echo "capture $i prise"
+          done
+          # Une capture entièrement noire signale un lancement raté : autant
+          # le dire ici plutôt que de livrer trois rectangles vides.
+          python3 - <<'PY'
+          import sys, pathlib
+          dernière = pathlib.Path('captures/hemipad-3.png')
+          taille = dernière.stat().st_size
+          print(f"dernière capture : {taille} octets")
+          if taille < 10_000:
+              sys.exit("la capture est quasi vide : l'application n'a probablement pas démarré")
+          PY
+
+      - name: Journal de l'application
+        if: always()
+        run: |
+          xcrun simctl spawn booted log show --last 3m --predicate 'process == "HemiPad"' \
+            --style compact > journal-hemipad.txt 2>/dev/null || true
+          tail -50 journal-hemipad.txt || true
+
+      - name: Conserver les captures et l'application
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apercu-${{ steps.appareil.outputs.nom }}
+          path: |
+            captures/
+            journal-hemipad.txt
+          if-no-files-found: warn
