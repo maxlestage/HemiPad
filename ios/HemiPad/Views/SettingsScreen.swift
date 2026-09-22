@@ -36,6 +36,56 @@ struct SettingsScreen: View {
                     caption("Tracez un arc avec le pouce : les commandes se replacent sur ce que la main atteint vraiment.")
                 }
 
+                group("Disposition") {
+                    Picker("Disposition", selection: layoutModeBinding) {
+                        ForEach(LayoutMode.allCases) { mode in
+                            Text(mode.label).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    caption(state.profile.layoutMode.explanation)
+
+                    slider(
+                        "Espacement des commandes",
+                        cgValue: $state.profile.controlSpacing,
+                        range: 1.05...1.6
+                    )
+                    caption("Écart minimal entre deux voisines, en proportion de leur taille. Plus il est grand, plus les commandes sont séparées — et plus elles rétrécissent quand l'écran est étroit.")
+
+                    if !state.profile.hiddenKeys.isEmpty {
+                        Text("\(state.profile.hiddenKeys.count) commande(s) masquée(s)")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.latchAccent)
+                        caption("Touchez « Modifier » sur l'écran manette pour les retrouver en bas de l'écran.")
+                    }
+
+                    HStack(spacing: 10) {
+                        Button {
+                            state.resetFreePositions()
+                        } label: {
+                            Text("Replacer tout")
+                                .font(.caption.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(Theme.surfaceHigh))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            state.resetControlPreferences()
+                        } label: {
+                            Text("Réglages par commande")
+                                .font(.caption.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(Theme.surfaceHigh))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Theme.danger)
+                    }
+                    caption("Chaque commande garde son mode d'appui, sa taille et sa visibilité propres : réglez-les depuis l'écran manette, bouton « Modifier ».")
+                }
+
                 group("Préréglages") {
                     HStack(spacing: 8) {
                         presetButton("Standard", profile: .default)
@@ -99,6 +149,13 @@ struct SettingsScreen: View {
             CalibrationView()
                 .hemipadEnvironment(state)
         }
+    }
+
+    private var layoutModeBinding: Binding<LayoutMode> {
+        Binding(
+            get: { state.profile.layoutMode },
+            set: { state.setLayoutMode($0) }
+        )
     }
 
     // MARK: - Briques

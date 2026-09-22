@@ -102,7 +102,11 @@ final class InputArbiter: ObservableObject {
     private func mode(for control: ControlID) -> ActivationMode {
         // La croix directionnelle reste toujours en appui direct : la verrouiller
         // ferait tourner le personnage en rond, ce qui n'aide personne.
-        control.isDirectionalPad ? .direct : profile.activationMode
+        guard !control.isDirectionalPad else { return .direct }
+        // Le réglage propre à la commande l'emporte sur le réglage général :
+        // une gâchette gagne à rester enfoncée là où le bouton de saut doit
+        // suivre le doigt.
+        return profile.activation(for: control)
     }
 
     private func apply(_ control: ControlID, pressed: Bool) {

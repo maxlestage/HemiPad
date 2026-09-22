@@ -30,6 +30,9 @@ final class AppState: ObservableObject {
     }
 
     @Published var macros: [Macro]
+    /// L'écran manette est-il en mode édition ? Dans cet état, les appuis ne
+    /// partent pas vers la console : ils déplacent et règlent les commandes.
+    @Published var isEditingLayout = false
     /// Message d'aide contextuel affiché en haut de l'écran manette.
     @Published var banner: String?
 
@@ -103,7 +106,7 @@ final class AppState: ObservableObject {
     /// que toutes les commandes se comportent pareil.
     func press(_ control: ControlID) {
         arbiter.touchDown(control)
-        if profile.activationMode == .latch && !control.isDirectionalPad {
+        if profile.activation(for: control) == .latch && !control.isDirectionalPad {
             Haptics.shared.latch()
         } else {
             Haptics.shared.press()
@@ -112,9 +115,55 @@ final class AppState: ObservableObject {
 
     func release(_ control: ControlID) {
         arbiter.touchUp(control)
-        if profile.activationMode == .direct || control.isDirectionalPad {
+        if profile.activation(for: control) == .direct || control.isDirectionalPad {
             Haptics.shared.release()
         }
+    }
+
+    // MARK: - Disposition et réglages par commande
+
+    /// Modifie les réglages d'une commande. Le profil complet est réécrit :
+    /// c'est lui qui est observé, et qui déclenche l'enregistrement.
+    func updateControl(_ key: String, _ change: (inout ControlPreference) -> Void) {
+        var next = profile
+        next.updatePreference(for: key, change)
+        profile = next
+    }
+
+    /// Enregistre la position d'une commande après un glissement.
+    func moveControl(_ key: String, to center: CGPoint, in bounds: CGSize) {
+        let normalized = ControllerLayout.normalized(center, in: bounds)
+        updateControl(key) { $0.freePosition = normalized }
+    }
+
+    func setLayoutMode(_ mode: LayoutMode) {
+        guard profile.layoutMode != mode else { return }
+        var next = profile
+        next.layoutMode = mode
+        profile = next
+        arbiter.releaseAll()
+        Haptics.shared.success()
+        banner = mode == .free
+            ? "Disposition libre : touchez Modifier, puis faites glisser une commande."
+            : "Disposition automatique rétablie."
+    }
+
+    /// Oublie les positions choisies, sans toucher aux tailles ni aux modes.
+    func resetFreePositions() {
+        var next = profile
+        next.clearFreePositions()
+        profile = next
+        Haptics.shared.warning()
+        banner = "Toutes les commandes sont revenues à leur place automatique."
+    }
+
+    /// Remet chaque commande dans son état d'origine.
+    func resetControlPreferences() {
+        var next = profile
+        next.resetControlPreferences()
+        profile = next
+        Haptics.shared.warning()
+        banner = "Réglages par commande réinitialisés."
     }
 
     func sendKeystroke(_ stroke: Keystroke) {

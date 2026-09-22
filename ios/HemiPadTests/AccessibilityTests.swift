@@ -66,6 +66,109 @@ final class ReachEnvelopeTests: XCTestCase {
 /// La règle « tout reste atteignable, rien ne se chevauche » est vérifiée sur
 /// toutes les tailles d'écran, les deux mains et toutes les consoles : c'est la
 /// promesse fonctionnelle de l'application, pas une préférence esthétique.
+/// La disposition libre laisse la personne décider : le solveur ne doit plus
+/// rien imposer, sauf de garder chaque commande entièrement à l'écran.
+final class FreeLayoutTests: XCTestCase {
+    private let size = CGSize(width: 393, height: 740)
+
+    private func freeProfile() -> HemiplegiaProfile {
+        var profile = HemiplegiaProfile.default
+        profile.layoutMode = .free
+        return profile
+    }
+
+    func testFreeModeStartsFromTheAutomaticLayout() {
+        let automatic = ControllerLayout.solve(profile: .default, console: .switch2, size: size)
+        let free = ControllerLayout.solve(profile: freeProfile(), console: .switch2, size: size)
+        XCTAssertEqual(free.placements.map(\.id), automatic.placements.map(\.id))
+        for placement in free.placements {
+            let reference = automatic.placement(for: placement.id)
+            XCTAssertEqual(placement.center.x, reference?.center.x ?? -1, accuracy: 0.001)
+            XCTAssertEqual(placement.center.y, reference?.center.y ?? -1, accuracy: 0.001)
+        }
+    }
+
+    func testStoredPositionIsUsed() {
+        var profile = freeProfile()
+        profile.updatePreference(for: ControlKey.key(for: .faceSouth)) {
+            $0.freePosition = CGPoint(x: 0.25, y: 0.6)
+        }
+        let solution = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+        let placement = solution.placement(for: ControlKey.key(for: .faceSouth))
+        XCTAssertEqual(placement?.center.x ?? 0, size.width * 0.25, accuracy: 0.5)
+        XCTAssertEqual(placement?.center.y ?? 0, size.height * 0.6, accuracy: 0.5)
+    }
+
+    func testPositionsAreClampedInsideTheScreen() {
+        var profile = freeProfile()
+        profile.updatePreference(for: ControlKey.key(for: .faceNorth)) {
+            $0.freePosition = CGPoint(x: 1.4, y: -0.3)
+        }
+        profile.updatePreference(for: ControlKey.key(for: .faceEast)) {
+            $0.freePosition = CGPoint(x: -0.5, y: 1.9)
+        }
+        let solution = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+        for placement in solution.placements {
+            XCTAssertGreaterThanOrEqual(placement.frame.minX, -0.5)
+            XCTAssertLessThanOrEqual(placement.frame.maxX, size.width + 0.5)
+            XCTAssertLessThanOrEqual(placement.frame.maxY, size.height + 0.5)
+            XCTAssertGreaterThanOrEqual(
+                placement.frame.minY,
+                ControllerLayout.topBand - 0.5,
+                "une commande sous le bandeau d'état ne recevrait aucun appui"
+            )
+        }
+    }
+
+    func testOverlapsAreReportedButNotPrevented() {
+        var profile = freeProfile()
+        // Deux commandes posées au même endroit : la personne en a le droit,
+        // l'application doit le signaler.
+        profile.updatePreference(for: ControlKey.key(for: .faceSouth)) {
+            $0.freePosition = CGPoint(x: 0.5, y: 0.5)
+        }
+        profile.updatePreference(for: ControlKey.key(for: .faceEast)) {
+            $0.freePosition = CGPoint(x: 0.5, y: 0.5)
+        }
+        let solution = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+        XCTAssertEqual(solution.placements.count, 13, "aucune commande n'est retirée")
+        XCTAssertTrue(solution.overlapping.contains(ControlKey.key(for: .faceSouth)))
+        XCTAssertTrue(solution.overlapping.contains(ControlKey.key(for: .faceEast)))
+    }
+
+    func testAutomaticLayoutNeverOverlaps() {
+        let solution = ControllerLayout.solve(profile: .default, console: .switch2, size: size)
+        XCTAssertTrue(solution.overlapping.isEmpty)
+    }
+
+    func testResetsClearOnlyWhatTheyShould() {
+        var profile = freeProfile()
+        let key = ControlKey.key(for: .triggerLeft)
+        profile.updatePreference(for: key) {
+            $0.freePosition = CGPoint(x: 0.3, y: 0.7)
+            $0.sizeScale = 1.4
+            $0.activation = .latch
+        }
+
+        profile.clearFreePositions()
+        XCTAssertNil(profile.preference(key).freePosition)
+        XCTAssertEqual(profile.preference(key).sizeScale, 1.4, accuracy: 0.001)
+        XCTAssertEqual(profile.preference(key).activation, .latch)
+
+        profile.resetControlPreferences()
+        XCTAssertTrue(profile.preference(key).isDefault)
+    }
+
+    func testNeutralPreferencesAreNotStored() {
+        var profile = HemiplegiaProfile.default
+        let key = ControlKey.key(for: .faceNorth)
+        profile.updatePreference(for: key) { $0.sizeScale = 1.3 }
+        XCTAssertEqual(profile.controlPreferences.count, 1)
+        profile.updatePreference(for: key) { $0.sizeScale = 1 }
+        XCTAssertTrue(profile.controlPreferences.isEmpty, "un réglage neutre ne s'enregistre pas")
+    }
+}
+
 final class ControllerLayoutTests: XCTestCase {
     private let sizes: [CGSize] = [
         CGSize(width: 320, height: 480),  // très petit écran
@@ -125,6 +228,88 @@ final class ControllerLayoutTests: XCTestCase {
                 }
             }
         }
+    }
+
+    func testSpacingSettingIsHonouredWhenThereIsRoom() {
+        var profile = HemiplegiaProfile.default
+        profile.controlSpacing = 1.5
+        let solution = ControllerLayout.solve(
+            profile: profile,
+            console: .switch2,
+            size: CGSize(width: 768, height: 1000)
+        )
+        XCTAssertEqual(solution.spacing, 1.5, accuracy: 0.001)
+        XCTAssertFalse(solution.wasTightened)
+
+        // L'espacement demandé se retrouve dans les distances réelles.
+        let placements = solution.placements
+        for i in placements.indices {
+            for j in placements.indices where j > i {
+                let a = placements[i]
+                let b = placements[j]
+                let distance = hypot(a.center.x - b.center.x, a.center.y - b.center.y)
+                XCTAssertGreaterThanOrEqual(distance, a.halfExtent + b.halfExtent - 0.5)
+            }
+        }
+    }
+
+    func testCrampedScreenTightensSpacingOnlyAfterTargetsHitTheFloor() {
+        var profile = HemiplegiaProfile.default
+        profile.controlSpacing = 1.6
+        let solution = ControllerLayout.solve(
+            profile: profile,
+            console: .switch2,
+            size: CGSize(width: 375, height: 560)
+        )
+        // Les cibles cèdent d'abord : un bouton sous 44 pt n'est plus une cible.
+        XCTAssertEqual(solution.targetSize, ControllerLayout.minimumTargetSize, accuracy: 0.5)
+        XCTAssertTrue(solution.wasTightened)
+        XCTAssertGreaterThanOrEqual(solution.spacing, ControllerLayout.minimumSpacing)
+        XCTAssertLessThan(solution.spacing, 1.6)
+    }
+
+    func testHiddenControlsDisappearAndFreeRoom() {
+        var profile = HemiplegiaProfile.default
+        let full = ControllerLayout.solve(
+            profile: profile,
+            console: .switch2,
+            size: CGSize(width: 393, height: 740)
+        )
+
+        for control in ControllerLayout.systemOrder {
+            profile.updatePreference(for: ControlKey.key(for: control)) { $0.isVisible = false }
+        }
+        let reduced = ControllerLayout.solve(
+            profile: profile,
+            console: .switch2,
+            size: CGSize(width: 393, height: 740)
+        )
+
+        XCTAssertEqual(reduced.placements.count, full.placements.count - 4)
+        XCTAssertNil(reduced.placement(for: ControlKey.key(for: .start)))
+        XCTAssertGreaterThan(
+            reduced.targetSize,
+            full.targetSize,
+            "retirer l'anneau le plus contraignant doit rendre de la place aux autres"
+        )
+    }
+
+    func testPerControlSizeScaleIsApplied() {
+        var profile = HemiplegiaProfile.default
+        profile.updatePreference(for: ControlKey.key(for: .faceSouth)) { $0.sizeScale = 1.5 }
+        let solution = ControllerLayout.solve(
+            profile: profile,
+            console: .switch2,
+            size: CGSize(width: 430, height: 810)
+        )
+        let south = solution.placement(for: ControlKey.key(for: .faceSouth))
+        let east = solution.placement(for: ControlKey.key(for: .faceEast))
+        XCTAssertNotNil(south)
+        XCTAssertNotNil(east)
+        XCTAssertEqual(south!.size.width, east!.size.width * 1.5, accuracy: 0.5)
+        // Même agrandie, elle ne recouvre pas sa voisine.
+        let distance = hypot(south!.center.x - east!.center.x, south!.center.y - east!.center.y)
+        XCTAssertGreaterThanOrEqual(distance, south!.halfExtent + east!.halfExtent - 0.5)
     }
 
     func testTargetsNeverFallBelowAppleMinimum() {
@@ -290,6 +475,35 @@ final class InputArbiterTests: XCTestCase {
 
         arbiter.centerStick(.left)
         XCTAssertEqual(arbiter.state.leftStick, .zero)
+    }
+
+    func testPerControlActivationOverridesTheGeneralSetting() {
+        var profile = HemiplegiaProfile.default
+        profile.activationMode = .direct
+        profile.debounceInterval = 0
+        profile.updatePreference(for: ControlKey.key(for: .triggerLeft)) { $0.activation = .latch }
+        let arbiter = InputArbiter(profile: profile)
+
+        // La gâchette verrouille…
+        arbiter.touchDown(.triggerLeft)
+        arbiter.touchUp(.triggerLeft)
+        XCTAssertTrue(arbiter.state.isPressed(.triggerLeft))
+
+        // …pendant que le bouton de saut reste en appui direct.
+        arbiter.touchDown(.faceSouth)
+        arbiter.touchUp(.faceSouth)
+        XCTAssertFalse(arbiter.state.isPressed(.faceSouth))
+    }
+
+    func testDirectionalPadIgnoresPerControlActivation() {
+        var profile = HemiplegiaProfile.default
+        profile.debounceInterval = 0
+        profile.updatePreference(for: ControlKey.key(for: .dpadUp)) { $0.activation = .latch }
+        let arbiter = InputArbiter(profile: profile)
+
+        arbiter.touchDown(.dpadUp)
+        arbiter.touchUp(.dpadUp)
+        XCTAssertFalse(arbiter.state.isPressed(.dpadUp), "une direction verrouillée ferait tourner en rond")
     }
 
     func testStateChangeCallbackFires() {
