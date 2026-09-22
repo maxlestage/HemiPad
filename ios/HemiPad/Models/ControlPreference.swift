@@ -47,18 +47,27 @@ struct ControlPreference: Codable, Equatable, Sendable {
     /// Grossissement individuel, multiplié à la taille de cible générale.
     var sizeScale: CGFloat = 1
 
+    /// Commande verrouillée : elle ne bouge plus, même en disposition libre.
+    ///
+    /// Une disposition mise au point pendant une demi-heure ne doit pas être
+    /// défaite par un glissement involontaire — exactement le geste que
+    /// l'application passe son temps à filtrer ailleurs.
+    var isLocked: Bool = false
+
     static let `default` = ControlPreference()
 
     init(
         isVisible: Bool = true,
         activation: ActivationMode? = nil,
         freePosition: CGPoint? = nil,
-        sizeScale: CGFloat = 1
+        sizeScale: CGFloat = 1,
+        isLocked: Bool = false
     ) {
         self.isVisible = isVisible
         self.activation = activation
         self.freePosition = freePosition
         self.sizeScale = sizeScale
+        self.isLocked = isLocked
     }
 
     /// Même tolérance que le profil : un réglage ajouté plus tard ne doit pas
@@ -69,12 +78,13 @@ struct ControlPreference: Codable, Equatable, Sendable {
         activation = try? container.decodeIfPresent(ActivationMode.self, forKey: .activation)
         freePosition = try? container.decodeIfPresent(CGPoint.self, forKey: .freePosition)
         sizeScale = (try? container.decodeIfPresent(CGFloat.self, forKey: .sizeScale)) .flatMap { $0 } ?? 1
+        isLocked = (try? container.decodeIfPresent(Bool.self, forKey: .isLocked)) .flatMap { $0 } ?? false
     }
 
     /// Vrai si la commande a été touchée : sert à n'écrire dans les réglages
     /// que ce qui diffère vraiment de la valeur par défaut.
     var isDefault: Bool {
-        isVisible && activation == nil && freePosition == nil && abs(sizeScale - 1) < 0.001
+        isVisible && activation == nil && freePosition == nil && abs(sizeScale - 1) < 0.001 && !isLocked
     }
 }
 

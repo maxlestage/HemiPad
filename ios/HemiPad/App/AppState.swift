@@ -131,9 +131,39 @@ final class AppState: ObservableObject {
     }
 
     /// Enregistre la position d'une commande après un glissement.
-    func moveControl(_ key: String, to center: CGPoint, in bounds: CGSize) {
+    /// Sans effet si la commande est verrouillée.
+    @discardableResult
+    func moveControl(_ key: String, to center: CGPoint, in bounds: CGSize) -> Bool {
         let normalized = ControllerLayout.normalized(center, in: bounds)
-        updateControl(key) { $0.freePosition = normalized }
+        var next = profile
+        let moved = next.setFreePosition(normalized, for: key)
+        if moved { profile = next }
+        return moved
+    }
+
+    /// Verrouille ou déverrouille une sélection de commandes.
+    func setLocked(_ locked: Bool, for keys: [String]) {
+        guard !keys.isEmpty else { return }
+        var next = profile
+        next.setLocked(locked, for: keys)
+        profile = next
+        Haptics.shared.latch()
+        banner = locked
+            ? (keys.count == 1
+                ? "Commande verrouillée : elle ne bougera plus."
+                : "\(keys.count) commandes verrouillées : elles ne bougeront plus.")
+            : (keys.count == 1 ? "Commande déverrouillée." : "\(keys.count) commandes déverrouillées.")
+    }
+
+    /// Masque ou affiche une sélection de commandes.
+    func setVisible(_ visible: Bool, for keys: [String]) {
+        guard !keys.isEmpty else { return }
+        var next = profile
+        for key in keys {
+            next.updatePreference(for: key) { $0.isVisible = visible }
+        }
+        profile = next
+        Haptics.shared.latch()
     }
 
     func setLayoutMode(_ mode: LayoutMode) {

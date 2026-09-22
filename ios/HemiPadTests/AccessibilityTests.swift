@@ -159,6 +159,71 @@ final class FreeLayoutTests: XCTestCase {
         XCTAssertTrue(profile.preference(key).isDefault)
     }
 
+    func testLockedControlRefusesToMove() {
+        var profile = freeProfile()
+        let key = ControlKey.key(for: .faceSouth)
+        profile.updatePreference(for: key) { $0.freePosition = CGPoint(x: 0.3, y: 0.7) }
+        profile.setLocked(true, for: [key])
+
+        let moved = profile.setFreePosition(CGPoint(x: 0.8, y: 0.2), for: key)
+        XCTAssertFalse(moved, "une commande verrouillée ne se déplace pas")
+        XCTAssertEqual(profile.preference(key).freePosition?.x ?? 0, 0.3, accuracy: 0.001)
+
+        let solution = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+        let placement = solution.placement(for: key)
+        XCTAssertEqual(placement?.center.x ?? 0, size.width * 0.3, accuracy: 0.5)
+    }
+
+    func testUnlockingRestoresMovement() {
+        var profile = freeProfile()
+        let key = ControlKey.key(for: .faceEast)
+        profile.setLocked(true, for: [key])
+        XCTAssertFalse(profile.setFreePosition(CGPoint(x: 0.4, y: 0.4), for: key))
+
+        profile.setLocked(false, for: [key])
+        XCTAssertTrue(profile.setFreePosition(CGPoint(x: 0.4, y: 0.4), for: key))
+        XCTAssertEqual(profile.preference(key).freePosition?.y ?? 0, 0.4, accuracy: 0.001)
+    }
+
+    func testLockingAppliesToSeveralControlsAtOnce() {
+        var profile = freeProfile()
+        let keys = [ControlKey.key(for: .triggerLeft), ControlKey.key(for: .triggerRight)]
+        profile.setLocked(true, for: keys)
+        XCTAssertEqual(profile.lockedKeys.sorted(), keys.sorted())
+        XCTAssertTrue(keys.allSatisfy { profile.isLocked($0) })
+
+        profile.setLocked(false, for: keys)
+        XCTAssertTrue(profile.lockedKeys.isEmpty)
+    }
+
+    func testResetPositionsSparesLockedControls() {
+        var profile = freeProfile()
+        let libre = ControlKey.key(for: .faceNorth)
+        let fige = ControlKey.key(for: .faceSouth)
+        profile.setFreePosition(CGPoint(x: 0.2, y: 0.3), for: libre)
+        profile.setFreePosition(CGPoint(x: 0.7, y: 0.8), for: fige)
+        profile.setLocked(true, for: [fige])
+
+        profile.clearFreePositions()
+
+        XCTAssertNil(profile.preference(libre).freePosition, "les commandes libres reviennent en place")
+        XCTAssertEqual(
+            profile.preference(fige).freePosition?.x ?? 0,
+            0.7,
+            accuracy: 0.001,
+            "« tout replacer » ne défait pas ce qui a été explicitement verrouillé"
+        )
+    }
+
+    func testLockIsPartOfTheStoredState() {
+        var profile = HemiplegiaProfile.default
+        let key = ControlKey.key(for: .home)
+        profile.setLocked(true, for: [key])
+        XCTAssertEqual(profile.controlPreferences.count, 1)
+        profile.setLocked(false, for: [key])
+        XCTAssertTrue(profile.controlPreferences.isEmpty, "un verrou retiré ne laisse pas de trace")
+    }
+
     func testNeutralPreferencesAreNotStored() {
         var profile = HemiplegiaProfile.default
         let key = ControlKey.key(for: .faceNorth)

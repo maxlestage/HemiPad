@@ -39,6 +39,8 @@ export interface ControlPreference {
   freePosition?: Point
   /** Mode d'appui propre ; `undefined` suit le réglage général. */
   activation?: ActivationMode
+  /** Commande verrouillée : elle ne se déplace plus, même en mode libre. */
+  locked?: boolean
 }
 
 export type Preferences = Record<string, ControlPreference>

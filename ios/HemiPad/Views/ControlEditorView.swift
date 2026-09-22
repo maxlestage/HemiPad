@@ -13,6 +13,7 @@ struct StaticControlView: View {
     var isSelected: Bool = false
     var overlaps: Bool = false
     var isHidden: Bool = false
+    var isLocked: Bool = false
 
     private var isPill: Bool {
         if case .pill = element { return true }
@@ -47,6 +48,16 @@ struct StaticControlView: View {
                 Image(systemName: "eye.slash.fill")
                     .font(.system(size: min(size.width, size.height) * 0.26))
                     .foregroundStyle(Theme.secondaryText)
+            }
+        }
+        .overlay(alignment: .bottomLeading) {
+            if isLocked {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .padding(4)
+                    .background(Circle().fill(Theme.latchAccent))
+                    .foregroundStyle(Theme.background)
+                    .offset(x: -2, y: 2)
             }
         }
         .frame(width: size.width, height: size.height)
@@ -91,17 +102,36 @@ struct ControlEditorView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.dismiss) private var dismiss
 
-    let key: String
+    /// Une commande, ou plusieurs : les réglages s'appliquent à toute la
+    /// sélection. Régler quatre boutons un par un, à une main, est exactement
+    /// le genre de corvée que cette application existe pour supprimer.
+    let keys: [String]
     let title: String
     let glyph: String
     let element: ControllerLayout.Element
+
+    private var key: String { keys.first ?? ControlKey.directional }
+
+    private var isMultiple: Bool { keys.count > 1 }
 
     private var preference: ControlPreference {
         state.profile.preference(key)
     }
 
+    /// Vrai si toutes les commandes de la sélection partagent l'état demandé.
+    private func all(_ predicate: (ControlPreference) -> Bool) -> Bool {
+        keys.allSatisfy { predicate(state.profile.preference($0)) }
+    }
+
+    private func applyToSelection(_ change: @escaping (inout ControlPreference) -> Void) {
+        for key in keys {
+            state.updateControl(key, change)
+        }
+    }
+
     private var isDirectionalPad: Bool {
-        element.control?.isDirectionalPad ?? false
+        guard !isMultiple else { return false }
+        return element.control?.isDirectionalPad ?? false
     }
 
     var body: some View {
@@ -111,8 +141,19 @@ struct ControlEditorView: View {
                     header
 
                     group("Affichage") {
-                        Toggle("Afficher cette commande", isOn: visibleBinding)
+                        Toggle(
+                            isMultiple ? "Afficher ces commandes" : "Afficher cette commande",
+                            isOn: visibleBinding
+                        )
                         caption("Une commande masquée libère de la place : les autres peuvent alors grossir.")
+                    }
+
+                    group("Verrouillage") {
+                        Toggle(
+                            isMultiple ? "Verrouiller ces commandes" : "Verrouiller cette commande",
+                            isOn: lockedBinding
+                        )
+                        caption("Une commande verrouillée ne bouge plus, même en disposition libre : un glissement involontaire ne défait pas ce que vous avez mis en place.")
                     }
 
                     group("Mode d'appui") {
@@ -147,11 +188,13 @@ struct ControlEditorView: View {
 
                     if state.profile.layoutMode == .free {
                         group("Position") {
-                            if preference.freePosition == nil {
+                            if all({ $0.isLocked }) {
+                                caption("Position verrouillée. Déverrouillez pour déplacer.")
+                            } else if preference.freePosition == nil {
                                 caption("Position automatique. Faites glisser la commande sur l'écran manette pour la placer vous-même.")
                             } else {
                                 Button(role: .destructive) {
-                                    state.updateControl(key) { $0.freePosition = nil }
+                                    applyToSelection { $0.freePosition = nil }
                                 } label: {
                                     Label("Remettre à sa place automatique", systemImage: "arrow.uturn.backward")
                                 }
@@ -160,9 +203,9 @@ struct ControlEditorView: View {
                     }
 
                     Button(role: .destructive) {
-                        state.updateControl(key) { $0 = .default }
+                        applyToSelection { $0 = .default }
                     } label: {
-                        Text("Réinitialiser cette commande")
+                        Text(isMultiple ? "Réinitialiser ces commandes" : "Réinitialiser cette commande")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(RoundedRectangle(cornerRadius: 14).fill(Theme.surfaceHigh))
@@ -186,16 +229,24 @@ struct ControlEditorView: View {
 
     private var header: some View {
         HStack(spacing: 14) {
-            StaticControlView(
-                element: element,
-                glyph: glyph,
-                size: CGSize(width: 64, height: element.isPillElement ? 32 : 64),
-                accent: state.accent,
-                isHidden: !preference.isVisible
-            )
+            if isMultiple {
+                Text("\(keys.count)")
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .frame(width: 64, height: 64)
+                    .background(Circle().fill(Theme.surfaceHigh))
+            } else {
+                StaticControlView(
+                    element: element,
+                    glyph: glyph,
+                    size: CGSize(width: 64, height: element.isPillElement ? 32 : 64),
+                    accent: state.accent,
+                    isHidden: !preference.isVisible,
+                    isLocked: preference.isLocked
+                )
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).font(.headline)
-                Text(state.profile.activation(for: key).label)
+                Text(isMultiple ? "Réglages appliqués à toute la sélection" : state.profile.activation(for: key).label)
                     .font(.caption)
                     .foregroundStyle(Theme.secondaryText)
             }
@@ -204,9 +255,9 @@ struct ControlEditorView: View {
     }
 
     private func activationRow(_ mode: ActivationMode?, label: String) -> some View {
-        let isSelected = preference.activation == mode
+        let isSelected = all { $0.activation == mode }
         return Button {
-            state.updateControl(key) { $0.activation = mode }
+            applyToSelection { $0.activation = mode }
         } label: {
             HStack {
                 Text(label)
@@ -232,22 +283,29 @@ struct ControlEditorView: View {
 
     private var visibleBinding: Binding<Bool> {
         Binding(
-            get: { state.profile.preference(key).isVisible },
-            set: { newValue in state.updateControl(key) { $0.isVisible = newValue } }
+            get: { all { $0.isVisible } },
+            set: { newValue in applyToSelection { $0.isVisible = newValue } }
+        )
+    }
+
+    private var lockedBinding: Binding<Bool> {
+        Binding(
+            get: { all { $0.isLocked } },
+            set: { newValue in applyToSelection { $0.isLocked = newValue } }
         )
     }
 
     private var activationBinding: Binding<ActivationMode?> {
         Binding(
             get: { state.profile.preference(key).activation },
-            set: { newValue in state.updateControl(key) { $0.activation = newValue } }
+            set: { newValue in applyToSelection { $0.activation = newValue } }
         )
     }
 
     private var sizeBinding: Binding<Double> {
         Binding(
             get: { Double(state.profile.preference(key).sizeScale) },
-            set: { newValue in state.updateControl(key) { $0.sizeScale = CGFloat(newValue) } }
+            set: { newValue in applyToSelection { $0.sizeScale = CGFloat(newValue) } }
         )
     }
 

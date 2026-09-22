@@ -70,6 +70,13 @@ export const en: Dictionary = {
       overlap: (count) => `${count} controls overlap: they will stay hard to aim at.`,
       resetPositions: 'Reset positions'
     },
+    device: {
+      label: 'Device',
+      ipad: 'iPad',
+      iphone: 'iPhone',
+      hint:
+        'The iPad is the reference device: its screen gives far larger targets, and it rests on a table or a stand, which frees the working hand from carrying the device. The iPhone stays perfectly usable, with tighter controls.'
+    },
     control: {
       settings: 'Control settings',
       visibility: 'Visibility',
@@ -80,8 +87,16 @@ export const en: Dictionary = {
       inherit: 'General setting',
       size: 'Size',
       reposition: 'Back to its automatic place',
-      reset: 'Reset this control',
-      close: 'Close'
+      reset: 'Reset',
+      close: 'Close',
+      lock: 'Lock',
+      unlock: 'Unlock',
+      lockedBadge: 'locked',
+      lockedHint:
+        'A locked control no longer moves, even in the free layout: a stray drag cannot undo what you set up.',
+      selection: (count) => `${count} selected`,
+      deselect: 'Deselect',
+      multiple: (count) => `${count} controls`
     },
     active: (count) => `${count} active`,
     screenLabel: (console, hand) => `${console} controller laid out for the ${hand}`,
@@ -105,7 +120,7 @@ export const en: Dictionary = {
   },
   features: {
     eyebrow: 'Accessibility',
-    title: 'Eight impossible gestures, eight answers',
+    title: 'Nine impossible gestures, nine answers',
     lede:
       'Hemiplegia is not a display mode. Every rule below removes a gesture that needed two hands, or an effort that drains the only hand available.',
     problemTag: 'The problem',
@@ -152,6 +167,12 @@ export const en: Dictionary = {
         title: 'Stick that holds position',
         problem: 'Walking straight ahead means pinning your thumb to the top.',
         answer: 'Auto-centring can be turned off: let go and the character keeps going.'
+      },
+      {
+        icon: '▭',
+        title: 'iPad first',
+        problem: 'Holding a phone in one hand and playing with that same hand asks a single thumb to both carry and aim.',
+        answer: 'Resting on a table or a stand, the iPad frees the hand from the weight of the device and offers far larger targets. The iPhone is supported too, second.'
       },
       {
         icon: '◉',
