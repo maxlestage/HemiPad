@@ -80,19 +80,22 @@ const browser = await chromium.launch({
       meta: document.querySelector('meta[name="theme-color"]')?.getAttribute('content')
     }))
 
-  await page.getByRole('button', { name: /^(Clair|Light|Claro)$/ }).click()
+  // Les sélecteurs de thème vivent dans le pied de page : la démo a elle
+  // aussi un bouton « Automatique », pour la disposition.
+  const preferences = page.locator('.footer-preferences')
+  await preferences.getByRole('button', { name: /^(Clair|Light|Claro)$/ }).click()
   await page.waitForTimeout(120)
   const light = await readTheme()
   check(light.attribute === 'light', 'thème clair appliqué', JSON.stringify(light))
   check(light.background === 'rgb(244, 246, 252)', 'fond clair réellement rendu', light.background)
   check(light.meta === '#f4f6fc', 'couleur de barre système mise à jour', String(light.meta))
 
-  await page.getByRole('button', { name: /^(Sombre|Dark|Oscuro)$/ }).click()
+  await preferences.getByRole('button', { name: /^(Sombre|Dark|Oscuro)$/ }).click()
   await page.waitForTimeout(120)
   const dark = await readTheme()
   check(dark.background === 'rgb(5, 6, 13)', 'fond sombre réellement rendu', dark.background)
 
-  await page.getByRole('button', { name: /^(Automatique|Automatic|Automático)$/ }).click()
+  await preferences.getByRole('button', { name: /^(Automatique|Automatic|Automático)$/ }).click()
   await page.waitForTimeout(120)
   const auto = await readTheme()
   check(auto.attribute === 'auto', 'thème automatique sélectionné', String(auto.attribute))
@@ -266,6 +269,137 @@ for (const scheme of ['dark', 'light']) {
       `${result.ratio}`
     )
   }
+  await context.close()
+}
+
+// --- Disposition libre et réglages par commande ----------------------------
+
+{
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+  const page = await context.newPage()
+  const errors = []
+  page.on('pageerror', (error) => errors.push(String(error)))
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.locator('#demo').scrollIntoViewIfNeeded()
+
+  const bouton = (nom) => page.locator('.demo-controls').getByRole('button', { name: nom, exact: true })
+
+  // Passer en disposition libre doit ouvrir l'édition : sans elle, rien
+  // n'est déplaçable et le mode n'aurait aucun effet visible.
+  await bouton(/^(Libre|Free)$/).first().click()
+  await page.waitForTimeout(200)
+  const editionOuverte = await page.locator('.control.is-editing').count()
+  check(editionOuverte > 0, 'la disposition libre ouvre le mode édition', String(editionOuverte))
+
+  // Glisser une commande la déplace réellement.
+  const cible = page.locator('[data-control="faceS"]')
+  const avant = await cible.boundingBox()
+  await page.mouse.move(avant.x + avant.width / 2, avant.y + avant.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(avant.x + avant.width / 2 - 120, avant.y + avant.height / 2 - 60, { steps: 12 })
+  await page.mouse.up()
+  await page.waitForTimeout(200)
+  const apres = await cible.boundingBox()
+  const deplacement = Math.hypot(apres.x - avant.x, apres.y - avant.y)
+  check(deplacement > 40, 'une commande se déplace au glisser', `${Math.round(deplacement)} px`)
+
+  // Le glissement ne sort jamais la commande du cadre.
+  const cadre = await page.locator('.phone-screen').boundingBox()
+  check(
+    apres.x >= cadre.x - 1 && apres.x + apres.width <= cadre.x + cadre.width + 1,
+    'la commande déplacée reste dans le cadre'
+  )
+
+  // Masquer une commande la retire et la range parmi les masquées.
+  await cible.click()
+  await page.waitForTimeout(150)
+  await page.locator('.control-panel').getByRole('button', { name: /^(Masquer|Hide|Ocultar)$/ }).click()
+  await page.waitForTimeout(200)
+  check(
+    (await page.locator('[data-control="faceS"]').count()) === 0,
+    'une commande masquée disparaît de la manette'
+  )
+  check(
+    (await page.locator('[data-hidden-control="faceS"]').count()) === 1,
+    'une commande masquée reste récupérable en bas de l’écran'
+  )
+
+  // Et se réaffiche.
+  await page.locator('[data-hidden-control="faceS"]').click()
+  await page.waitForTimeout(150)
+  await page.locator('.control-panel').getByRole('button', { name: /^(Afficher|Show|Mostrar)$/ }).click()
+  await page.waitForTimeout(200)
+  check(
+    (await page.locator('[data-control="faceS"]').count()) === 1,
+    'une commande masquée se réaffiche'
+  )
+
+  // Mode d'appui propre à une commande : verrouillant alors que le réglage
+  // général est en appui direct.
+  await bouton(/^(Appui direct|Direct press|Pulsación directa)$/).first().click()
+  await page.locator('[data-control="faceE"]').click()
+  await page.waitForTimeout(150)
+  await page
+    .locator('.control-panel')
+    .getByRole('button', { name: /^(Verrouillant|Latching|Con bloqueo)$/ })
+    .click()
+  await page.waitForTimeout(150)
+  await bouton(/^(Terminé|Done|Hecho)$/).first().click()
+  await page.waitForTimeout(150)
+
+  await page.locator('[data-control="faceE"]').click()
+  await page.waitForTimeout(600)
+  check(
+    (await page.locator('[data-control="faceE"].is-active').count()) === 1,
+    'une commande réglée en verrouillant reste enfoncée'
+  )
+  await page.locator('[data-control="faceS"]').click()
+  await page.waitForTimeout(600)
+  check(
+    (await page.locator('[data-control="faceS"].is-active').count()) === 0,
+    'ses voisines restent en appui direct'
+  )
+
+  check(errors.length === 0, 'aucune erreur JavaScript pendant l’édition', errors.join(' | '))
+  await context.close()
+}
+
+// --- Espacement réglable ---------------------------------------------------
+
+{
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+
+  const ecartMinimal = async () =>
+    page.evaluate(() => {
+      const items = [...document.querySelectorAll('.control:not(.is-hidden-control)')].map((el) =>
+        el.getBoundingClientRect()
+      )
+      let plusPetit = Infinity
+      for (let i = 0; i < items.length; i += 1) {
+        for (let j = i + 1; j < items.length; j += 1) {
+          const a = items[i]
+          const b = items[j]
+          const dx = Math.max(0, Math.max(a.left, b.left) - Math.min(a.right, b.right))
+          const dy = Math.max(0, Math.max(a.top, b.top) - Math.min(a.bottom, b.bottom))
+          plusPetit = Math.min(plusPetit, Math.hypot(dx, dy))
+        }
+      }
+      return plusPetit
+    })
+
+  const curseur = page
+    .locator('.demo-controls')
+    .getByLabel(/^(Espacement|Spacing|Separación)$/)
+  await curseur.fill('1.05')
+  await page.waitForTimeout(250)
+  const serre = await ecartMinimal()
+  await curseur.fill('1.6')
+  await page.waitForTimeout(250)
+  const large = await ecartMinimal()
+
+  check(large > serre, "le curseur d'espacement écarte réellement les commandes", `${serre.toFixed(1)} px → ${large.toFixed(1)} px`)
   await context.close()
 }
 
