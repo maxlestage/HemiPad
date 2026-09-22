@@ -44,6 +44,23 @@ export interface Dictionary {
     primary: string
     secondary: string
     stats: { label: string; value: string }[]
+    /** Le bouton qui fait suivre l'inclinaison du téléphone à la scène. */
+    tilt: {
+      follow: string
+      following: string
+      asking: string
+      denied: string
+      unavailable: string
+    }
+  }
+  /** Le bouton flottant qui descend d'une section à la suivante. */
+  pager: {
+    next: string
+    nextLabel: string
+    top: string
+    topLabel: string
+    arrived: string
+    footer: string
   }
   demo: {
     eyebrow: string

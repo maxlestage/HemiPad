@@ -1,6 +1,8 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react'
 
+import { useI18n } from '../i18n/index.tsx'
 import { useMotion } from '../lib/motion.tsx'
+import { useSuiviOrientation, useSuiviPointeur } from '../lib/useSuiviOrientation.ts'
 import { HeroStill } from './HeroStill.tsx'
 
 const HeroCanvas = lazy(() => import('./HeroCanvas.tsx'))
@@ -59,6 +61,7 @@ class GardeFou extends Component<{ secours: ReactNode; children: ReactNode }, { 
  */
 export function HeroScene() {
   const { reduced } = useMotion()
+  const { t } = useI18n()
   const conteneur = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(true)
   const [ongletActif, setOngletActif] = useState(true)
@@ -81,22 +84,73 @@ export function HeroScene() {
     return () => document.removeEventListener('visibilitychange', suivre)
   }, [])
 
+  const relief = !reduced && webgl
+  const orientation = useSuiviOrientation()
+  useSuiviPointeur(relief)
+
+  // Couper les animations coupe aussi le suivi : c'est un mouvement comme un
+  // autre, et il ne doit pas survivre au réglage qui les interdit.
+  const { arrêter, état } = orientation
+  useEffect(() => {
+    if (!relief && état === 'actif') arrêter()
+  }, [relief, état, arrêter])
+
   const plat = <HeroStill className="hero-scene-plat" />
+
+  // Connu dès le premier rendu : la zone prend sa hauteur définitive d'emblée,
+  // sans saut quand le bouton apparaît.
+  const avecRéglage = relief && état !== 'indisponible'
+
+  const message =
+    état === 'refusé' ? t.hero.tilt.denied : état === 'sans-capteur' ? t.hero.tilt.unavailable : ''
 
   return (
     <div
-      className="hero-scene"
+      className={`hero-scene ${avecRéglage ? 'has-tilt' : ''}`}
       ref={conteneur}
-      data-scene={reduced || !webgl ? 'plate' : 'relief'}
+      data-scene={relief ? 'relief' : 'plate'}
     >
-      {reduced || !webgl ? (
-        plat
-      ) : (
-        <GardeFou secours={plat}>
-          <Suspense fallback={plat}>
-            <HeroCanvas actif={visible && ongletActif} />
-          </Suspense>
-        </GardeFou>
+      <div className="hero-scene-zone">
+        {relief ? (
+          <GardeFou secours={plat}>
+            <Suspense fallback={plat}>
+              <HeroCanvas actif={visible && ongletActif} />
+            </Suspense>
+          </GardeFou>
+        ) : (
+          plat
+        )}
+      </div>
+
+      {/*
+        Le bouton n'apparaît que là où il peut tenir sa promesse : un appareil
+        tactile, avec la scène en relief. Sur ordinateur, la souris suffit.
+      */}
+      {avecRéglage && (
+        <div className="hero-tilt">
+          <button
+            type="button"
+            className={`hero-tilt-button ${état === 'actif' ? 'is-active' : ''}`}
+            aria-pressed={état === 'actif'}
+            disabled={état === 'demande'}
+            onClick={orientation.basculer}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+              <path d="M3 9c-1.2 2-1.2 4 0 6M21 9c1.2 2 1.2 4 0 6" />
+            </svg>
+            <span>
+              {état === 'actif'
+                ? t.hero.tilt.following
+                : état === 'demande'
+                  ? t.hero.tilt.asking
+                  : t.hero.tilt.follow}
+            </span>
+          </button>
+          <p className="hero-tilt-message" role="status" aria-live="polite">
+            {message}
+          </p>
+        </div>
       )}
     </div>
   )

@@ -147,7 +147,13 @@ input {
 
 .page {
   position: relative;
-  overflow: hidden;
+  /*
+   * `clip` et non `hidden` : les deux rognent ce qui dépasse, mais `hidden`
+   * fait de la page un conteneur de défilement, et une barre `sticky` ne colle
+   * alors plus à rien. C'est ce qui empêchait la barre de navigation de rester
+   * en haut, alors qu'elle avait été conçue pour.
+   */
+  overflow-x: clip;
 }
 
 .skip-link {
@@ -173,8 +179,14 @@ input {
 
 /* ---------------------------------------------------------------- barre */
 
+/*
+ * Sur téléphone, la barre défile avec la page : elle n'y montre que le logo,
+ * et cinquante pixels pris en permanence à un petit écran, pour un logo, ce
+ * serait cher payé. Elle ne devient collante qu'à partir du moment où elle
+ * porte le menu.
+ */
 .nav {
-  position: sticky;
+  position: relative;
   top: 0;
   z-index: 30;
   display: flex;
@@ -223,6 +235,10 @@ input {
 }
 
 @media (min-width: 760px) {
+  .nav {
+    position: sticky;
+  }
+
   .nav-links {
     display: flex;
   }
@@ -293,8 +309,80 @@ input {
   position: relative;
   width: 100%;
   height: clamp(215px, 54vw, 290px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* La rangée de réglage s'ajoute à la hauteur au lieu de la prendre à
+   l'appareil dessiné : il garde sa taille, que le bouton soit là ou non. */
+.hero-scene.has-tilt {
+  height: calc(clamp(215px, 54vw, 290px) + 62px);
+}
+
+.hero-scene-zone {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   display: grid;
   place-items: center;
+}
+
+.hero-tilt {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.hero-tilt-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  /* 48 px de haut : au-dessus du plancher de 44 que le projet s'impose
+     partout, pour un bouton qu'on vise souvent d'un pouce en mouvement. */
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hero-tilt-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.hero-tilt-button.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.hero-tilt-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.hero-tilt-message {
+  max-width: 34ch;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.hero-tilt-message:empty {
+  display: none;
 }
 
 .hero-scene canvas {
@@ -323,6 +411,10 @@ input {
   .hero-scene {
     order: 2;
     height: min(420px, 46vh);
+  }
+
+  .hero-scene.has-tilt {
+    height: calc(min(420px, 46vh) + 62px);
   }
 
   .hero-content {
@@ -1221,7 +1313,9 @@ input[type='range'] {
 
 .footer {
   margin-top: 40px;
-  padding: 52px var(--gutter) 32px;
+  /* La marge basse laisse les dernières lignes remonter au-dessus du bouton
+     flottant : au bout de la page, rien ne doit rester caché dessous. */
+  padding: 52px var(--gutter) calc(104px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent) 6%, transparent));
 }
@@ -1505,4 +1599,102 @@ input[type='range'] {
 
 .phone.is-ipad .phone-screen {
   border-radius: 16px;
+}
+
+/*
+ * Les ancres tiennent compte de la barre collante.
+ *
+ * Sans marge, un saut vers une section — par le menu comme par le bouton
+ * « Suivant » — glisse son titre sous la barre de navigation : on arrive
+ * exactement là où on ne voit pas ce qu'on est venu chercher.
+ */
+main > section[id],
+footer {
+  scroll-margin-top: 16px;
+}
+
+@media (min-width: 760px) {
+  main > section[id],
+  footer {
+    scroll-margin-top: 76px;
+  }
+}
+
+/*
+ * Le bouton flottant occupe le bas de l'écran : un élément qui prend le
+ * focus au clavier ne doit jamais finir caché dessous (WCAG 2.4.11). La marge
+ * de défilement basse garantit qu'il s'arrête au-dessus.
+ */
+html {
+  scroll-padding-bottom: 96px;
+}
+
+.pager {
+  position: fixed;
+  z-index: 25;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  /* Plus grand que le reste des boutons : c'est celui qu'on presse le plus
+     souvent, et sans le regarder. */
+  min-height: 52px;
+  padding: 0 18px 0 22px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.pager svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 260ms ease;
+}
+
+/* Au bout de la page, la flèche se retourne : le même bouton remonte. */
+.pager.is-top svg {
+  transform: rotate(180deg);
+}
+
+.pager {
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.pager.is-away {
+  opacity: 0;
+  transform: translate(-50%, 12px);
+  pointer-events: none;
+}
+
+.pager:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Présent pour les lecteurs d'écran, invisible à l'œil. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }

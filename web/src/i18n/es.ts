@@ -30,7 +30,23 @@ export const es: Dictionary = {
       { label: 'Controles al alcance', value: '100 %' },
       { label: 'Dedos necesarios', value: '1' },
       { label: 'Perfiles de máquinas', value: '6' }
-    ]
+    ],
+    tilt: {
+      follow: 'Seguir la inclinación',
+      following: 'Siguiendo la inclinación',
+      asking: 'Solicitando…',
+      denied:
+        'Se rechazó el acceso al movimiento. iOS solo vuelve a preguntar al reabrir la página.',
+      unavailable: 'Ningún sensor de orientación respondió en este dispositivo.'
+    }
+  },
+  pager: {
+    next: 'Siguiente',
+    nextLabel: 'Ir a la siguiente sección: {nom}',
+    top: 'Volver arriba',
+    topLabel: 'Volver al inicio de la página',
+    arrived: 'Sección: {nom}',
+    footer: 'Pie de página'
   },
   demo: {
     eyebrow: 'Demostración',
