@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url'
 
 import { chromium } from 'playwright-core'
 
+import { optionsDeLancement } from './chromium.mjs'
 import { PALETTE, fullMark, smallMark, svgDocument } from './mark.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -117,9 +118,7 @@ const targets = [
   { file: 'icons/favicon-16.png', size: 16, html: iconPage(16, { small: true }) }
 ]
 
-const browser = await chromium.launch({
-  executablePath: process.env.PLAYWRIGHT_EXECUTABLE || '/opt/pw-browsers/chromium'
-})
+const browser = await chromium.launch(optionsDeLancement())
 
 await mkdir(path.join(publicDir, 'icons'), { recursive: true })
 
