@@ -137,7 +137,10 @@ un téléphone. La marche à suivre est détaillée dans
 - le site part en ligne sur Heroku à chaque commit, via le déploiement
   automatique branché sur GitHub ;
 - l'application iOS est compilée et testée par GitHub Actions sur un Mac fourni
-  par GitHub, sans qu'aucun Mac ne soit nécessaire de votre côté.
+  par GitHub, sans qu'aucun Mac ne soit nécessaire de votre côté ;
+- une *pull request* dont toutes les vérifications passent est **fusionnée
+  automatiquement sur `master`** — réservé aux *pull requests* du propriétaire
+  du dépôt, et suspendu par l'étiquette `pas-de-fusion-auto`.
 
 ## Conditions d'utilisation
 
