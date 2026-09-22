@@ -50,7 +50,7 @@ xcodebuild test -project HemiPad.xcodeproj -scheme HemiPad \
   -destination 'platform=iOS Simulator,name=iPhone 15'
 ```
 
-28 tests, répartis en quatre familles :
+58 tests, répartis en cinq familles :
 
 - **Encodage HID** : rapport neutre, bornes des axes, inversion de l'axe
   vertical, masque de boutons, diagonales du *hat switch*, équilibre des
@@ -63,6 +63,23 @@ xcodebuild test -project HemiPad.xcodeproj -scheme HemiPad \
 - **Règles d'appui** : verrouillage, anti-rebond, croix jamais verrouillée,
   relâchement global, stick qui garde sa position, accords clavier composés
   touche par touche.
+- **Réglages par commande** : commande masquée, commande agrandie, position
+  libre ramenée dans le cadre, commande verrouillée qui refuse de bouger et que
+  la remise à zéro épargne.
+
+## Compiler et livrer
+
+Aucun Mac n'est nécessaire : trois workflows s'en chargent.
+
+| Workflow | Ce qu'il fait | Déclenchement |
+|---|---|---|
+| **Application iOS** | compile et passe les 58 tests | chaque pull request touchant `ios/` |
+| **Aperçu dans le simulateur** | lance l'application et rapporte des captures | à la main |
+| **Livraison TestFlight** | archive, signe et envoie sur TestFlight | à la main, ou un tag `v*` |
+
+La livraison demande quatre secrets et un compte développeur Apple. Tout est
+détaillé, étape par étape et depuis un téléphone, dans
+[`docs/build-ios-depuis-le-telephone.md`](../docs/build-ios-depuis-le-telephone.md).
 
 ## Autorisations demandées
 
