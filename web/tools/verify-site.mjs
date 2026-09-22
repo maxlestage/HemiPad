@@ -947,10 +947,28 @@ for (const [largeur, collante] of [[1280, true], [390, false]]) {
   check((await bouton.getAttribute('aria-pressed')) === 'false', 'le suivi est éteint par défaut')
 
   await bouton.tap()
+  // Un vrai capteur émet en continu, et le composant ne l'écoute qu'une fois
+  // l'autorisation obtenue. Chrome 153 a adopté l'autorisation à la Safari :
+  // trois mesures envoyées d'un coup, tout de suite après l'appui, arrivaient
+  // pendant cette attente et se perdaient. On attend donc que le suivi soit
+  // réellement allumé, puis on simule un capteur qui émet toutes les 50 ms.
+  const allumé = await page
+    .waitForFunction(
+      () => document.querySelector('.hero-tilt-button')?.getAttribute('aria-pressed') === 'true',
+      null,
+      { timeout: 3000 }
+    )
+    .then(() => true)
+    .catch(() => false)
+  check(allumé, 'l’appui allume le suivi, autorisation comprise')
   await page.evaluate(() => {
-    for (const [beta, gamma] of [[50, 0], [54, 9], [57, 16]]) {
+    let pas = 0
+    window.__capteur = window.setInterval(() => {
+      pas += 1
+      const beta = 50 + Math.sin(pas / 6) * 8
+      const gamma = Math.cos(pas / 7) * 14
       window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma }))
-    }
+    }, 50)
   })
   // Au-delà du délai d'attente du capteur : il doit rester allumé.
   await page.waitForTimeout(2000)
@@ -967,10 +985,13 @@ for (const [largeur, collante] of [[1280, true], [390, false]]) {
   await bouton.tap()
   await page.waitForTimeout(200)
   check((await bouton.getAttribute('aria-pressed')) === 'false', 'un second appui éteint le suivi')
+  // Le capteur simulé continue d'émettre : éteint, le suivi doit l'ignorer.
+  await page.waitForTimeout(300)
   check(
     (await page.evaluate(() => document.documentElement.dataset.inclinaison)) === 'aucune',
     'éteindre le suivi remet la scène droite'
   )
+  await page.evaluate(() => window.clearInterval(window.__capteur))
   check(errors.length === 0, 'aucune erreur JavaScript avec le suivi', errors.join(' | '))
   await context.close()
 }
