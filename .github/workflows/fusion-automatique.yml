@@ -17,6 +17,14 @@ name: Fusion automatique
 # fusionnable sans conflit.
 
 on:
+  # `check_suite` ne suffit pas : GitHub refuse qu'une suite créée par ses
+  # propres actions redéclenche un workflow — protection anti-boucle. Seules
+  # les suites tierces (analyse de secrets, par exemple) passaient, et elles
+  # terminent avant la compilation. `workflow_run` est le déclencheur prévu
+  # pour enchaîner sur la fin d'un workflow maison.
+  workflow_run:
+    workflows: ['Intégration continue', 'Application iOS']
+    types: [completed]
   check_suite:
     types: [completed]
   workflow_dispatch:
@@ -53,7 +61,8 @@ jobs:
             const IGNORE = ['Fusionner ce qui est prêt']
 
             const numero = context.payload.inputs?.pull_request
-            const shaEvenement = context.payload.check_suite?.head_sha
+            const shaEvenement =
+              context.payload.workflow_run?.head_sha ?? context.payload.check_suite?.head_sha
 
             const { data: ouvertes } = await github.rest.pulls.list({
               owner,
