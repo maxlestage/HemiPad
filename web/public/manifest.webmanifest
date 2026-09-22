@@ -1,0 +1,76 @@
+{
+  "id": "/",
+  "name": "HemiPad — manette et clavier à une main",
+  "short_name": "HemiPad",
+  "description": "Une manette tactile pour toutes les consoles et un clavier de code, utilisables d'une seule main.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "theme_color": "#05060d",
+  "background_color": "#05060d",
+  "categories": ["utilities", "games", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/hemipad-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Disposition adaptative sur téléphone"
+    },
+    {
+      "src": "/screenshots/desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Démonstration et réglages d'accessibilité"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Démonstration",
+      "short_name": "Démo",
+      "url": "/?source=pwa#demo"
+    },
+    {
+      "name": "Clavier de code",
+      "short_name": "Clavier",
+      "url": "/?source=pwa#clavier"
+    }
+  ]
+}

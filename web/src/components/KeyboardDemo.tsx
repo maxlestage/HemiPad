@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { useI18n } from '../i18n/index.tsx'
+
 type Modifier = 'cmd' | 'shift' | 'ctrl' | 'alt'
 
 const modifierLabels: Record<Modifier, string> = {
@@ -8,15 +10,6 @@ const modifierLabels: Record<Modifier, string> = {
   ctrl: 'ctrl',
   alt: '⌥'
 }
-
-const macros = [
-  { title: '()', detail: 'parenthèses, curseur au milieu' },
-  { title: '{}', detail: 'bloc, curseur au milieu' },
-  { title: '=>', detail: 'fonction fléchée' },
-  { title: '⌘S', detail: 'enregistrer' },
-  { title: '⌘⇧P', detail: 'palette de commandes' },
-  { title: 'ctrl `', detail: 'terminal' }
-]
 
 const keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l']
 
@@ -27,6 +20,7 @@ const keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l']
  * jamais maintenir deux touches. C'est exactement ce que fait l'application.
  */
 export function KeyboardDemo() {
+  const { t } = useI18n()
   const [armed, setArmed] = useState<Set<Modifier>>(new Set())
   const [locked, setLocked] = useState<Set<Modifier>>(new Set())
   const [history, setHistory] = useState<string[]>([])
@@ -55,30 +49,27 @@ export function KeyboardDemo() {
     setArmed((current) => new Set(current).add(modifier))
   }
 
-  const tapKey = (key: string) => {
+  const tapKey = (key: string, display?: string) => {
     const parts = [...effective].map((modifier) => modifierLabels[modifier])
     const isUpper = effective.has('shift')
-    setHistory((current) => [...current.slice(-5), [...parts, isUpper ? key.toUpperCase() : key].join(' ')])
+    const rendered = display ?? (isUpper ? key.toUpperCase() : key)
+    setHistory((current) => [...current.slice(-5), [...parts, rendered].join(' ')])
     setArmed(new Set())
   }
 
   return (
     <section className="keyboard" id="clavier" aria-labelledby="clavier-titre">
       <div className="section-head">
-        <p className="eyebrow">Clavier de code</p>
-        <h2 id="clavier-titre">Coder à une main, sans accords impossibles</h2>
-        <p className="lede">
-          Branché sur un ordinateur, HemiPad devient un clavier. Les modificateurs se composent
-          l’un après l’autre, et les caractères les plus coûteux à taper deviennent des macros.
-          Essayez : ⌘, puis ⇧, puis une lettre.
-        </p>
+        <p className="eyebrow">{t.keyboard.eyebrow}</p>
+        <h2 id="clavier-titre">{t.keyboard.title}</h2>
+        <p className="lede">{t.keyboard.lede}</p>
       </div>
 
       <div className="keyboard-panel">
         <div className="keyboard-output" aria-live="polite">
-          <span className="prompt">frappes envoyées</span>
+          <span className="prompt">{t.keyboard.output}</span>
           {history.length === 0 ? (
-            <code className="empty">en attente…</code>
+            <code className="empty">{t.keyboard.waiting}</code>
           ) : (
             <ul>
               {history.map((entry, index) => (
@@ -103,7 +94,11 @@ export function KeyboardDemo() {
             >
               {modifierLabels[modifier]}
               <span className="modifier-state">
-                {locked.has(modifier) ? 'verrouillé' : armed.has(modifier) ? 'armé' : 'libre'}
+                {locked.has(modifier)
+                  ? t.keyboard.states.locked
+                  : armed.has(modifier)
+                    ? t.keyboard.states.armed
+                    : t.keyboard.states.free}
               </span>
             </button>
           ))}
@@ -117,8 +112,25 @@ export function KeyboardDemo() {
           ))}
         </div>
 
+        <div className="key-actions">
+          <button
+            type="button"
+            className="key key-wide"
+            onClick={() => tapKey('space', t.keyboard.space)}
+          >
+            {t.keyboard.space}
+          </button>
+          <button
+            type="button"
+            className="key key-wide"
+            onClick={() => tapKey('backspace', t.keyboard.backspace)}
+          >
+            {t.keyboard.backspace}
+          </button>
+        </div>
+
         <ul className="macro-row">
-          {macros.map((macro) => (
+          {t.keyboard.macros.map((macro) => (
             <li key={macro.title}>
               <span className="macro-title">{macro.title}</span>
               <span className="macro-detail">{macro.detail}</span>
