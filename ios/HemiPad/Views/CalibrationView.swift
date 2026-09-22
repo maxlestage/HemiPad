@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 /// Calibration de la zone d'atteinte.

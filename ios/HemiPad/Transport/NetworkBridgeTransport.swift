@@ -27,14 +27,15 @@ final class NetworkBridgeTransport: NSObject, ControllerTransport {
     /// Adresse du pont, ex. `ws://hemipad-bridge.local:8787`.
     var endpoint: URL
 
-    private var session: URSSessionBox?
+    private var session: SessionBox?
     private var task: URLSessionWebSocketTask?
     private var reconnectAttempts = 0
     private var keepAlive: Timer?
     private let logger = Logger(subsystem: "app.hemipad", category: "bridge")
 
-    /// Boîte pour éviter de recréer une session à chaque reconnexion.
-    private final class URSSessionBox {
+    /// Conserve la session entre deux reconnexions : en recréer une à chaque
+    /// tentative relancerait la résolution DNS et les poignées de main TLS.
+    private final class SessionBox {
         let session: URLSession
         init() {
             let configuration = URLSessionConfiguration.default
@@ -51,7 +52,7 @@ final class NetworkBridgeTransport: NSObject, ControllerTransport {
 
     func start() {
         state = .connecting(endpoint.host ?? "pont")
-        let box = session ?? URSSessionBox()
+        let box = session ?? SessionBox()
         session = box
         let webSocket = box.session.webSocketTask(with: endpoint)
         task = webSocket
