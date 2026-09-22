@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 
 import { App } from './App.tsx'
 import { I18nProvider } from './i18n/index.tsx'
+import { AppareilProvider } from './lib/appareil.tsx'
 import { MotionProvider } from './lib/motion.tsx'
 import { registerServiceWorker } from './lib/pwa.ts'
 import { ThemeProvider } from './lib/theme.tsx'
@@ -18,9 +19,11 @@ createRoot(container).render(
   <StrictMode>
     <ThemeProvider>
       <MotionProvider>
-        <I18nProvider>
-          <App />
-        </I18nProvider>
+        <AppareilProvider>
+          <I18nProvider>
+            <App />
+          </I18nProvider>
+        </AppareilProvider>
       </MotionProvider>
     </ThemeProvider>
   </StrictMode>

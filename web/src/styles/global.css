@@ -37,6 +37,20 @@
   --ombre-force: 46%;
   --ombre-contact: rgba(0, 0, 0, 0.5);
 
+  /*
+   * L'aluminium des appareils, le même dans les deux thèmes. Des bandes
+   * claires et sombres alternées, comme un métal qui reflète la pièce : un
+   * gris uni paraîtrait mat, et c'est la lumière qu'on vient chercher.
+   */
+  --argent: linear-gradient(
+    145deg,
+    #f6f8fb 0%,
+    #c3c9d4 26%,
+    #eef1f5 50%,
+    #a4acba 76%,
+    #dde2e9 100%
+  );
+
   /* L'écran du téléphone de démonstration reste sombre dans les deux thèmes :
      c'est l'application qui y est représentée, et elle est sombre. */
   --screen-bg: #05060d;
@@ -323,26 +337,47 @@ input {
 .hero-scene {
   position: relative;
   width: 100%;
-  height: clamp(215px, 54vw, 290px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
 }
 
-/* La rangée de réglage s'ajoute à la hauteur au lieu de la prendre à
-   l'appareil dessiné : il garde sa taille, que le bouton soit là ou non. */
-.hero-scene.has-tilt {
-  height: calc(clamp(215px, 54vw, 290px) + 62px);
-}
-
+/*
+ * C'est la zone de l'appareil qui porte la hauteur, pas l'ensemble : la
+ * rangée de réglages en dessous peut passer sur une ou deux lignes selon la
+ * langue et la largeur, sans jamais rogner l'appareil dessiné. Tout ce qu'elle
+ * contient est connu dès le premier rendu — pas de saut à l'arrivée de la 3D.
+ */
 .hero-scene-zone {
   position: relative;
-  flex: 1;
-  min-height: 0;
+  height: clamp(215px, 54vw, 290px);
   width: 100%;
   display: grid;
   place-items: center;
+}
+
+.hero-reglages {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Deux choix seulement : une gélule, pas une grille. */
+.hero-appareil.segmented-compact {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+}
+
+.hero-appareil button {
+  min-height: 46px;
+  padding: 0 16px;
+  font-size: 0.9rem;
 }
 
 .hero-tilt {
@@ -425,11 +460,10 @@ input {
      d'écran et dans l'ordre de tabulation — l'image à droite à l'affichage. */
   .hero-scene {
     order: 2;
-    height: min(420px, 46vh);
   }
 
-  .hero-scene.has-tilt {
-    height: calc(min(420px, 46vh) + 62px);
+  .hero-scene-zone {
+    height: min(420px, 46vh);
   }
 
   .hero-content {
@@ -558,24 +592,44 @@ main > section {
   gap: 30px;
 }
 
+/*
+ * Les deux appareils portent un cadre argenté.
+ *
+ * L'iPhone n'en avait aucun : choisir « iPhone » affichait un écran flottant,
+ * sans rien qui dise « téléphone ». Il a maintenant son cadre, ses coins très
+ * arrondis et sa Dynamic Island, et l'iPad son cadre plus régulier.
+ */
 .phone {
   position: relative;
   justify-self: center;
   width: min(320px, 88vw);
-  padding: 12px;
-  border-radius: 34px;
-  transition: width 0.25s ease, border-radius 0.25s ease;
+  padding: 10px;
+  border-radius: 46px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: var(--argent);
+  /* Un liseré clair en haut, un sombre en bas : l'arête d'un métal éclairé
+     par-dessus. */
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.85),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.28),
+    var(--shadow);
+  transition: width 0.25s ease, border-radius 0.25s ease, padding 0.25s ease;
+}
+
+.phone.is-iphone .phone-screen {
+  border-radius: 37px;
 }
 
 /* L'iPad est l'appareil mis en avant : cadre plus large, coins moins
-   arrondis, bordures fines, et pas d'encoche. */
+   arrondis, bordures régulières, et pas d'île. */
 .phone.is-ipad {
   width: min(420px, 94vw);
   padding: 14px;
-  border-radius: 26px;
-  border: 1px solid var(--border);
-  background: linear-gradient(160deg, var(--surface-strong), var(--surface));
-  box-shadow: var(--shadow);
+  border-radius: 28px;
+}
+
+.phone-island {
+  fill: #000;
 }
 
 .phone-screen {
@@ -585,17 +639,6 @@ main > section {
   border-radius: 24px;
   background: radial-gradient(circle at 70% 90%, #10131f, var(--screen-bg) 70%);
   touch-action: manipulation;
-}
-
-.phone-notch {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 86px;
-  height: 18px;
-  border-radius: 999px;
-  background: var(--screen-bg);
 }
 
 .reach-arc {

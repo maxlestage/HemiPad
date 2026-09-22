@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 
+import { useAppareil } from '../lib/appareil.tsx'
 import { useTheme } from '../lib/theme.tsx'
 import { MarkScene } from './MarkScene.tsx'
 
@@ -15,6 +16,7 @@ export function HeroCanvas({ actif }: { actif: boolean }) {
   // Le contexte React ne traverse pas la frontière du rendu 3D : la scène a
   // son propre arbre. Le thème se lit donc ici, et descend en propriété.
   const { resolved } = useTheme()
+  const { appareil } = useAppareil()
 
   return (
     <Canvas
@@ -30,7 +32,7 @@ export function HeroCanvas({ actif }: { actif: boolean }) {
       gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}
       style={{ pointerEvents: 'none' }}
     >
-      <MarkScene theme={resolved} />
+      <MarkScene theme={resolved} appareil={appareil} />
     </Canvas>
   )
 }

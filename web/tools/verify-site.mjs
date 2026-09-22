@@ -431,14 +431,42 @@ for (const scheme of ['dark', 'light']) {
       return plusPetit
     })
 
+  // Les commandes glissent vers leur nouvelle place. Mesurer au bout d'un
+  // délai fixe, c'était parfois mesurer en plein trajet — deux commandes qui se
+  // croisent se chevauchent — et le contrôle échouait de loin en loin, sur une
+  // machine chargée. On attend qu'elles soient réellement immobiles : dix
+  // images d'affilée sans que la moindre ne bouge.
+  const immobiles = () =>
+    page.evaluate(
+      () =>
+        new Promise((résoudre) => {
+          const relevé = () =>
+            [...document.querySelectorAll('.control:not(.is-hidden-control)')]
+              .map((n) => getComputedStyle(n).transform)
+              .join('|')
+          let dernier = ''
+          let stable = 0
+          const regarder = () => {
+            const actuel = relevé()
+            stable = actuel === dernier ? stable + 1 : 0
+            dernier = actuel
+            if (stable >= 10) résoudre()
+            else requestAnimationFrame(regarder)
+          }
+          requestAnimationFrame(regarder)
+        })
+    )
+
   const curseur = page
     .locator('.demo-controls')
     .getByLabel(/^(Espacement|Spacing|Separación)$/)
   await curseur.fill('1.05')
-  await page.waitForTimeout(700)
+  await page.waitForTimeout(50)
+  await immobiles()
   const serre = await ecartMinimal()
   await curseur.fill('1.6')
-  await page.waitForTimeout(700)
+  await page.waitForTimeout(50)
+  await immobiles()
   const large = await ecartMinimal()
 
   check(large > serre, "le curseur d'espacement écarte réellement les commandes", `${serre.toFixed(1)} px → ${large.toFixed(1)} px`)
@@ -1085,6 +1113,130 @@ for (const thème of ['dark', 'light']) {
     'aucune ombre de commande ne passe par un filtre CSS, invisible sur Safari' + à,
     relevé.filtreCssCommande
   )
+  await context.close()
+}
+
+// --- Le choix de l'appareil, partagé par tout le site ----------------------
+
+{
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true
+  })
+  const page = await context.newPage()
+  const errors = []
+  page.on('pageerror', (error) => errors.push(String(error)))
+  await page.goto(base, { waitUntil: 'networkidle' })
+
+  const haut = page.locator('.hero-appareil')
+  const démo = page.locator('#demo')
+  const pressé = (portée, nom) =>
+    portée.getByRole('button', { name: nom, exact: true }).getAttribute('aria-pressed')
+  // L'appareil que la scène dessine vraiment, bascule terminée — pas seulement
+  // celui qu'on a demandé.
+  const rendu = (appareil) =>
+    page
+      .waitForFunction(
+        (a) => document.querySelector('.hero-scene [data-appareil-rendu], .hero-scene[data-appareil-rendu]')
+          ?.getAttribute('data-appareil-rendu') === a,
+        appareil,
+        { timeout: 4000 }
+      )
+      .then(() => true)
+      .catch(() => false)
+
+  check(await haut.count() === 1, 'le haut de page propose le choix de l’appareil')
+  check((await pressé(haut, 'iPad')) === 'true', 'l’iPad est le choix par défaut')
+  check(await rendu('ipad'), 'la scène dessine un iPad par défaut')
+
+  await haut.getByRole('button', { name: 'iPhone', exact: true }).tap()
+  check(await rendu('iphone'), 'choisir iPhone en haut de page fait basculer la scène sur un iPhone')
+  check(
+    (await pressé(démo, 'iPhone')) === 'true' &&
+      (await démo.locator('.phone').getAttribute('data-device')) === 'iphone',
+    'le choix fait en haut de page se retrouve dans la démonstration'
+  )
+
+  await démo.getByRole('button', { name: 'iPad', exact: true }).tap()
+  check(
+    (await pressé(haut, 'iPad')) === 'true',
+    'le choix fait dans la démonstration se retrouve en haut de page'
+  )
+
+  // Le parcours d'une vraie personne : choisir dans la démonstration, puis
+  // remonter voir. Hors écran, la scène est en pause — c'est voulu — et elle
+  // bascule quand on revient. La pause dure ici plusieurs secondes : R3F remet
+  // son horloge à zéro à la reprise, et une bascule datée par cette horloge
+  // restait bloquée aussi longtemps que la page avait été ouverte.
+  await page.waitForTimeout(3000)
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+  check(
+    await rendu('ipad'),
+    'en remontant après un choix dans la démonstration, la scène a bien basculé'
+  )
+
+  // Le même défaut, provoqué à coup sûr. Le parcours ci-dessus ne le
+  // déclenche que par hasard — il faut qu'une bascule soit *en cours* au
+  // moment de la pause, et que l'horloge ait tourné plus longtemps que notre
+  // attente. On réunit donc les deux conditions : la scène tourne cinq
+  // secondes, une bascule démarre, et on quitte l'écran en plein milieu.
+  // Vérifié par mutation : avec une bascule datée par l'horloge, ce contrôle
+  // échoue ; le parcours ci-dessus, lui, passait quand même.
+  await page.waitForTimeout(5000)
+  await haut.getByRole('button', { name: 'iPhone', exact: true }).tap()
+  await page.waitForTimeout(60)
+  await page.evaluate(() => window.scrollTo({ top: 2400, behavior: 'instant' }))
+  await page.waitForTimeout(1000)
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+  check(
+    await rendu('iphone'),
+    'une bascule interrompue par une sortie d’écran se termine au retour'
+  )
+
+  // Changer d'avis au milieu de la bascule : la scène doit finir sur le
+  // dernier choix, pas sur celui qu'elle était en train de dessiner.
+  await haut.getByRole('button', { name: 'iPhone', exact: true }).tap()
+  await page.waitForTimeout(120)
+  await haut.getByRole('button', { name: 'iPad', exact: true }).tap()
+  check(await rendu('ipad'), 'un changement d’avis en pleine bascule finit sur le dernier choix')
+
+  await haut.getByRole('button', { name: 'iPhone', exact: true }).tap()
+  await rendu('iphone')
+  await page.reload({ waitUntil: 'networkidle' })
+  check(
+    (await pressé(page.locator('.hero-appareil'), 'iPhone')) === 'true' && (await rendu('iphone')),
+    'le choix de l’appareil survit au rechargement'
+  )
+
+  // L'iPhone de la démonstration a maintenant un cadre et une île.
+  const cadre = await page.evaluate(() => {
+    const téléphone = document.querySelector('#demo .phone')
+    return {
+      fond: getComputedStyle(téléphone).backgroundImage,
+      île: Boolean(téléphone.querySelector('.phone-island'))
+    }
+  })
+  check(cadre.fond.includes('gradient'), 'l’iPhone de la démonstration a un cadre argenté', cadre.fond.slice(0, 60))
+  check(cadre.île, 'l’iPhone de la démonstration a sa Dynamic Island')
+  check(errors.length === 0, 'aucune erreur JavaScript en changeant d’appareil', errors.join(' | '))
+  await context.close()
+}
+
+// Animations coupées : l'image fixe suit le choix elle aussi.
+{
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    reducedMotion: 'reduce'
+  })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.locator('.hero-appareil').getByRole('button', { name: 'iPhone', exact: true }).click()
+  await page.waitForTimeout(200)
+  const rendu = await page.evaluate(() =>
+    document.querySelector('.hero-scene [data-appareil-rendu]')?.getAttribute('data-appareil-rendu')
+  )
+  check(rendu === 'iphone', 'animations réduites : l’image fixe passe elle aussi sur iPhone', String(rendu))
   await context.close()
 }
 
