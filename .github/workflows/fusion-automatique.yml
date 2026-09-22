@@ -1,0 +1,156 @@
+name: Fusion automatique
+
+# Fusionne sur master les pull requests de l'auteur du dépôt dès que toutes les
+# vérifications sont au vert.
+#
+# Deux garde-fous, et ils comptent :
+#
+# 1. **Seules les pull requests ouvertes par le propriétaire du dépôt sont
+#    fusionnées.** Sans cette règle, sur un dépôt public, n'importe qui
+#    pourrait ouvrir une pull request et voir son code arriver sur master sans
+#    qu'un humain l'ait lue.
+# 2. **L'étiquette `pas-de-fusion-auto` suspend la fusion** d'une pull request
+#    précise, le temps d'y réfléchir.
+#
+# La fusion n'a lieu que si *toutes* les vérifications présentes sont terminées
+# et réussies, qu'il en existe au moins une, et que la pull request est
+# fusionnable sans conflit.
+
+on:
+  check_suite:
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: 'Numéro de la pull request à fusionner (vide = toutes celles qui sont prêtes)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+concurrency:
+  group: fusion-automatique
+  cancel-in-progress: false
+
+jobs:
+  fusionner:
+    name: Fusionner ce qui est prêt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Examiner les pull requests prêtes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner
+            const repo = context.repo.repo
+            const base = 'master'
+            const ETIQUETTE_BLOQUANTE = 'pas-de-fusion-auto'
+            // Les vérifications produites par ce workflow lui-même ne doivent
+            // pas être attendues : il serait son propre blocage.
+            const IGNORE = ['Fusionner ce qui est prêt']
+
+            const numero = context.payload.inputs?.pull_request
+            const shaEvenement = context.payload.check_suite?.head_sha
+
+            const { data: ouvertes } = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              base,
+              per_page: 50
+            })
+
+            const candidates = ouvertes.filter((pr) => {
+              if (numero) return String(pr.number) === String(numero)
+              if (shaEvenement) return pr.head.sha === shaEvenement
+              return true
+            })
+
+            if (candidates.length === 0) {
+              core.info("Aucune pull request concernée par cet événement.")
+              return
+            }
+
+            for (const resume of candidates) {
+              const prefixe = `PR #${resume.number}`
+
+              if (resume.user.login !== owner) {
+                core.info(`${prefixe} : ouverte par ${resume.user.login}, pas par ${owner} — ignorée.`)
+                continue
+              }
+              if (resume.draft) {
+                core.info(`${prefixe} : brouillon — ignorée.`)
+                continue
+              }
+              if (resume.labels.some((label) => label.name === ETIQUETTE_BLOQUANTE)) {
+                core.info(`${prefixe} : étiquette « ${ETIQUETTE_BLOQUANTE} » — ignorée.`)
+                continue
+              }
+
+              const { data: verifications } = await github.rest.checks.listForRef({
+                owner,
+                repo,
+                ref: resume.head.sha,
+                per_page: 100
+              })
+              const pertinentes = verifications.check_runs.filter(
+                (run) => !IGNORE.includes(run.name)
+              )
+
+              if (pertinentes.length === 0) {
+                core.info(`${prefixe} : aucune vérification sur ${resume.head.sha} — on attend.`)
+                continue
+              }
+
+              const enCours = pertinentes.filter((run) => run.status !== 'completed')
+              if (enCours.length > 0) {
+                core.info(
+                  `${prefixe} : ${enCours.length} vérification(s) en cours (${enCours
+                    .map((run) => run.name)
+                    .join(', ')}) — on attend.`
+                )
+                continue
+              }
+
+              const echouees = pertinentes.filter(
+                (run) => !['success', 'neutral', 'skipped'].includes(run.conclusion)
+              )
+              if (echouees.length > 0) {
+                core.info(
+                  `${prefixe} : ${echouees.length} vérification(s) en échec (${echouees
+                    .map((run) => `${run.name} → ${run.conclusion}`)
+                    .join(', ')}) — pas de fusion.`
+                )
+                continue
+              }
+
+              // `mergeable` est calculé de façon asynchrone par GitHub : une
+              // lecture fraîche évite de fusionner sur une information périmée.
+              const { data: pr } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: resume.number
+              })
+
+              if (pr.mergeable !== true || pr.mergeable_state === 'dirty') {
+                core.warning(
+                  `${prefixe} : non fusionnable pour l'instant (mergeable=${pr.mergeable}, état=${pr.mergeable_state}).`
+                )
+                continue
+              }
+
+              await github.rest.pulls.merge({
+                owner,
+                repo,
+                pull_number: pr.number,
+                merge_method: 'merge',
+                sha: pr.head.sha,
+                commit_title: `${pr.title} (#${pr.number})`,
+                commit_message: `Fusion automatique : ${pertinentes.length} vérification(s) au vert.`
+              })
+
+              core.notice(`${prefixe} fusionnée sur ${base}.`)
+            }
