@@ -2,7 +2,7 @@
   "name": "HemiPad",
   "description": "Site vitrine de HemiPad : la manette tactile iOS pensée pour une seule main valide.",
   "repository": "https://github.com/maxlestage/HemiPad",
-  "logo": "https://raw.githubusercontent.com/maxlestage/HemiPad/main/web/public/hemipad-mark.svg",
+  "logo": "https://raw.githubusercontent.com/maxlestage/HemiPad/master/web/public/hemipad-mark.svg",
   "keywords": ["hemipad", "accessibilite", "manette", "ios", "react", "vite"],
   "website": "https://hemipad.herokuapp.com",
   "success_url": "/",

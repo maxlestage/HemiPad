@@ -1,0 +1,45 @@
+name: Déploiement Heroku
+
+# Filet de sécurité facultatif.
+#
+# La voie recommandée depuis un téléphone reste le déploiement automatique
+# configuré une fois pour toutes dans le tableau de bord Heroku (Deploy →
+# GitHub → Enable Automatic Deploys) : il ne demande aucun secret ici.
+# Ce workflow sert quand on préfère piloter la mise en ligne depuis GitHub :
+# il ne fait rien tant que les secrets HEROKU_API_KEY et HEROKU_APP_NAME ne
+# sont pas renseignés.
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  deployer:
+    name: Pousser vers Heroku
+    runs-on: ubuntu-latest
+    env:
+      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+    steps:
+      - name: Les secrets sont-ils présents ?
+        id: secrets
+        run: |
+          if [ -n "$HEROKU_API_KEY" ] && [ -n "$HEROKU_APP_NAME" ]; then
+            echo "pret=oui" >> "$GITHUB_OUTPUT"
+          else
+            echo "pret=non" >> "$GITHUB_OUTPUT"
+            echo "Secrets absents : déploiement ignoré (ce n'est pas une erreur)."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.pret == 'oui'
+        with:
+          fetch-depth: 0
+
+      - name: Pousser la branche courante sur Heroku
+        if: steps.secrets.outputs.pret == 'oui'
+        run: |
+          git push --force \
+            "https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git" \
+            "HEAD:refs/heads/main"

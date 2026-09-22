@@ -1,0 +1,73 @@
+name: Intégration continue
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site:
+    name: Site vitrine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier les types
+        run: npm run typecheck
+
+      - name: Tests du solveur de disposition
+        run: npm test
+
+      - name: Construire le site
+        run: npm run build
+
+      - name: Vérifier que le serveur sert bien le site
+        run: |
+          PORT=4173 node server/index.mjs &
+          serveur=$!
+          for tentative in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -sf http://localhost:4173/healthz > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl -sf http://localhost:4173/healthz
+          curl -sf http://localhost:4173/ | grep -q '<div id="root">'
+          kill $serveur
+
+  projet-xcode:
+    name: Projet Xcode régénérable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Le .pbxproj est généré : s'il diverge de l'arborescence des sources,
+      # un fichier Swift ajouté depuis le téléphone ne serait jamais compilé.
+      - name: Le projet correspond-il aux sources ?
+        run: python3 ios/tools/generate_pbxproj.py --check
+
+      - name: Structure du projet valide ?
+        run: python3 ios/tools/validate_pbxproj.py
+
+      # Le pont rejoue les rapports de l'application : leurs descripteurs HID
+      # doivent rester identiques, sinon la console lit les bons octets avec la
+      # mauvaise carte.
+      - name: Tests du pont HemiPad
+        run: python3 test_bridge.py
+        working-directory: bridge
