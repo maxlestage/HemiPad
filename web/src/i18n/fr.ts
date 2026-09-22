@@ -287,6 +287,8 @@ export const fr: Dictionary = {
     languageTitle: 'Langue',
     themeTitle: 'Thème',
     themes: { auto: 'Automatique', light: 'Clair', dark: 'Sombre' },
+    motionTitle: 'Animations',
+    motions: { auto: 'Automatique', full: 'Animées', reduced: 'Apaisées' },
     rights: 'Tous droits réservés.',
     proprietary:
       "Logiciel propriétaire. Le code source n'est pas distribué sous licence libre et ne le sera pas : toute reproduction, modification ou redistribution est interdite sans autorisation écrite.",

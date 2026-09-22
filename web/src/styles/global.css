@@ -260,7 +260,8 @@ input {
   filter: blur(20px);
 }
 
-.hero.is-still .hero-grid {
+.hero.is-still .hero-grid,
+:root[data-motion='reduced'] .hero-grid {
   animation: none;
 }
 
@@ -270,10 +271,67 @@ input {
   }
 }
 
-.hero-content {
+.hero-inner {
   position: relative;
   max-width: var(--max-width);
   margin: 0 auto;
+  display: grid;
+  gap: 8px;
+}
+
+.hero-content {
+  position: relative;
+}
+
+/*
+ * La scène tient dans une boîte au rapport fixe : sans hauteur imposée, le
+ * canevas naît à zéro pixel, puis pousse le texte vers le bas quand le morceau
+ * 3D arrive. Un saut de mise en page à l'arrivée d'une animation est la pire
+ * des façons de commencer une page.
+ */
+.hero-scene {
+  position: relative;
+  width: 100%;
+  height: clamp(180px, 46vw, 260px);
+  display: grid;
+  place-items: center;
+}
+
+.hero-scene canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Le logo plat, servi pendant le chargement et partout où le relief ne va pas. */
+.hero-scene-plat {
+  width: min(62%, 220px);
+  height: auto;
+  color: var(--accent);
+  opacity: 0.9;
+}
+
+@media (min-width: 900px) {
+  .hero-inner {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    align-items: center;
+    gap: 32px;
+  }
+
+  /* Le texte d'abord dans le flux — donc dans la lecture d'un lecteur
+     d'écran et dans l'ordre de tabulation — l'image à droite à l'affichage. */
+  .hero-scene {
+    order: 2;
+    height: min(420px, 46vh);
+  }
+
+  .hero-content {
+    order: 1;
+  }
+
+  .hero-scene-plat {
+    width: min(70%, 300px);
+  }
 }
 
 .eyebrow {
