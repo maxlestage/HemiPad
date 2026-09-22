@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Six marques pour HemiPad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #eef2f4;
+    --surface: #ffffff;
+    --surface-2: #e3e9ed;
+    --ink: #0e1a22;
+    --ink-soft: #4a5a66;
+    --line: #cbd6dd;
+    --teal: #0b6f82;
+    --violet: #4a3fd0;
+    --amber: #a8620d;
+    --tile-light: #f7fafb;
+    --tile-dark: #05060d;
+    --radius: 14px;
+    --gutter: 20px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      color-scheme: dark;
+      --paper: #0b1116;
+      --surface: #111b22;
+      --surface-2: #17242d;
+      --ink: #eaf1f4;
+      --ink-soft: #9db0bb;
+      --line: #24353f;
+      --teal: #46d6e8;
+      --violet: #9b8cff;
+      --amber: #e8a34a;
+    }
+  }
+
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --paper: #0b1116;
+    --surface: #111b22;
+    --surface-2: #17242d;
+    --ink: #eaf1f4;
+    --ink-soft: #9db0bb;
+    --line: #24353f;
+    --teal: #46d6e8;
+    --violet: #9b8cff;
+    --amber: #e8a34a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding-inline: var(--gutter);
+    padding-block: 36px 64px;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Bricolage Grotesque', 'Public Sans', sans-serif;
+    margin: 0;
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+
+  h1 { font-size: clamp(2rem, 7vw, 3.1rem); font-weight: 800; line-height: 1.04; }
+  h2 { font-size: 1.35rem; font-weight: 700; }
+  h3 { font-size: 1.05rem; font-weight: 700; }
+  p { margin: 0; }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 14px;
+  }
+
+  .lede {
+    margin-top: 16px;
+    max-width: 62ch;
+    color: var(--ink-soft);
+    font-size: 1.05rem;
+  }
+
+  .brief {
+    margin-top: 26px;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .brief div {
+    border-left: 2px solid var(--teal);
+    padding-left: 14px;
+  }
+
+  .brief dt {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .brief dd { margin: 4px 0 0; font-weight: 500; }
+
+  .toolbar {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 5;
+    margin-top: 34px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: blur(10px);
+  }
+
+  .toolbar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .seg { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .seg button, .ghost {
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .seg button[aria-pressed='true'] {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: var(--surface);
+  }
+
+  .seg button:hover, .ghost:hover { border-color: var(--teal); }
+
+  :focus-visible { outline: 2px solid var(--violet); outline-offset: 3px; }
+
+  .chosen-note {
+    margin-left: auto;
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+  }
+
+  .chosen-note strong { color: var(--ink); }
+
+  .grid {
+    margin-top: 26px;
+    display: grid;
+    gap: 22px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  .card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card.is-chosen { border-color: var(--teal); box-shadow: inset 0 0 0 1px var(--teal); }
+
+  .tile {
+    display: grid;
+    place-items: center;
+    padding: 30px 20px;
+    background: var(--tile-light);
+    transition: background 0.2s ease;
+  }
+
+  body[data-tile='dark'] .tile { background: var(--tile-dark); }
+  body[data-tile='screen'] .tile {
+    background: radial-gradient(circle at 70% 90%, #16202f, #05060d 70%);
+  }
+
+  .lockup { display: flex; align-items: center; gap: 14px; }
+
+  .lockup .word {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: 1.7rem;
+    letter-spacing: -0.03em;
+    color: #0e1a22;
+  }
+
+  body[data-tile='dark'] .lockup .word,
+  body[data-tile='screen'] .lockup .word { color: #f2f5ff; }
+
+  .mark { display: block; }
+  .mark.big { width: 66px; height: 66px; }
+
+  /* Les marques prennent leur couleur du carreau, pas du thème de la page :
+     c'est le test qui compte — tiennent-elles sur fond clair et sur fond noir. */
+  .tile { --mark-ink: #0e1a22; --mark-accent: #0b6f82; --mark-warm: #c2410c; }
+  body[data-tile='dark'] .tile,
+  body[data-tile='screen'] .tile { --mark-ink: #f2f5ff; --mark-accent: #00e5ff; --mark-warm: #ffb533; }
+
+  .sizes {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: var(--surface-2);
+    --mark-ink: var(--ink);
+    --mark-accent: var(--teal);
+    --mark-warm: var(--amber);
+  }
+
+  .sizes > div { display: grid; gap: 6px; justify-items: center; }
+  /* Une hauteur fixe pour la fente d'icône : sans elle, les légendes de
+     tailles flottent à des hauteurs différentes et la rangée se lit mal. */
+  .sizes .slot { height: 48px; display: grid; place-items: center; }
+  .sizes .mark { width: var(--s); height: var(--s); }
+  .sizes span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.64rem;
+    color: var(--ink-soft);
+  }
+
+  .body { padding: 18px; display: grid; gap: 10px; }
+
+  .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    color: var(--teal);
+  }
+
+  .why { color: var(--ink-soft); font-size: 0.92rem; }
+
+  .verdict {
+    font-size: 0.82rem;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--teal) 10%, transparent);
+    color: var(--ink);
+  }
+
+  .pick {
+    margin-top: 4px;
+    justify-self: start;
+  }
+
+  .card.is-chosen .pick {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: var(--surface);
+  }
+
+  footer {
+    margin-top: 46px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 0.88rem;
+    display: grid;
+    gap: 8px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body data-tile="light">
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Identité · HemiPad</p>
+    <h1>Six marques pour HemiPad</h1>
+    <p class="lede">
+      Six directions pour une manette qui tient dans une seule main. Chacune part d'une idée
+      différente du produit — l'arc du pouce, la moitié manquante, le point d'appui — et se
+      teste ici sur fond clair, sur fond sombre et sur l'écran de l'application, jusqu'à
+      16 pixels. Choisissez-en une, je l'applique partout.
+    </p>
+
+    <dl class="brief">
+      <div>
+        <dt>Ce que la marque doit dire</dt>
+        <dd>Une main. Une portée. Rien d'inatteignable.</dd>
+      </div>
+      <div>
+        <dt>Où elle vit</dt>
+        <dd>Icône iOS, onglet de navigateur, fiche de partage, pied de page.</dd>
+      </div>
+      <div>
+        <dt>Contrainte dure</dt>
+        <dd>Lisible à 16 px, et sur fond noir comme sur fond clair.</dd>
+      </div>
+    </dl>
+  </header>
+
+  <div class="toolbar" role="group" aria-label="Réglages d'aperçu">
+    <span class="toolbar-label">Fond d'essai</span>
+    <div class="seg" id="tiles">
+      <button type="button" data-tile="light" aria-pressed="true">Clair</button>
+      <button type="button" data-tile="dark" aria-pressed="false">Sombre</button>
+      <button type="button" data-tile="screen" aria-pressed="false">Écran de l'app</button>
+    </div>
+    <p class="chosen-note" id="chosen">Aucun choix pour l'instant.</p>
+  </div>
+
+  <main class="grid" id="grid"></main>
+
+  <footer>
+    <p><strong>Comment choisir&nbsp;:</strong> regardez d'abord la colonne 16 px. Une marque qui
+      s'effondre à cette taille ne fera jamais une bonne icône d'onglet, quelle que soit sa beauté
+      en grand.</p>
+    <p>Dites-moi le numéro retenu (ou deux, si vous hésitez) et je remplace le logo actuel dans
+      l'application, sur le site, dans les icônes installables et sur la fiche de partage.</p>
+  </footer>
+</div>
+
+<script>
+  // Chaque marque est décrite une fois et rendue à toutes les tailles : un seul
+  // tracé à corriger si une proposition évolue.
+  const marks = {
+    arc: (id) => `
+      <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Marque ${id}">
+        <path d="M13 50a34 34 0 0 1 34-34" fill="none" stroke="var(--mark-accent)" stroke-width="2.5" stroke-linecap="round" opacity=".35"/>
+        <path d="M13 50a25 25 0 0 1 25-25" fill="none" stroke="var(--mark-accent)" stroke-width="2.5" stroke-linecap="round" opacity=".6"/>
+        <circle cx="47" cy="16" r="6" fill="var(--mark-accent)"/>
+        <circle cx="36" cy="22" r="4.6" fill="var(--mark-warm)"/>
+        <circle cx="26" cy="31" r="3.6" fill="var(--mark-accent)" opacity=".75"/>
+        <circle cx="18" cy="41" r="2.8" fill="var(--mark-accent)" opacity=".5"/>
+        <circle cx="13" cy="50" r="5" fill="var(--mark-ink)"/>
+      </svg>`,
+    monogram: (id) => `
+      <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Marque ${id}">
+        <rect x="10" y="12" width="7" height="40" rx="3.5" fill="var(--mark-ink)"/>
+        <rect x="47" y="12" width="7" height="40" rx="3.5" fill="var(--mark-ink)"/>
+        <path d="M13.5 44C22 26 42 26 50.5 44" fill="none" stroke="var(--mark-accent)" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="32" cy="30" r="5" fill="var(--mark-warm)"/>
+      </svg>`,
+    hemi: (id) => `
+      <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Marque ${id}">
+        <path d="M32 18h-9c-7 0-12 5-13 12l-2 10c-1 5 2 8 6 8 3 0 5-2 7-5l3-5h8z" fill="var(--mark-ink)"/>
+        <circle cx="17" cy="30" r="2.6" fill="var(--mark-accent)"/>
+        <rect x="14.4" y="34" width="5.2" height="2.4" rx="1.2" fill="var(--mark-accent)"/>
+        <rect x="15.8" y="32.6" width="2.4" height="5.2" rx="1.2" fill="var(--mark-accent)"/>
+        <path d="M32 18h9c7 0 12 5 13 12l2 10c1 5-2 8-6 8-3 0-5-2-7-5l-3-5h-8z" fill="none" stroke="var(--mark-accent)" stroke-width="2" stroke-dasharray="4 4" opacity=".85"/>
+        <circle cx="45" cy="28" r="3" fill="var(--mark-accent)"/>
+        <circle cx="50" cy="34" r="3" fill="var(--mark-warm)"/>
+      </svg>`,
+    cible: (id) => `
+      <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Marque ${id}">
+        <path d="M12 52C12 30 28 14 50 14" fill="none" stroke="var(--mark-accent)" stroke-width="9" stroke-linecap="round" opacity=".28"/>
+        <path d="M12 52C12 34 26 20 44 20" fill="none" stroke="var(--mark-accent)" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="47" cy="19" r="11" fill="none" stroke="var(--mark-ink)" stroke-width="2.6"/>
+        <circle cx="47" cy="19" r="4.5" fill="var(--mark-warm)"/>
+        <circle cx="12" cy="52" r="4.5" fill="var(--mark-ink)"/>
+      </svg>`,
+    appui: (id) => `
+      <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Marque ${id}">
+        <circle cx="27" cy="37" r="19" fill="var(--mark-accent)"/>
+        <circle cx="27" cy="37" r="19" fill="none" stroke="var(--mark-ink)" stroke-width="0"/>
+        <circle cx="48" cy="18" r="9" fill="var(--mark-ink)"/>
+        <circle cx="48" cy="18" r="3.4" fill="var(--mark-warm)"/>
+        <path d="M27 37 48 18" stroke="var(--mark-ink)" stroke-width="2" stroke-linecap="round" opacity=".35"/>
+      </svg>`,
+    empreinte: (id) => `
+      <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Marque ${id}">
+        <g fill="none" stroke-linecap="round">
+          <path d="M8 54a46 46 0 0 1 46-46" stroke="var(--mark-accent)" stroke-width="3" opacity=".25"/>
+          <path d="M8 54a36 36 0 0 1 36-36" stroke="var(--mark-accent)" stroke-width="3" opacity=".45"/>
+          <path d="M8 54a26 26 0 0 1 26-26" stroke="var(--mark-accent)" stroke-width="3" opacity=".7"/>
+          <path d="M8 54a16 16 0 0 1 16-16" stroke="var(--mark-warm)" stroke-width="3"/>
+        </g>
+        <circle cx="8" cy="54" r="4" fill="var(--mark-ink)"/>
+      </svg>`
+  }
+
+  const proposals = [
+    {
+      key: 'arc',
+      name: "L'arc du pouce",
+      why: "La géométrie réelle du produit : les commandes posées sur l'arc que le pouce atteint, du plus loin au plus près. C'est la marque actuelle, redessinée avec des tailles de points qui suivent vraiment la portée.",
+      verdict: "Fidèle au produit. Le point orange donne l'accroche à petite taille."
+    },
+    {
+      key: 'monogram',
+      name: 'Le H d’atteinte',
+      why: "Un H dont la barre est l'arc de portée. Monogramme franc, qui fonctionne comme initiale dans une liste d'applications et se reconnaît sans connaître le produit.",
+      verdict: "La plus « marque » des six. Un peu moins parlante sur l'accessibilité."
+    },
+    {
+      key: 'hemi',
+      name: 'La moitié manquante',
+      why: "Une manette dont une moitié est pleine et l'autre en pointillés : hémi, littéralement. La moitié absente n'est pas un manque, c'est ce que l'application remplace.",
+      verdict: "Concept le plus fort. Le pointillé demande à être vérifié à 16 px."
+    },
+    {
+      key: 'cible',
+      name: 'Le pouce et la cible',
+      why: "Le geste, du pivot jusqu'à la cible visée. La trace large derrière le trait fin rappelle la zone atteignable, pas seulement le trajet.",
+      verdict: "Très lisible. L'anneau ouvre la voie à des déclinaisons animées."
+    },
+    {
+      key: 'appui',
+      name: 'Le point d’appui',
+      why: "Deux cercles : le bouton principal et son satellite. Réduction extrême, pensée pour l'icône d'onglet avant tout le reste.",
+      verdict: "Imbattable à 16 px. Demande un accompagnement typographique fort."
+    },
+    {
+      key: 'empreinte',
+      name: 'L’empreinte',
+      why: "Des arcs concentriques comme un quart d'empreinte digitale : le toucher et la portée dans le même dessin, sans figurer aucun matériel.",
+      verdict: "La plus intemporelle. Risque de ressembler à un logo de réseau sans fil."
+    }
+  ]
+
+  const grid = document.getElementById('grid')
+  grid.innerHTML = proposals
+    .map((proposal, index) => {
+      const number = String(index + 1).padStart(2, '0')
+      const mark = marks[proposal.key]
+      return `
+        <article class="card" data-index="${index}">
+          <div class="tile">
+            <div class="lockup">
+              ${mark(proposal.name).replace('class="mark"', 'class="mark big"')}
+              <span class="word">HemiPad</span>
+            </div>
+          </div>
+          <div class="sizes">
+            ${[48, 32, 16].map((size) => `
+              <div>
+                <span class="slot">${mark(proposal.name).replace('<svg ', `<svg style="width:${size}px;height:${size}px" `)}</span>
+                <span>${size} px</span>
+              </div>`).join('')}
+          </div>
+          <div class="body">
+            <p class="num">Proposition ${number}</p>
+            <h3>${proposal.name}</h3>
+            <p class="why">${proposal.why}</p>
+            <p class="verdict">${proposal.verdict}</p>
+            <button type="button" class="ghost pick" data-pick="${index}">Je choisis celle-ci</button>
+          </div>
+        </article>`
+    })
+    .join('')
+
+  // Fond d'essai : une marque doit tenir sur les trois.
+  const tiles = document.getElementById('tiles')
+  tiles.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-tile]')
+    if (!button) return
+    document.body.dataset.tile = button.dataset.tile
+    for (const other of tiles.querySelectorAll('button')) {
+      other.setAttribute('aria-pressed', String(other === button))
+    }
+  })
+
+  // Le choix est une commodité locale : il ne quitte pas ce navigateur.
+  const chosenNote = document.getElementById('chosen')
+
+  function showChoice(index) {
+    for (const card of grid.querySelectorAll('.card')) {
+      const isChosen = Number(card.dataset.index) === index
+      card.classList.toggle('is-chosen', isChosen)
+      const button = card.querySelector('.pick')
+      button.textContent = isChosen ? 'Choisie' : 'Je choisis celle-ci'
+    }
+    chosenNote.innerHTML =
+      index === null
+        ? "Aucun choix pour l'instant."
+        : `Choix retenu : <strong>n° ${String(index + 1).padStart(2, '0')} — ${proposals[index].name}</strong>`
+  }
+
+  grid.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-pick]')
+    if (!button) return
+    const index = Number(button.dataset.pick)
+    showChoice(index)
+    try {
+      localStorage.setItem('hemipad.logo.choice', String(index))
+    } catch (error) {
+      // Stockage indisponible : le choix vaut pour cette visite, c'est assez.
+    }
+  })
+
+  try {
+    const stored = localStorage.getItem('hemipad.logo.choice')
+    if (stored !== null) showChoice(Number(stored))
+  } catch (error) {
+    // Rien à restaurer.
+  }
+</script>
+</body>
+</html>

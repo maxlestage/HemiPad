@@ -69,6 +69,13 @@ export const fr: Dictionary = {
       overlap: (count) => `${count} commandes se chevauchent : elles resteront difficiles à viser.`,
       resetPositions: 'Tout replacer'
     },
+    device: {
+      label: 'Appareil',
+      ipad: 'iPad',
+      iphone: 'iPhone',
+      hint:
+        "L'iPad est l'appareil de référence : son écran donne des cibles bien plus grandes, et il se pose sur une table ou un support, ce qui libère la main valide du poids de l'appareil. L'iPhone reste parfaitement utilisable, avec des commandes plus resserrées."
+    },
     control: {
       settings: 'Réglages de la commande',
       visibility: 'Affichage',
@@ -79,8 +86,16 @@ export const fr: Dictionary = {
       inherit: 'Réglage général',
       size: 'Taille',
       reposition: 'Remettre à sa place automatique',
-      reset: 'Réinitialiser cette commande',
-      close: 'Fermer'
+      reset: 'Réinitialiser',
+      close: 'Fermer',
+      lock: 'Verrouiller',
+      unlock: 'Déverrouiller',
+      lockedBadge: 'verrouillée',
+      lockedHint:
+        "Une commande verrouillée ne bouge plus, même en disposition libre : un glissement involontaire ne défait pas ce que vous avez mis en place.",
+      selection: (count) => `${count} sélectionnée${count > 1 ? 's' : ''}`,
+      deselect: 'Désélectionner',
+      multiple: (count) => `${count} commandes`
     },
     active: (count) => `${count} actif${count > 1 ? 's' : ''}`,
     screenLabel: (console, hand) => `Manette ${console} disposée pour la ${hand}`,
@@ -104,7 +119,7 @@ export const fr: Dictionary = {
   },
   features: {
     eyebrow: 'Accessibilité',
-    title: 'Huit gestes impossibles, huit réponses',
+    title: 'Neuf gestes impossibles, neuf réponses',
     lede:
       "L'hémiplégie n'est pas un mode d'affichage. Chaque règle ci-dessous supprime un geste qui demandait deux mains, ou un effort qui épuise la seule main disponible.",
     problemTag: 'Le problème',
@@ -151,6 +166,12 @@ export const fr: Dictionary = {
         title: 'Stick qui garde sa position',
         problem: 'Avancer tout droit oblige à garder le pouce collé en haut.',
         answer: 'Le retour au centre est désactivable : on lâche, le personnage continue.'
+      },
+      {
+        icon: '▭',
+        title: "L'iPad d'abord",
+        problem: "Tenir un téléphone d'une main et jouer avec la même main, c'est demander à un seul pouce de porter et de viser.",
+        answer: "Posé sur une table ou un support, l'iPad libère la main du poids de l'appareil et offre des cibles bien plus grandes. L'iPhone reste géré, en second."
       },
       {
         icon: '◉',
