@@ -89,6 +89,14 @@ recalcule vraiment la géométrie, avec les mêmes règles que sur l'iPhone.
 - **Des commandes qui glissent** — dans la démonstration, changer de main ou
   écarter les cibles fait *voyager* les commandes au lieu de les téléporter :
   on voit le solveur travailler.
+- **« Suivant »** — un bouton centré en bas de l'écran, atteignable par l'un
+  ou l'autre pouce, descend d'une section à la suivante ; au bout de la page,
+  il remonte. Pour qui n'a qu'un pouce qui se fatigue, un appui répété au même
+  endroit remplace une longue suite de glissements.
+- **Suivre l'inclinaison** — sur téléphone et tablette, l'iPad du hero peut
+  suivre le gyroscope. iOS n'autorise l'accès aux capteurs qu'à la demande de
+  la personne : d'où un bouton, plutôt qu'un suivi imposé. Sur ordinateur, la
+  scène suit la souris.
 
 ### Les animations, et leur interrupteur
 
@@ -121,10 +129,11 @@ sont toutes tenues :
   l'onglet passe en arrière-plan, et la zone réserve sa hauteur d'avance : le
   texte ne saute pas quand la 3D arrive.
 
-Vingt-six vérifications dans un vrai navigateur couvrent tout cela, y compris
-le fait que la scène **bouge réellement** — deux captures espacées doivent
-différer — et qu'une commande **glisse au lieu de sauter** quand on change de
-main.
+Ces garanties sont vérifiées dans un vrai navigateur, y compris le fait que la
+scène **bouge réellement** — deux captures espacées doivent différer —, qu'une
+commande **glisse au lieu de sauter** quand on change de main, que le
+gyroscope et la souris atteignent bien la scène, et que « Suivant » arrive
+exactement au début de chaque section, sur téléphone comme sur iPad.
 
 ## Identité visuelle
 
