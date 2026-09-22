@@ -79,6 +79,12 @@ Pour fusionner à la demande : *Actions → Fusion automatique → Run workflow*
 en laissant le champ vide (toutes celles qui sont prêtes) ou en indiquant un
 numéro.
 
+Le workflow se déclenche à la fin de chaque vérification — y compris celles de
+GitHub Actions, via `workflow_run`. C'est le déclencheur prévu pour cela :
+GitHub refuse qu'une suite de vérifications créée par ses propres actions
+redéclenche un workflow, protection anti-boucle qui rendrait la fusion
+automatique aveugle à la compilation iOS.
+
 Deux conséquences à connaître :
 
 1. une fusion faite par le jeton d'Actions **ne relance pas** les workflows sur
