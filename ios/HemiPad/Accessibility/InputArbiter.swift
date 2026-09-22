@@ -118,22 +118,40 @@ final class InputArbiter: ObservableObject {
         let start = Date.timeIntervalSinceReferenceDate
         dwellProgress[control] = 0
 
+        // Les minuteries appellent leur bloc hors de tout acteur : on rebascule
+        // explicitement sur l'acteur principal, et on lie `self` fortement
+        // *avant* ce saut. Lier `self` à l'intérieur reviendrait à capturer la
+        // référence faible de la closure englobante dans du code concurrent,
+        // ce que le compilateur refuse à juste titre.
         let timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] timer in
+            guard let self else {
+                timer.invalidate()
+                return
+            }
             Task { @MainActor in
-                guard let self else { return }
-                let elapsed = Date.timeIntervalSinceReferenceDate - start
-                let progress = min(elapsed / duration, 1)
-                self.dwellProgress[control] = progress
-                if progress >= 1 {
-                    timer.invalidate()
-                    self.dwellTimers[control] = nil
-                    self.dwellProgress[control] = nil
-                    self.apply(control, pressed: true)
-                    self.scheduleAutoRepeat(control)
-                }
+                self.advanceDwell(control, start: start, duration: duration, timer: timer)
             }
         }
         dwellTimers[control] = timer
+    }
+
+    /// Un battement de survol : avance l'anneau de progression et valide
+    /// l'appui une fois la durée atteinte.
+    private func advanceDwell(
+        _ control: ControlID,
+        start: TimeInterval,
+        duration: TimeInterval,
+        timer: Timer
+    ) {
+        let elapsed = Date.timeIntervalSinceReferenceDate - start
+        let progress = duration > 0 ? min(elapsed / duration, 1) : 1
+        dwellProgress[control] = progress
+        guard progress >= 1 else { return }
+        timer.invalidate()
+        dwellTimers[control] = nil
+        dwellProgress[control] = nil
+        apply(control, pressed: true)
+        scheduleAutoRepeat(control)
     }
 
     private func cancelDwell(_ control: ControlID) {
@@ -148,8 +166,9 @@ final class InputArbiter: ObservableObject {
         guard profile.autoRepeat, !control.isAnalogTrigger else { return }
         cancelRepeat(control)
         let timer = Timer.scheduledTimer(withTimeInterval: profile.autoRepeatDelay, repeats: false) { [weak self] _ in
+            guard let self else { return }
             Task { @MainActor in
-                guard let self, self.state.isPressed(control) else { return }
+                guard self.state.isPressed(control) else { return }
                 self.startRepeating(control)
             }
         }
@@ -159,19 +178,28 @@ final class InputArbiter: ObservableObject {
     private func startRepeating(_ control: ControlID) {
         repeatTimers[control]?.invalidate()
         let timer = Timer.scheduledTimer(withTimeInterval: profile.autoRepeatInterval, repeats: true) { [weak self] timer in
+            guard let self else {
+                timer.invalidate()
+                return
+            }
             Task { @MainActor in
-                guard let self, self.state.isPressed(control) else {
-                    timer.invalidate()
-                    return
-                }
-                // Un battement relâché/ré-appuyé : les jeux lisent un front montant.
-                self.state.set(control, pressed: false)
-                self.publish()
-                self.state.set(control, pressed: true)
-                self.publish()
+                self.emitRepeat(control, timer: timer)
             }
         }
         repeatTimers[control] = timer
+    }
+
+    /// Un battement de répétition : relâché puis ré-appuyé, parce que les jeux
+    /// lisent un front montant, pas un état maintenu.
+    private func emitRepeat(_ control: ControlID, timer: Timer) {
+        guard state.isPressed(control) else {
+            timer.invalidate()
+            return
+        }
+        state.set(control, pressed: false)
+        publish()
+        state.set(control, pressed: true)
+        publish()
     }
 
     private func cancelRepeat(_ control: ControlID) {

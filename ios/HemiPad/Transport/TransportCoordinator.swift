@@ -93,10 +93,11 @@ final class TransportCoordinator: ObservableObject {
             newTransport = LoopbackTransport()
         }
         newTransport.onStateChange = { [weak self] state in
+            guard let self else { return }
             Task { @MainActor in
-                self?.state = state
+                self.state = state
                 if case .failed = state {
-                    self?.handleFailure()
+                    self.handleFailure()
                 }
             }
         }
@@ -117,7 +118,8 @@ final class TransportCoordinator: ObservableObject {
     private func startFlushTimerIfNeeded() {
         guard flushTimer == nil else { return }
         flushTimer = Timer.scheduledTimer(withTimeInterval: minimumInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.flush() }
+            guard let self else { return }
+            Task { @MainActor in self.flush() }
         }
     }
 

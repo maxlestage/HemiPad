@@ -171,8 +171,9 @@ final class BridgeBrowser: ObservableObject {
         parameters.includePeerToPeer = true
         let browser = NWBrowser(for: .bonjour(type: "_hemipad._tcp", domain: nil), using: parameters)
         browser.browseResultsChangedHandler = { [weak self] results, _ in
+            guard let self else { return }
             Task { @MainActor in
-                self?.found = results.compactMap { Self.discovered(from: $0) }
+                self.found = results.compactMap { Self.discovered(from: $0) }
             }
         }
         browser.start(queue: .main)

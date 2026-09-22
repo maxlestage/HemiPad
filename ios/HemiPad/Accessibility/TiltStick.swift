@@ -30,13 +30,13 @@ final class TiltStick: ObservableObject {
         guard !motion.isDeviceMotionActive else { return }
         motion.deviceMotionUpdateInterval = 1.0 / 60.0
         motion.startDeviceMotionUpdates(to: .main) { [weak self] data, _ in
-            guard let attitude = data?.attitude else { return }
+            guard let self, let attitude = data?.attitude else { return }
             let pitch = attitude.pitch
             let roll = attitude.roll
             // La file est déjà la principale, mais le compilateur ne le sait
             // pas : le saut explicite évite de dépendre de cette promesse.
-            Task { @MainActor [weak self] in
-                self?.handle(pitch: pitch, roll: roll)
+            Task { @MainActor in
+                self.handle(pitch: pitch, roll: roll)
             }
         }
     }

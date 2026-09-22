@@ -72,8 +72,9 @@ final class StickyModifierEngine: ObservableObject {
         expiry?.invalidate()
         guard !armed.isEmpty, timeout > 0 else { return }
         expiry = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { [weak self] _ in
+            guard let self else { return }
             Task { @MainActor in
-                self?.armed = []
+                self.armed = []
             }
         }
     }
