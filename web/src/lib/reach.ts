@@ -25,6 +25,24 @@ export interface RingSpec {
   size: Size
 }
 
+export type LayoutMode = 'arc' | 'free'
+
+export type ActivationMode = 'direct' | 'latch' | 'dwell'
+
+/** Réglages propres à une commande, comme dans l'application. */
+export interface ControlPreference {
+  /** Masquée, elle libère de la place pour les autres. */
+  hidden?: boolean
+  /** Grossissement individuel, multiplié à la taille générale. */
+  sizeScale?: number
+  /** Position choisie en disposition libre, en fraction de la zone (0…1). */
+  freePosition?: Point
+  /** Mode d'appui propre ; `undefined` suit le réglage général. */
+  activation?: ActivationMode
+}
+
+export type Preferences = Record<string, ControlPreference>
+
 export interface LayoutOptions {
   hand: Hand
   /** Taille de la zone de dessin. */
@@ -40,6 +58,12 @@ export interface LayoutOptions {
   margin?: number
   /** Bande haute réservée à l'interface. */
   topBand?: number
+  /** Écart minimal entre deux voisines, en proportion de leur taille. */
+  spacing?: number
+  /** Placement automatique sur les arcs, ou libre. */
+  mode?: LayoutMode
+  /** Réglages par commande. */
+  preferences?: Preferences
 }
 
 export interface Placement {
@@ -58,14 +82,22 @@ export interface Layout {
   hand: Hand
   /** Taille de cible finalement retenue. */
   target: number
+  /** Espacement finalement appliqué. */
+  spacing: number
+  mode: LayoutMode
+  /** Identifiants des commandes qui se chevauchent (mode libre seulement). */
+  overlapping: string[]
 }
 
 /**
- * Espacement minimal entre deux voisines, en proportion de leur taille.
- * Même valeur que l'application : deux cibles qui se frôlent sont deux cibles
- * qu'un doigt tremblant confond.
+ * Valeurs par défaut, identiques à celles de l'application.
+ *
+ * L'espacement est un réglage, pas une constante : deux cibles qui se frôlent
+ * sont deux cibles qu'un doigt tremblant confond, et chacun juge différemment
+ * du confort.
  */
-const SPACING = 1.18
+const DEFAULT_SPACING = 1.35
+const MIN_SPACING = 1.06
 const MIN_TARGET = 28
 
 export function halfExtent(size: Size): number {
@@ -96,23 +128,44 @@ export function pointOnArc(pivot: Point, radius: number, angle: number): Point {
 }
 
 /**
- * Résout la disposition : rayons déduits de la taille des commandes, bloc
- * translaté pour rester dans le cadre, cibles réduites en dernier recours.
+ * Résout la disposition.
  *
- * Réduire plutôt que masquer est un choix d'accessibilité : une commande
- * absente oblige à changer d'écran en plein jeu, une commande un peu plus
- * petite reste atteignable.
+ * Deux modes : **automatique**, où les commandes se posent sur les arcs
+ * d'atteinte, et **libre**, où la personne les place elle-même — l'automatique
+ * servant alors de point de départ.
+ *
+ * En automatique, quand ça ne tient pas, les cibles rétrécissent d'abord
+ * (jusqu'au plancher), et seulement ensuite l'espacement se resserre : un
+ * bouton trop petit n'est plus une cible, alors qu'un écart un peu réduit
+ * reste utilisable.
  */
 export function solveLayout(options: LayoutOptions): Layout {
-  const minimum = Math.min(MIN_TARGET, options.target)
-  let target = options.target
+  const arc = solveArc(options)
+  if (options.mode !== 'free') return arc
+  return applyFreePositions(arc, options)
+}
+
+function solveArc(options: LayoutOptions): Layout {
+  const requestedSpacing = Math.max(options.spacing ?? DEFAULT_SPACING, MIN_SPACING)
+  const minimumTarget = Math.min(MIN_TARGET, options.target)
+  let spacing = requestedSpacing
 
   for (;;) {
-    const attempt = tryLayout(options, target)
-    if (attempt) return attempt
-    const next = target - Math.max(1, target * 0.04)
-    if (next < minimum) return tryLayout(options, minimum, true) ?? empty(options)
-    target = next
+    let target = options.target
+    for (;;) {
+      const attempt = tryLayout(options, target, spacing)
+      if (attempt) return attempt
+      const next = target - Math.max(1, target * 0.04)
+      if (next < minimumTarget) break
+      target = next
+    }
+    const nextSpacing = spacing - 0.04
+    if (nextSpacing < MIN_SPACING) {
+      return (
+        tryLayout(options, minimumTarget, MIN_SPACING, true) ?? empty(options)
+      )
+    }
+    spacing = nextSpacing
   }
 }
 
@@ -127,11 +180,23 @@ function empty(options: LayoutOptions): Layout {
     radii: [],
     span: options.span ?? Math.PI / 2.4,
     hand: options.hand,
-    target: options.target
+    target: options.target,
+    spacing: options.spacing ?? DEFAULT_SPACING,
+    mode: options.mode ?? 'arc',
+    overlapping: []
   }
 }
 
-function tryLayout(options: LayoutOptions, target: number, forced = false): Layout | null {
+function preferenceOf(options: LayoutOptions, id: string): ControlPreference {
+  return options.preferences?.[id] ?? {}
+}
+
+function tryLayout(
+  options: LayoutOptions,
+  target: number,
+  spacing: number,
+  forced = false
+): Layout | null {
   const {
     hand,
     canvas,
@@ -145,10 +210,24 @@ function tryLayout(options: LayoutOptions, target: number, forced = false): Layo
   // Tout rétrécit ensemble : sinon les arcs extérieurs garderaient leur taille
   // et reprendraient la place gagnée sur les boutons de face.
   const scale = target / options.target
-  const scaled = rings.map((ring) => ({
-    ids: ring.ids,
-    size: { width: ring.size.width * scale, height: ring.size.height * scale }
-  }))
+  const scaled = rings
+    .map((ring) => {
+      const ids = ring.ids.filter((id) => !preferenceOf(options, id).hidden)
+      return {
+        ids,
+        sizes: ids.map((id) => {
+          const own = preferenceOf(options, id).sizeScale ?? 1
+          return {
+            width: ring.size.width * scale * own,
+            height: ring.size.height * scale * own
+          }
+        })
+      }
+    })
+    .filter((ring) => ring.ids.length > 0)
+
+  const directionalHidden = preferenceOf(options, 'directional').hidden === true
+  if (scaled.length === 0 && directionalHidden) return null
 
   const pivot: Point = {
     x: (hand === 'right' ? pivotFraction.x : 1 - pivotFraction.x) * canvas.width,
@@ -159,53 +238,61 @@ function tryLayout(options: LayoutOptions, target: number, forced = false): Layo
   const radii: number[] = []
   let previous: { radius: number; half: number } | null = null
   for (const ring of scaled) {
-    const half = halfExtent(ring.size)
+    const half = Math.max(...ring.sizes.map(halfExtent))
     let radius = 0
     if (ring.ids.length > 1) {
       const step = span / (ring.ids.length - 1)
-      radius = (2 * half * SPACING) / (2 * Math.sin(step / 2))
+      radius = (2 * half * spacing) / (2 * Math.sin(step / 2))
     }
     if (previous) {
-      radius = Math.max(radius, previous.radius + (previous.half + half) * SPACING)
+      radius = Math.max(radius, previous.radius + (previous.half + half) * spacing)
     }
     radii.push(radius)
     previous = { radius, half }
   }
 
   // 2. Commande directionnelle, au plus près du pouce.
-  const directionalSize = target * 1.6
-  const firstRing = scaled[0]
-  const firstRadius = radii[0]
-  if (!firstRing || firstRadius === undefined) return null
-  const firstHalf = halfExtent(firstRing.size)
-  const maximumDirectional = firstRadius - (directionalSize / 2 + firstHalf) * SPACING
-  if (maximumDirectional <= 0 && !forced) return null
-  const directionalRadius = Math.max(
-    Math.min(Math.max(directionalSize * 0.35, canvas.width * 0.12), maximumDirectional),
-    directionalSize * 0.25
-  )
-
-  // 3. Placement brut.
-  const placements: Placement[] = [
-    {
+  const placements: Placement[] = []
+  let directionalRadius = 0
+  if (!directionalHidden) {
+    const directionalSize =
+      target * 1.6 * (preferenceOf(options, 'directional').sizeScale ?? 1)
+    const firstRing = scaled[0]
+    const firstRadius = radii[0]
+    if (firstRing && firstRadius !== undefined) {
+      const firstHalf = Math.max(...firstRing.sizes.map(halfExtent))
+      const maximum = firstRadius - (directionalSize / 2 + firstHalf) * spacing
+      if (maximum <= 0 && !forced) return null
+      directionalRadius = Math.max(
+        Math.min(Math.max(directionalSize * 0.35, canvas.width * 0.12), maximum),
+        directionalSize * 0.25
+      )
+    } else {
+      directionalRadius = Math.max(directionalSize * 0.5, canvas.width * 0.12)
+    }
+    placements.push({
       id: 'directional',
       center: pointOnArc(pivot, directionalRadius, angleFor(1, 4, hand, span)),
       size: { width: directionalSize, height: directionalSize },
       halfExtent: directionalSize / 2
-    }
-  ]
+    })
+  }
 
+  // 3. Placement brut.
   scaled.forEach((ring, ringIndex) => {
     const radius = radii[ringIndex] ?? 0
     ring.ids.forEach((id, index) => {
+      const size = ring.sizes[index]!
       placements.push({
         id,
         center: pointOnArc(pivot, radius, angleFor(index, ring.ids.length, hand, span)),
-        size: ring.size,
-        halfExtent: halfExtent(ring.size)
+        size,
+        halfExtent: halfExtent(size)
       })
     })
   })
+
+  if (placements.length === 0) return null
 
   // 4. Le bloc tient-il dans le cadre ?
   const bounds = boundingBox(placements)
@@ -235,11 +322,74 @@ function tryLayout(options: LayoutOptions, target: number, forced = false): Layo
   return {
     placements: moved,
     pivot: { x: pivot.x + dx, y: pivot.y + dy },
-    radii: [directionalRadius, ...radii],
+    radii: directionalHidden ? radii : [directionalRadius, ...radii],
     span,
     hand,
-    target
+    target,
+    spacing,
+    mode: 'arc',
+    overlapping: findOverlaps(moved)
   }
+}
+
+/**
+ * Remplace les positions calculées par celles choisies, en gardant chaque
+ * commande entièrement visible : une cible à moitié hors cadre n'est plus une
+ * cible. Les chevauchements, eux, sont permis — et signalés.
+ */
+function applyFreePositions(arc: Layout, options: LayoutOptions): Layout {
+  const { canvas, margin = 6, topBand = 0 } = options
+  const placements = arc.placements.map((placement) => {
+    const stored = preferenceOf(options, placement.id).freePosition
+    if (!stored) return placement
+    return {
+      ...placement,
+      center: clampCenter(
+        { x: stored.x * canvas.width, y: stored.y * canvas.height },
+        placement.size,
+        canvas,
+        margin,
+        topBand
+      )
+    }
+  })
+
+  return { ...arc, placements, mode: 'free', overlapping: findOverlaps(placements) }
+}
+
+/** Ramène un centre de commande dans le cadre, bande haute comprise. */
+export function clampCenter(
+  center: Point,
+  size: Size,
+  canvas: Size,
+  margin = 6,
+  topBand = 0
+): Point {
+  const halfWidth = size.width / 2
+  const halfHeight = size.height / 2
+  const minX = margin + halfWidth
+  const maxX = Math.max(minX, canvas.width - margin - halfWidth)
+  const minY = topBand + halfHeight
+  const maxY = Math.max(minY, canvas.height - margin - halfHeight)
+  return {
+    x: Math.min(Math.max(center.x, minX), maxX),
+    y: Math.min(Math.max(center.y, minY), maxY)
+  }
+}
+
+function findOverlaps(placements: Placement[]): string[] {
+  const result = new Set<string>()
+  for (let i = 0; i < placements.length; i += 1) {
+    for (let j = i + 1; j < placements.length; j += 1) {
+      const a = placements[i]!
+      const b = placements[j]!
+      if (overlaps(a, b)) {
+        result.add(a.id)
+        result.add(b.id)
+      }
+    }
+  }
+  return [...result]
 }
 
 function boundingBox(placements: Placement[]) {
