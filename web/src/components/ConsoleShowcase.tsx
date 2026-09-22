@@ -1,18 +1,17 @@
 import type { CSSProperties } from 'react'
 
+import { useI18n } from '../i18n/index.tsx'
 import { consoles } from '../lib/consoles.ts'
 
 export function ConsoleShowcase() {
+  const { t } = useI18n()
+
   return (
     <section className="consoles" id="consoles" aria-labelledby="consoles-titre">
       <div className="section-head">
-        <p className="eyebrow">Compatibilité</p>
-        <h2 id="consoles-titre">Une manette, six façons d’être lue</h2>
-        <p className="lede">
-          Les glyphes, les couleurs et la table de correspondance HID changent avec la machine.
-          La géométrie accessible, elle, ne bouge jamais : ce que votre pouce a appris reste vrai
-          d’une console à l’autre.
-        </p>
+        <p className="eyebrow">{t.consoles.eyebrow}</p>
+        <h2 id="consoles-titre">{t.consoles.title}</h2>
+        <p className="lede">{t.consoles.lede}</p>
       </div>
 
       <ul className="console-row">
@@ -28,7 +27,7 @@ export function ConsoleShowcase() {
               ))}
             </div>
             <h3>{profile.name}</h3>
-            <p>{profile.summary}</p>
+            <p>{t.consoles.summaries[profile.id]}</p>
           </li>
         ))}
       </ul>

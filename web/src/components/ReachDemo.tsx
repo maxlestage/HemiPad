@@ -1,32 +1,14 @@
 import { useMemo, useState, type CSSProperties } from 'react'
 
-import {
-  arcPath,
-  solveLayout,
-  type Hand,
-  type Placement,
-  type RingSpec
-} from '../lib/reach.ts'
-import {
-  consoles,
-  controlNames,
-  faceIds,
-  shoulderIds,
-  systemIds,
-  type ConsoleProfile
-} from '../lib/consoles.ts'
+import { useI18n } from '../i18n/index.tsx'
+import { consoles, faceIds, shoulderIds, systemIds, type ConsoleProfile } from '../lib/consoles.ts'
+import { arcPath, solveLayout, type Hand, type Placement, type RingSpec } from '../lib/reach.ts'
 
 type Mode = 'direct' | 'latch' | 'dwell'
 
 const CANVAS = { width: 320, height: 470 }
 /** Bande haute occupée par le bandeau d'état, comme dans l'application. */
 const TOP_BAND = 96
-
-const modes: { id: Mode; label: string; detail: string }[] = [
-  { id: 'direct', label: 'Appui direct', detail: 'Le bouton suit le doigt, comme une manette classique.' },
-  { id: 'latch', label: 'Verrouillant', detail: 'Un appui active, un appui désactive. Rien à maintenir.' },
-  { id: 'dwell', label: 'Survol', detail: 'Posez le doigt et attendez : l’appui se déclenche seul.' }
-]
 
 function ringsFor(profile: ConsoleProfile, target: number): RingSpec[] {
   const omitted = new Set(profile.omits ?? [])
@@ -48,6 +30,7 @@ function ringsFor(profile: ConsoleProfile, target: number): RingSpec[] {
  * montrer qu'il ne s'agit pas d'un habillage mais d'une règle de placement.
  */
 export function ReachDemo() {
+  const { t } = useI18n()
   const [hand, setHand] = useState<Hand>('right')
   const [target, setTarget] = useState(58)
   const [mode, setMode] = useState<Mode>('latch')
@@ -103,21 +86,19 @@ export function ReachDemo() {
     }, 320)
   }
 
-  const currentMode = modes.find((item) => item.id === mode)
+  const currentMode = t.demo.modes.find((item) => item.id === mode)
+  const handLabel = hand === 'right' ? t.demo.handRight : t.demo.handLeft
 
   return (
     <section className="demo" id="demo" aria-labelledby="demo-titre">
       <div className="section-head">
-        <p className="eyebrow">Démonstration</p>
-        <h2 id="demo-titre">La disposition se plie à votre main, pas l’inverse</h2>
-        <p className="lede">
-          Chaque commande est posée sur l’arc que le pouce atteint vraiment. Changez de main :
-          tout bascule en miroir. Agrandissez les cibles : les arcs s’écartent, rien ne disparaît.
-        </p>
+        <p className="eyebrow">{t.demo.eyebrow}</p>
+        <h2 id="demo-titre">{t.demo.title}</h2>
+        <p className="lede">{t.demo.lede}</p>
       </div>
 
       <div className="demo-grid">
-        <div className="phone" role="img" aria-label={`Manette ${profile.name} disposée pour la ${hand === 'right' ? 'main droite' : 'main gauche'}`}>
+        <div className="phone" role="img" aria-label={t.demo.screenLabel(profile.name, handLabel)}>
           <svg viewBox={`0 0 ${CANVAS.width} ${CANVAS.height}`} className="phone-screen">
             <defs>
               <radialGradient id="halo" cx="50%" cy="50%">
@@ -152,20 +133,20 @@ export function ReachDemo() {
                 {profile.name}
               </text>
               <text x={50} y={56} className="status-detail">
-                {`Connecté · ${currentMode?.label.toLowerCase() ?? ''}`}
+                {`${t.demo.connected} · ${currentMode?.label.toLowerCase() ?? ''}`}
               </text>
               {active.size > 0 && (
                 <>
                   <rect
-                    x={CANVAS.width - 92}
+                    x={CANVAS.width - 96}
                     y={32}
-                    width={70}
+                    width={74}
                     height={26}
                     rx={13}
                     className="status-badge"
                   />
-                  <text x={CANVAS.width - 57} y={46} className="status-badge-text">
-                    {`${active.size} actif${active.size > 1 ? 's' : ''}`}
+                  <text x={CANVAS.width - 59} y={46} className="status-badge-text">
+                    {t.demo.active(active.size)}
                   </text>
                 </>
               )}
@@ -175,6 +156,7 @@ export function ReachDemo() {
               <ControlShape
                 key={placement.id}
                 placement={placement}
+                label={t.controlNames[placement.id] ?? placement.id}
                 glyph={profile.glyphs[placement.id] ?? ''}
                 accent={profile.accent}
                 isActive={active.has(placement.id)}
@@ -188,7 +170,7 @@ export function ReachDemo() {
 
         <div className="demo-controls">
           <fieldset className="control-block">
-            <legend>Main valide</legend>
+            <legend>{t.demo.hand}</legend>
             <div className="segmented">
               {(['left', 'right'] as const).map((item) => (
                 <button
@@ -198,7 +180,7 @@ export function ReachDemo() {
                   aria-pressed={hand === item}
                   onClick={() => setHand(item)}
                 >
-                  {item === 'left' ? 'Gauche' : 'Droite'}
+                  {item === 'left' ? t.demo.handLeft : t.demo.handRight}
                 </button>
               ))}
             </div>
@@ -206,7 +188,10 @@ export function ReachDemo() {
 
           <fieldset className="control-block">
             <legend>
-              Taille des cibles <span className="value">{Math.round(layout.target)} pt</span>
+              {t.demo.targetSize}{' '}
+              <span className="value">
+                {Math.round(layout.target)} {t.demo.unit}
+              </span>
             </legend>
             <input
               type="range"
@@ -215,20 +200,15 @@ export function ReachDemo() {
               step={2}
               value={target}
               onChange={(event) => setTarget(Number(event.target.value))}
-              aria-label="Taille des cibles"
+              aria-label={t.demo.targetSize}
             />
-            {layout.target < target - 0.5 && (
-              <p className="hint">
-                L’écran est trop étroit pour cette taille : les cibles sont réduites plutôt
-                qu’une commande supprimée.
-              </p>
-            )}
+            {layout.target < target - 0.5 && <p className="hint">{t.demo.downscaled}</p>}
           </fieldset>
 
           <fieldset className="control-block">
-            <legend>Mode d’appui</legend>
+            <legend>{t.demo.activation}</legend>
             <div className="segmented segmented-wrap">
-              {modes.map((item) => (
+              {t.demo.modes.map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -247,7 +227,7 @@ export function ReachDemo() {
           </fieldset>
 
           <fieldset className="control-block">
-            <legend>Console</legend>
+            <legend>{t.demo.console}</legend>
             <div className="chip-row">
               {consoles.map((item, index) => (
                 <button
@@ -266,7 +246,7 @@ export function ReachDemo() {
 
           {active.size > 0 && (
             <button type="button" className="release-all" onClick={() => setActive(new Set())}>
-              Tout relâcher ({active.size})
+              {t.demo.releaseAll} ({active.size})
             </button>
           )}
         </div>
@@ -277,6 +257,7 @@ export function ReachDemo() {
 
 interface ControlShapeProps {
   placement: Placement
+  label: string
   glyph: string
   accent: string
   isActive: boolean
@@ -284,11 +265,18 @@ interface ControlShapeProps {
   onPress: () => void
 }
 
-function ControlShape({ placement, glyph, accent, isActive, isPending, onPress }: ControlShapeProps) {
+function ControlShape({
+  placement,
+  label,
+  glyph,
+  accent,
+  isActive,
+  isPending,
+  onPress
+}: ControlShapeProps) {
   const { center, size, id } = placement
   const isPill = Math.abs(size.width - size.height) > 0.5
   const isDirectional = id === 'directional'
-  const label = controlNames[id] ?? id
 
   return (
     <g

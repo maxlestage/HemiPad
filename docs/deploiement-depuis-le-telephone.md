@@ -91,7 +91,15 @@ unitaires — dont ceux qui vérifient qu'aucune commande ne sort de l'écran.
   workflow*.
 - En cas d'échec, l'onglet *Summary* contient le rapport `resultats.xcresult`.
 
-Les minutes macOS sont gratuites sur un dépôt public.
+Les minutes macOS sont gratuites tant que le dépôt est public. S'il passe en
+privé — ce qui est cohérent avec un projet propriétaire —, elles sont décomptées
+du quota du compte (au tarif macOS, dix fois celui de Linux) : mieux vaut alors
+lancer ce travail à la main plutôt qu'à chaque *pull request*.
+
+Un dépôt privé désactive aussi le bouton « Deploy to Heroku », qui a besoin de
+télécharger l'archive du dépôt. Le déploiement automatique décrit plus haut,
+lui, continue de fonctionner : il passe par la connexion GitHub autorisée dans
+le tableau de bord Heroku.
 
 ### Installer l'application sur votre iPhone
 

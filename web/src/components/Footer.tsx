@@ -1,21 +1,122 @@
+import { useI18n, type Locale } from '../i18n/index.tsx'
+import { themeChoices, useTheme, type ThemeChoice } from '../lib/theme.tsx'
+
+/**
+ * Pied de page.
+ *
+ * Il porte les trois choses qu'on cherche en bas d'un site sérieux : qui a
+ * fait le produit, sous quelles conditions on peut s'en servir, et comment
+ * l'adapter à soi — langue et thème. Les deux sélecteurs sont ici, et pas
+ * cachés derrière une icône : un réglage qu'on ne trouve pas n'existe pas.
+ */
 export function Footer() {
+  const { t, locale, setLocale, available } = useI18n()
+  const { choice, setChoice } = useTheme()
+  const year = new Date().getFullYear()
+
+  const themeLabels: Record<ThemeChoice, string> = {
+    auto: t.footer.themes.auto,
+    light: t.footer.themes.light,
+    dark: t.footer.themes.dark
+  }
+
   return (
     <footer className="footer">
-      <div className="footer-call">
-        <h2>Construit pour une main. Utilisable par tout le monde.</h2>
-        <p>
-          Le code de l’application, du solveur de disposition et de ce site vit dans le même
-          dépôt. Les règles d’accessibilité y sont couvertes par des tests : une disposition qui
-          sortirait de l’écran fait échouer la construction.
-        </p>
-        <a className="button primary" href="https://github.com/maxlestage/HemiPad">
-          Voir le dépôt
-        </a>
+      <div className="footer-inner">
+        <div className="footer-brand">
+          <a className="footer-mark" href="#top" aria-label="HemiPad">
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <path
+                d="M14 46a30 30 0 0 1 30-30"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                opacity="0.5"
+              />
+              <path
+                d="M14 46a22 22 0 0 1 22-22"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+              <circle cx="44" cy="16" r="5" fill="currentColor" />
+              <circle cx="14" cy="46" r="4" fill="currentColor" opacity="0.8" />
+            </svg>
+            <span>HemiPad</span>
+          </a>
+          <p className="footer-tagline">{t.footer.tagline}</p>
+          <p className="footer-body">{t.footer.body}</p>
+        </div>
+
+        <nav className="footer-links" aria-label={t.nav.label}>
+          {t.footer.sections.map((section) => (
+            <div key={section.title}>
+              <h2>{section.title}</h2>
+              <ul>
+                {section.links.map((link) => (
+                  <li key={link.href}>
+                    <a href={link.href}>{link.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          <div className="footer-credits">
+            <h2>{t.footer.creditsTitle}</h2>
+            <p className="footer-author">{t.footer.author}</p>
+            <p className="footer-role">{t.footer.creditsRole}</p>
+          </div>
+        </nav>
+
+        <div className="footer-preferences">
+          <fieldset className="preference">
+            <legend>{t.footer.languageTitle}</legend>
+            <div className="segmented segmented-compact">
+              {available.map((item) => (
+                <button
+                  key={item.code}
+                  type="button"
+                  lang={item.code}
+                  className={locale === item.code ? 'is-active' : ''}
+                  aria-pressed={locale === item.code}
+                  aria-label={`${t.localeSwitchLabel} : ${item.name}`}
+                  onClick={() => setLocale(item.code as Locale)}
+                >
+                  {item.name}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="preference">
+            <legend>{t.footer.themeTitle}</legend>
+            <div className="segmented segmented-compact">
+              {themeChoices.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={choice === item ? 'is-active' : ''}
+                  aria-pressed={choice === item}
+                  onClick={() => setChoice(item)}
+                >
+                  {themeLabels[item]}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        </div>
       </div>
-      <p className="footer-legal">
-        HemiPad · projet libre sous licence MIT. Les noms de consoles appartiennent à leurs
-        détenteurs respectifs ; aucune affiliation.
-      </p>
+
+      <div className="footer-legal">
+        <p className="footer-copyright">
+          © {year} {t.footer.author}. {t.footer.rights}
+        </p>
+        <p>{t.footer.proprietary}</p>
+        <p className="footer-trademarks">{t.footer.trademarks}</p>
+      </div>
     </footer>
   )
 }
