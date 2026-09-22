@@ -1,6 +1,7 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { useI18n } from '../i18n/index.tsx'
+import { appareils, useAppareil } from '../lib/appareil.tsx'
 import { useMotion } from '../lib/motion.tsx'
 import { useSuiviOrientation, useSuiviPointeur } from '../lib/useSuiviOrientation.ts'
 import { HeroStill } from './HeroStill.tsx'
@@ -62,6 +63,7 @@ class GardeFou extends Component<{ secours: ReactNode; children: ReactNode }, { 
 export function HeroScene() {
   const { reduced } = useMotion()
   const { t } = useI18n()
+  const { appareil, setAppareil } = useAppareil()
   const conteneur = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(true)
   const [ongletActif, setOngletActif] = useState(true)
@@ -97,18 +99,17 @@ export function HeroScene() {
 
   const plat = <HeroStill className="hero-scene-plat" />
 
-  // Connu dès le premier rendu : la zone prend sa hauteur définitive d'emblée,
-  // sans saut quand le bouton apparaît.
-  const avecRéglage = relief && état !== 'indisponible'
+  const avecInclinaison = relief && état !== 'indisponible'
 
   const message =
     état === 'refusé' ? t.hero.tilt.denied : état === 'sans-capteur' ? t.hero.tilt.unavailable : ''
 
   return (
     <div
-      className={`hero-scene ${avecRéglage ? 'has-tilt' : ''}`}
+      className="hero-scene"
       ref={conteneur}
       data-scene={relief ? 'relief' : 'plate'}
+      data-appareil={appareil}
     >
       <div className="hero-scene-zone">
         {relief ? (
@@ -122,12 +123,32 @@ export function HeroScene() {
         )}
       </div>
 
-      {/*
-        Le bouton n'apparaît que là où il peut tenir sa promesse : un appareil
-        tactile, avec la scène en relief. Sur ordinateur, la souris suffit.
-      */}
-      {avecRéglage && (
-        <div className="hero-tilt">
+      <div className="hero-reglages">
+        {/*
+          Le choix de l'appareil, ici même : c'est le même que dans la
+          démonstration, et les deux sélecteurs ne peuvent jamais se
+          contredire. Il reste proposé quand les animations sont coupées —
+          l'image fixe change d'appareil elle aussi.
+        */}
+        <div className="segmented segmented-compact hero-appareil" role="group" aria-label={t.demo.device.label}>
+          {appareils.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={appareil === item ? 'is-active' : ''}
+              aria-pressed={appareil === item}
+              onClick={() => setAppareil(item)}
+            >
+              {item === 'ipad' ? t.demo.device.ipad : t.demo.device.iphone}
+            </button>
+          ))}
+        </div>
+
+        {/*
+          Le suivi n'apparaît que là où il peut tenir sa promesse : un appareil
+          tactile, avec la scène en relief. Sur ordinateur, la souris suffit.
+        */}
+        {avecInclinaison && (
           <button
             type="button"
             className={`hero-tilt-button ${état === 'actif' ? 'is-active' : ''}`}
@@ -147,6 +168,11 @@ export function HeroScene() {
                   : t.hero.tilt.follow}
             </span>
           </button>
+        )}
+      </div>
+
+      {avecInclinaison && (
+        <div className="hero-tilt">
           <p className="hero-tilt-message" role="status" aria-live="polite">
             {message}
           </p>
