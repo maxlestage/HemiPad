@@ -457,6 +457,18 @@ for (const scheme of ['dark', 'light']) {
     check(response.ok(), `icône disponible : ${icon.src}`, String(response.status()))
   }
 
+  // Les icônes déclarées dans la page, elles, ne passent par aucun manifeste :
+  // un lien mort n'y laisse qu'un carré vide dans l'onglet, sans erreur.
+  const déclarées = await page.$$eval(
+    'link[rel~="icon"], link[rel="apple-touch-icon"]',
+    (liens) => liens.map((lien) => lien.getAttribute('href'))
+  )
+  check(déclarées.length >= 4, 'icônes déclarées dans la page', String(déclarées.length))
+  for (const href of déclarées) {
+    const response = await page.request.get(`${base}${href}`)
+    check(response.ok(), `icône déclarée servie : ${href}`, String(response.status()))
+  }
+
   const sw = await page.request.get(`${base}/sw.js`)
   check(sw.ok(), 'service worker servi', String(sw.status()))
   check(

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <style>
+    .ink { fill: #0e1a22; }
+    @media (prefers-color-scheme: dark) { .ink { fill: #f2f5ff; } }
+  </style>
+    <path d="M32 20H20c-7 0-11 4-12.5 11L5.5 41c-1 5.5 2.5 9 6.5 9 3.5 0 6-2.5 8-5.5L22.5 41H32ZM17.2 27.8h3.6v3.8h3.8v3.6h-3.8v3.8h-3.6v-3.8h-3.8v-3.6h3.8Z" class="ink" fill-rule="evenodd"/>
+    <circle cx="41" cy="24.5" r="3.6" fill="#00e5ff" opacity="0.55"/>
+    <circle cx="48" cy="30" r="4.2" fill="#00e5ff"/>
+    <circle cx="54" cy="38" r="4.8" fill="#ffb533"/>
+</svg>
