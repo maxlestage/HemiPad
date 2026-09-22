@@ -77,6 +77,12 @@ export interface Dictionary {
       overlap: (count: number) => string
       resetPositions: string
     }
+    device: {
+      label: string
+      ipad: string
+      iphone: string
+      hint: string
+    }
     control: {
       settings: string
       visibility: string
@@ -89,6 +95,13 @@ export interface Dictionary {
       reposition: string
       reset: string
       close: string
+      lock: string
+      unlock: string
+      lockedBadge: string
+      lockedHint: string
+      selection: (count: number) => string
+      deselect: string
+      multiple: (count: number) => string
     }
     active: (count: number) => string
     screenLabel: (console: string, hand: string) => string

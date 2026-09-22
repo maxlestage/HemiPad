@@ -17,7 +17,11 @@ struct ControllerScreen: View {
     @EnvironmentObject private var tilt: TiltStick
 
     @State private var directionalMode: DirectionalMode = .stick
-    @State private var selectedKey: String?
+    /// Plusieurs commandes peuvent être sélectionnées : verrouiller les deux
+    /// gâchettes ou masquer les quatre boutons système se fait alors d'un
+    /// geste, pas de quatre allers-retours.
+    @State private var selectedKeys: Set<String> = []
+    @State private var showEditor = false
     @State private var drag: DragState?
 
     /// Le pouce ne peut pas tenir deux directions à la fois : on choisit.
@@ -88,20 +92,28 @@ struct ControllerScreen: View {
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .animation(.easeOut(duration: 0.18), value: state.profile.layoutMode)
-            .sheet(item: Binding(
-                get: { selectedKey.map(EditorTarget.init(key:)) },
-                set: { selectedKey = $0?.key }
-            )) { target in
-                editor(for: target.key)
+            .sheet(isPresented: $showEditor) {
+                editor(for: orderedSelection)
             }
         }
         .background(AuroraBackground(reducedMotion: state.profile.reducedMotion))
     }
 
-    /// Identifiant transportable vers la feuille de réglages.
-    private struct EditorTarget: Identifiable {
-        let key: String
-        var id: String { key }
+    /// Sélection dans l'ordre d'affichage : une liste stable se lit mieux
+    /// qu'un ensemble dont l'ordre change à chaque rendu.
+    private var orderedSelection: [String] {
+        ControllerLayout.allElements(for: state.console)
+            .map(\.key)
+            .filter { selectedKeys.contains($0) }
+    }
+
+    private func toggleSelection(_ key: String) {
+        if selectedKeys.contains(key) {
+            selectedKeys.remove(key)
+        } else {
+            selectedKeys.insert(key)
+        }
+        Haptics.shared.press()
     }
 
     // MARK: - Placement
@@ -182,8 +194,9 @@ struct ControllerScreen: View {
             glyph: glyph(for: placement.element),
             size: placement.size,
             accent: state.accent,
-            isSelected: selectedKey == placement.id,
-            overlaps: overlaps
+            isSelected: selectedKeys.contains(placement.id),
+            overlaps: overlaps,
+            isLocked: state.profile.isLocked(placement.id)
         )
         .overlay(alignment: .topTrailing) {
             Image(systemName: "slider.horizontal.3")
@@ -195,7 +208,7 @@ struct ControllerScreen: View {
         }
         .contentShape(Rectangle())
         .gesture(dragGesture(for: placement, in: bounds))
-        .onTapGesture { selectedKey = placement.id }
+        .onTapGesture { toggleSelection(placement.id) }
         .accessibilityElement()
         .accessibilityLabel(Text(label(for: placement.element)))
         .accessibilityHint(Text(
@@ -203,8 +216,10 @@ struct ControllerScreen: View {
                 ? "Faites glisser pour déplacer, touchez pour régler."
                 : "Touchez pour régler cette commande."
         ))
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { selectedKey = placement.id }
+        .accessibilityAddTraits(
+            selectedKeys.contains(placement.id) ? [.isButton, .isSelected] : .isButton
+        )
+        .accessibilityAction { toggleSelection(placement.id) }
     }
 
     private func hiddenChip(_ placement: ControllerLayout.Placement) -> some View {
@@ -213,10 +228,12 @@ struct ControllerScreen: View {
             glyph: glyph(for: placement.element),
             size: placement.size,
             accent: state.accent,
-            isHidden: true
+            isSelected: selectedKeys.contains(placement.id),
+            isHidden: true,
+            isLocked: state.profile.isLocked(placement.id)
         )
         .contentShape(Rectangle())
-        .onTapGesture { selectedKey = placement.id }
+        .onTapGesture { toggleSelection(placement.id) }
         .accessibilityElement()
         .accessibilityLabel(Text("\(label(for: placement.element)), masquée"))
         .accessibilityHint(Text("Touchez pour la réafficher ou la régler."))
@@ -230,13 +247,18 @@ struct ControllerScreen: View {
     ) -> some Gesture {
         DragGesture(minimumDistance: 6)
             .onChanged { value in
-                guard state.profile.layoutMode == .free else { return }
-                selectedKey = nil
+                guard state.profile.layoutMode == .free,
+                      !state.profile.isLocked(placement.id) else { return }
                 drag = DragState(key: placement.id, translation: value.translation)
             }
             .onEnded { value in
                 guard state.profile.layoutMode == .free else {
                     state.banner = "Passez en disposition libre pour déplacer les commandes."
+                    return
+                }
+                guard !state.profile.isLocked(placement.id) else {
+                    state.banner = "Cette commande est verrouillée. Déverrouillez-la pour la déplacer."
+                    Haptics.shared.warning()
                     return
                 }
                 let moved = CGPoint(
@@ -261,12 +283,12 @@ struct ControllerScreen: View {
     }
 
     @ViewBuilder
-    private func editor(for key: String) -> some View {
+    private func editor(for keys: [String]) -> some View {
         let element = ControllerLayout.allElements(for: state.console)
-            .first { $0.key == key } ?? .directional
+            .first { $0.key == keys.first } ?? .directional
         ControlEditorView(
-            key: key,
-            title: label(for: element),
+            keys: keys.isEmpty ? [ControlKey.directional] : keys,
+            title: keys.count > 1 ? "\(keys.count) commandes" : label(for: element),
             glyph: glyph(for: element),
             element: element
         )
@@ -338,6 +360,7 @@ struct ControllerScreen: View {
     private var editButton: some View {
         Button {
             state.isEditingLayout = true
+            selectedKeys = []
             arbiter.releaseAll()
             Haptics.shared.latch()
         } label: {
@@ -354,10 +377,14 @@ struct ControllerScreen: View {
 
     private func editingBar(layout: ControllerLayout.Solution) -> some View {
         VStack(alignment: .leading, spacing: 8) {
+            if !selectedKeys.isEmpty {
+                selectionBar
+            }
+
             HStack(spacing: 10) {
                 Button {
                     state.isEditingLayout = false
-                    selectedKey = nil
+                    selectedKeys = []
                     drag = nil
                     Haptics.shared.success()
                 } label: {
@@ -386,7 +413,7 @@ struct ControllerScreen: View {
                 Spacer(minLength: 0)
             }
 
-            Text(editingHint(layout: layout))
+            Text(selectedKeys.isEmpty ? editingHint(layout: layout) : selectionHint)
                 .font(.caption)
                 .foregroundStyle(layout.overlapping.isEmpty ? Theme.secondaryText : Theme.danger)
                 .fixedSize(horizontal: false, vertical: true)
@@ -394,6 +421,71 @@ struct ControllerScreen: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 16).fill(Theme.surface.opacity(0.92)))
+    }
+
+    /// Actions qui s'appliquent d'un coup à toute la sélection.
+    private var selectionBar: some View {
+        let keys = orderedSelection
+        let allLocked = keys.allSatisfy { state.profile.isLocked($0) }
+        let allHidden = keys.allSatisfy { !state.profile.isVisible($0) }
+
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                Text("\(keys.count) sélectionnée\(keys.count > 1 ? "s" : "")")
+                    .font(.caption.weight(.bold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Capsule().fill(state.accent.opacity(0.2)))
+                    .foregroundStyle(state.accent)
+
+                selectionAction(
+                    allLocked ? "Déverrouiller" : "Verrouiller",
+                    systemImage: allLocked ? "lock.open" : "lock"
+                ) {
+                    state.setLocked(!allLocked, for: keys)
+                }
+
+                selectionAction(
+                    allHidden ? "Afficher" : "Masquer",
+                    systemImage: allHidden ? "eye" : "eye.slash"
+                ) {
+                    state.setVisible(allHidden, for: keys)
+                }
+
+                selectionAction("Régler", systemImage: "slider.horizontal.3") {
+                    showEditor = true
+                }
+
+                selectionAction("Désélectionner", systemImage: "xmark") {
+                    selectedKeys = []
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    private func selectionAction(
+        _ title: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Capsule().fill(Theme.surfaceHigh))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Theme.primaryText)
+    }
+
+    private var selectionHint: String {
+        let locked = orderedSelection.filter { state.profile.isLocked($0) }.count
+        if locked == orderedSelection.count && locked > 0 {
+            return "Sélection verrouillée : ces commandes ne bougeront plus."
+        }
+        return "Touchez d'autres commandes pour les ajouter à la sélection."
     }
 
     private func editingHint(layout: ControllerLayout.Solution) -> String {

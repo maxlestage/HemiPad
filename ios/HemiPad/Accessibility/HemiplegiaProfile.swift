@@ -290,6 +290,32 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
         preference(key).isVisible
     }
 
+    func isLocked(_ key: String) -> Bool {
+        preference(key).isLocked
+    }
+
+    /// Déplace une commande — sauf si elle est verrouillée.
+    ///
+    /// La règle vit ici, et pas dans la vue : c'est une propriété de la
+    /// disposition, pas un détail d'interface, et elle se teste sans écran.
+    @discardableResult
+    mutating func setFreePosition(_ position: CGPoint?, for key: String) -> Bool {
+        guard !isLocked(key) else { return false }
+        updatePreference(for: key) { $0.freePosition = position }
+        return true
+    }
+
+    mutating func setLocked(_ locked: Bool, for keys: [String]) {
+        for key in keys {
+            updatePreference(for: key) { $0.isLocked = locked }
+        }
+    }
+
+    /// Clés des commandes verrouillées.
+    var lockedKeys: [String] {
+        controlPreferences.filter { $0.value.isLocked }.keys.sorted()
+    }
+
     /// Écrit une préférence, et retire l'entrée quand elle redevient neutre :
     /// les réglages enregistrés ne gardent que ce qui a été choisi.
     mutating func setPreference(_ preference: ControlPreference, for key: String) {
@@ -309,7 +335,9 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
     /// Oublie toutes les positions libres, sans toucher aux autres réglages.
     mutating func clearFreePositions() {
         // Copie des clés : on modifie le dictionnaire pendant le parcours.
-        for key in Array(controlPreferences.keys) {
+        // Une commande verrouillée garde sa place : « tout replacer » ne doit
+        // pas défaire ce qui a été explicitement figé.
+        for key in Array(controlPreferences.keys) where !isLocked(key) {
             updatePreference(for: key) { $0.freePosition = nil }
         }
     }

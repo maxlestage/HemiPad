@@ -15,6 +15,7 @@ des raccourcis clavier — en découle.
 | **Site vitrine** | React 18, TypeScript, Vite, servi par Express · application installable (PWA) |
 | **Langues** | Français, anglais, espagnol · thèmes clair, sombre et automatique |
 | **Cibles** | Nintendo Switch, PlayStation, Xbox, Steam Deck / PC, émulateurs, ordinateur (clavier) |
+| **Appareil de référence** | **iPad** — posé sur une table ou un support, il libère la main du poids de l'appareil et offre des cibles bien plus grandes. L'iPhone est géré, en second. |
 | **Mise en ligne** | Heroku, pilotable à 100 % depuis un téléphone |
 
 ---
@@ -46,6 +47,8 @@ quelle manette ou clavier USB — puis les achemine par l'un des deux chemins :
 | Une disposition qui ne convient à personne | **Disposition libre** : chaque commande se déplace au doigt, l'automatique servant de point de départ |
 | Un réglage unique pour des commandes différentes | **Chaque commande** a son mode d'appui, sa taille et sa visibilité |
 | Des boutons trop serrés | **Espacement réglable** ; à l'étroit, les cibles rétrécissent d'abord, l'espacement ne cède qu'ensuite |
+| Une disposition défaite par un geste involontaire | **Verrouillage** d'une commande ou de plusieurs à la fois |
+| Porter l'appareil *et* jouer avec la même main | L'**iPad** est l'appareil mis en avant : posé, il ne pèse plus rien et ses cibles sont bien plus grandes |
 | Maintenir une gâchette | **Appui verrouillant** : un appui active, un appui désactive |
 | Appuyer franchement | **Survol prolongé** : poser le doigt et attendre suffit |
 | Spasme qui rejoue l'appui | **Anti-rebond** réglable |
@@ -80,6 +83,14 @@ recalcule vraiment la géométrie, avec les mêmes règles que sur l'iPhone.
   le site s'ajoute à l'écran d'accueil et reste consultable hors connexion.
 - **Fiche de partage** — image d'aperçu 1200 × 630 pour les messageries, plus
   un bouton qui utilise le partage natif du téléphone, ou copie le lien.
+
+## Identité visuelle
+
+Six directions de marque sont proposées dans
+[`docs/logos/propositions.html`](docs/logos/propositions.html), également servie
+par le site à l'adresse `/logos/`. Chaque proposition s'y teste sur fond clair,
+sur fond sombre et sur l'écran de l'application, jusqu'à 16 pixels — la taille
+où une marque trop détaillée s'effondre.
 
 ## Organisation du dépôt
 
