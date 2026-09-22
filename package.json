@@ -1,0 +1,27 @@
+{
+  "name": "hemipad",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Site vitrine de HemiPad, la manette tactile accessible pour consoles et ordinateurs.",
+  "license": "MIT",
+  "workspaces": [
+    "web"
+  ],
+  "engines": {
+    "node": "22.x",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace=web",
+    "build": "npm run build --workspace=web",
+    "lint": "npm run lint --workspace=web",
+    "typecheck": "npm run typecheck --workspace=web",
+    "test": "npm run test --workspace=web",
+    "start": "node server/index.mjs",
+    "heroku-postbuild": "npm run build --workspace=web"
+  },
+  "dependencies": {
+    "compression": "^1.7.4",
+    "express": "^4.19.2"
+  }
+}
