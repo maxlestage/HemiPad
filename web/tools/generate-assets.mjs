@@ -19,38 +19,41 @@ import { fileURLToPath } from 'node:url'
 
 import { chromium } from 'playwright-core'
 
+import { PALETTE, fullMark, smallMark, svgDocument } from './mark.mjs'
+
 const here = path.dirname(fileURLToPath(import.meta.url))
 const publicDir = path.resolve(here, '..', 'public')
+/** L'icône de l'application iOS sort de la même marque que le reste. */
+const appIconDir = path.resolve(
+  here,
+  '..',
+  '..',
+  'ios',
+  'HemiPad',
+  'Resources',
+  'Assets.xcassets',
+  'AppIcon.appiconset'
+)
 
-const BACKGROUND = '#05060d'
-const ACCENT = '#00e5ff'
+const BACKGROUND = PALETTE.background
+const ACCENT = PALETTE.accent
 const ACCENT_2 = '#8b7dff'
-const WARN = '#ffb533'
+const WARN = PALETTE.warm
 
-/** Le logo, à l'échelle demandée : un arc de commandes autour d'un pivot. */
-function mark(scale = 1, opacity = 1) {
-  return `
-    <svg viewBox="0 0 64 64" style="width:${64 * scale}px;height:${64 * scale}px;opacity:${opacity}">
-      <path d="M14 46a30 30 0 0 1 30-30" fill="none" stroke="${ACCENT}" stroke-width="3"
-            stroke-linecap="round" opacity="0.5" />
-      <path d="M14 46a22 22 0 0 1 22-22" fill="none" stroke="${ACCENT}" stroke-width="3"
-            stroke-linecap="round" opacity="0.85" />
-      <circle cx="44" cy="16" r="5" fill="${ACCENT}" />
-      <circle cx="34" cy="21" r="4" fill="${WARN}" />
-      <circle cx="26" cy="29" r="4" fill="${ACCENT}" opacity="0.7" />
-      <circle cx="20" cy="38" r="3.5" fill="${ACCENT}" opacity="0.45" />
-      <circle cx="14" cy="46" r="4" fill="#ffffff" opacity="0.9" />
-    </svg>`
+/** La marque, à l'échelle demandée. */
+function mark(scale = 1, small = false) {
+  const inner = small ? smallMark(PALETTE) : fullMark(PALETTE)
+  return `<svg viewBox="0 0 64 64" style="width:${64 * scale}px;height:${64 * scale}px">${inner}</svg>`
 }
 
-function iconPage(size, { safeZone = 1 } = {}) {
+function iconPage(size, { safeZone = 1, small = false } = {}) {
   // Une icône « maskable » est rognée par le système : le dessin doit tenir
   // dans un cercle central, d'où la zone de sécurité réduite.
   const scale = (size / 64) * safeZone
   return `<!doctype html><html><body style="margin:0">
     <div style="width:${size}px;height:${size}px;background:${BACKGROUND};
                 display:flex;align-items:center;justify-content:center">
-      <div style="display:flex">${mark(scale)}</div>
+      <div style="display:flex">${mark(scale, small)}</div>
     </div>
   </body></html>`
 }
@@ -108,7 +111,10 @@ const targets = [
   { file: 'icons/icon-512.png', size: 512, html: iconPage(512) },
   { file: 'icons/maskable-192.png', size: 192, html: iconPage(192, { safeZone: 0.62 }) },
   { file: 'icons/maskable-512.png', size: 512, html: iconPage(512, { safeZone: 0.62 }) },
-  { file: 'icons/apple-touch-icon.png', size: 180, html: iconPage(180, { safeZone: 0.78 }) }
+  { file: 'icons/apple-touch-icon.png', size: 180, html: iconPage(180, { safeZone: 0.78 }) },
+  // 32 px : le pointillé n'y survivrait pas, c'est la variante réduite qui sert.
+  { file: 'icons/favicon-32.png', size: 32, html: iconPage(32, { small: true }) },
+  { file: 'icons/favicon-16.png', size: 16, html: iconPage(16, { small: true }) }
 ]
 
 const browser = await chromium.launch({
@@ -116,6 +122,17 @@ const browser = await chromium.launch({
 })
 
 await mkdir(path.join(publicDir, 'icons'), { recursive: true })
+
+// Les deux SVG servis directement : la marque complète et la variante d'onglet.
+await writeFile(
+  path.join(publicDir, 'hemipad-mark.svg'),
+  svgDocument(fullMark(PALETTE), { themeAware: true })
+)
+await writeFile(
+  path.join(publicDir, 'favicon.svg'),
+  svgDocument(smallMark(PALETTE), { themeAware: true })
+)
+console.log('écrit public/hemipad-mark.svg et public/favicon.svg')
 
 for (const target of targets) {
   const page = await browser.newPage({
@@ -127,6 +144,18 @@ for (const target of targets) {
   await writeFile(path.join(publicDir, target.file), buffer)
   await page.close()
   console.log(`écrit public/${target.file} (${target.size}×${target.size})`)
+}
+
+// Icône de l'application : 1024 px, sans transparence, comme l'exige l'App Store.
+// iOS n'applique qu'un masque à coins arrondis, pas un cercle : la marge de
+// 0,72 laissait l'icône flotter au milieu d'un carré vide sur l'écran d'accueil.
+{
+  const page = await browser.newPage({ viewport: { width: 1024, height: 1024 }, deviceScaleFactor: 1 })
+  await page.setContent(iconPage(1024, { safeZone: 0.88 }))
+  await mkdir(appIconDir, { recursive: true })
+  await writeFile(path.join(appIconDir, 'icon-1024.png'), await page.screenshot())
+  await page.close()
+  console.log('écrit ios/…/AppIcon.appiconset/icon-1024.png (1024×1024)')
 }
 
 const sharePageInstance = await browser.newPage({
