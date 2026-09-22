@@ -60,6 +60,36 @@ depuis le navigateur : *Settings → Secrets and variables → Actions → New
 repository secret*. Sans ces secrets, le workflow ne fait rien et ne signale
 aucune erreur.
 
+### Fusion automatique sur `master`
+
+Le workflow `.github/workflows/fusion-automatique.yml` fusionne une *pull
+request* dès que **toutes** ses vérifications sont terminées et réussies. Il
+n'y a donc plus rien à toucher : on pousse, la CI passe, la branche arrive sur
+`master`, et Heroku met le site en ligne.
+
+Deux garde-fous :
+
+- **seules les *pull requests* ouvertes par le propriétaire du dépôt** sont
+  fusionnées. Sans cette règle, sur un dépôt public, n'importe qui pourrait
+  faire entrer son code sur `master` sans relecture ;
+- **l'étiquette `pas-de-fusion-auto`** suspend la fusion d'une *pull request*
+  précise, le temps d'y réfléchir. Elle s'ajoute depuis GitHub Mobile.
+
+Pour fusionner à la demande : *Actions → Fusion automatique → Run workflow*,
+en laissant le champ vide (toutes celles qui sont prêtes) ou en indiquant un
+numéro.
+
+Deux conséquences à connaître :
+
+1. une fusion faite par le jeton d'Actions **ne relance pas** les workflows sur
+   `master` — c'est une protection de GitHub contre les boucles. Les
+   vérifications de la *pull request* font foi ;
+2. le déploiement Heroku, lui, **continue de partir** : il passe par un
+   webhook, pas par GitHub Actions.
+
+Pour désactiver la fusion automatique : supprimer le fichier du workflow, ou
+le désactiver dans *Actions → Fusion automatique → ⋯ → Disable workflow*.
+
 ---
 
 ## 2. Modifier le code depuis le téléphone
