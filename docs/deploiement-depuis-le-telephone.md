@@ -166,11 +166,13 @@ Deux solutions de repli existent, mentionnées pour être complet :
 
 ---
 
-## 4. Brancher un pont, si le Bluetooth est refusé
+## 4. Connecter la manette
 
-Voir [`bridge/README.md`](../bridge/README.md). Le boîtier se configure une
-fois par SSH depuis le téléphone (Termius, Blink, Shelly), puis se contente de
-démarrer avec la console.
+Aucun boîtier ni câble : l'appareil s'annonce lui-même en Bluetooth sous le nom
+« HemiPad ». Dans l'application, *Connexion* → *Bluetooth*, puis appairer
+depuis la machine (ordinateur Windows ou Linux, Android). Pour que la machine
+affiche « HemiPad » et non « iPhone » après l'appairage, renommer l'appareil
+dans *Réglages › Général › Informations › Nom*.
 
 ---
 

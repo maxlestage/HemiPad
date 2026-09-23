@@ -1,6 +1,6 @@
 import type { Appareil } from './appareils.ts'
 import { consoles, faceIds, shoulderIds, systemIds } from './consoles.ts'
-import { solveLayout, type Layout, type Size } from './reach.ts'
+import { solveLayout, sweepSign, type Hand, type Layout, type Size } from './reach.ts'
 
 /**
  * La disposition montrée par la scène du haut de page.
@@ -39,12 +39,12 @@ export const HERO_MARGIN = 6
  */
 export const HERO_SPACING = 1.5
 
-export function heroLayout(appareil: Appareil = 'ipad'): Layout {
+export function heroLayout(appareil: Appareil = 'ipad', main: Hand = 'right'): Layout {
   const { canvas, topBand, target } = HERO_APPAREILS[appareil]
   const profil = consoles[0]!
   const omis = new Set(profil.omits ?? [])
   return solveLayout({
-    hand: 'right',
+    hand: main,
     canvas,
     target,
     topBand,
@@ -72,8 +72,11 @@ export function heroLayout(appareil: Appareil = 'ipad'): Layout {
 export function avancementSurArc(
   centre: { x: number; y: number },
   pivot: { x: number; y: number },
-  span: number
+  span: number,
+  main: Hand = 'right'
 ): number {
   const angle = Math.atan2(centre.y - pivot.y, centre.x - pivot.x)
-  return Math.min(1, Math.max(0, (-Math.PI / 2 - angle) / span))
+  // Le balayage part de la verticale et tourne vers l'intérieur de l'écran :
+  // vers la gauche pour une main droite, vers la droite pour une gauche.
+  return Math.min(1, Math.max(0, (sweepSign(main) * (angle + Math.PI / 2)) / span))
 }

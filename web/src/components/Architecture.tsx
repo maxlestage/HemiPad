@@ -16,11 +16,19 @@ export function Architecture() {
           <article key={path.title} className="path-card">
             <h3>{path.title}</h3>
             <p className="path-subtitle">{path.subtitle}</p>
-            <ol className="path-steps">
-              {path.steps.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
+            {path.kind === 'list' ? (
+              <ul className="path-steps is-list">
+                {path.steps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ul>
+            ) : (
+              <ol className="path-steps">
+                {path.steps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            )}
             <p className="path-note">{path.note}</p>
           </article>
         ))}

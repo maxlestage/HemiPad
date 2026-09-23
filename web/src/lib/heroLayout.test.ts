@@ -70,3 +70,41 @@ test('les deux écrans ont les proportions de leur appareil', () => {
   assert.ok(Math.abs(ratio('ipad') - 0.75) < 0.01, `iPad : ${ratio('ipad')}`)
   assert.ok(ratio('iphone') > 0.44 && ratio('iphone') < 0.49, `iPhone : ${ratio('iphone')}`)
 })
+
+/*
+ * Le choix de la main, sous l'image : la main gauche doit donner le miroir
+ * exact de la main droite, et la lueur doit balayer l'arc dans le bon sens.
+ */
+for (const appareil of appareils) {
+  const nom = appareil === 'ipad' ? 'iPad' : 'iPhone'
+
+  test(`${nom} : la main gauche est le miroir exact de la main droite`, () => {
+    const { width } = HERO_APPAREILS[appareil].canvas
+    const droite = heroLayout(appareil, 'right')
+    const gauche = heroLayout(appareil, 'left')
+    assert.equal(gauche.placements.length, droite.placements.length)
+    for (const placement of droite.placements) {
+      const miroir = gauche.placements.find((p) => p.id === placement.id)!
+      assert.ok(Math.abs(width - placement.center.x - miroir.center.x) < 1.5, placement.id)
+      assert.ok(Math.abs(placement.center.y - miroir.center.y) < 1.5, placement.id)
+    }
+    // Le pouce est du côté de la main : à gauche de l'écran pour la gauche.
+    assert.ok(gauche.pivot.x < width / 2)
+    assert.ok(droite.pivot.x > width / 2)
+  })
+
+  test(`${nom} : pour la main gauche aussi, la lueur part du pouce et va jusqu’au bout`, () => {
+    const layout = heroLayout(appareil, 'left')
+    const avancements = layout.placements.map((p) => avancementSurArc(p.center, layout.pivot, layout.span, 'left'))
+    assert.ok(Math.min(...avancements) < 0.2)
+    assert.ok(Math.max(...avancements) > 0.8)
+    // Et chaque commande garde, en miroir, le même rang que pour la droite.
+    const droite = heroLayout(appareil, 'right')
+    for (const placement of droite.placements) {
+      const miroir = layout.placements.find((p) => p.id === placement.id)!
+      const d = avancementSurArc(placement.center, droite.pivot, droite.span, 'right')
+      const g = avancementSurArc(miroir.center, layout.pivot, layout.span, 'left')
+      assert.ok(Math.abs(d - g) < 0.02, `${placement.id} : ${d.toFixed(3)} contre ${g.toFixed(3)}`)
+    }
+  })
+}

@@ -133,6 +133,31 @@ for (const scheme of ['dark', 'light']) {
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth
     )
     check(!overflow, `pas de défilement horizontal à ${width} px (${scheme})`)
+
+    // La page elle-même ne défilait pas de côté — mais la rangée des macros,
+    // si, et le cadre de l'iPad dépassait de l'écran, rogné sans rien dire.
+    // Ni bande à faire glisser latéralement, ni contenu qui sort de l'écran.
+    const deCote = await page.evaluate(() => {
+      const largeur = document.documentElement.clientWidth
+      const bandes = []
+      const dehors = []
+      for (const el of document.querySelectorAll('main *, header *, footer *')) {
+        const style = getComputedStyle(el)
+        if (['auto', 'scroll'].includes(style.overflowX) && el.scrollWidth > el.clientWidth + 1) {
+          bandes.push(el.className || el.tagName)
+        }
+        // Les décors du haut de page et les dessins SVG sont rognés par leur
+        // cadre : seuls comptent les éléments qu'on lit ou qu'on touche.
+        if (el.closest('svg, .hero-grid, .hero-glow, .visually-hidden, .skip-link, canvas')) continue
+        const boite = el.getBoundingClientRect()
+        if (boite.width > 0 && (boite.right > largeur + 0.5 || boite.left < -0.5)) {
+          dehors.push(`${String(el.className).split(' ')[0] || el.tagName} ${Math.round(boite.left)}→${Math.round(boite.right)}`)
+        }
+      }
+      return { bandes, dehors: dehors.slice(0, 4) }
+    })
+    check(deCote.bandes.length === 0, `aucune bande à faire défiler de côté à ${width} px (${scheme})`, deCote.bandes.join(', '))
+    check(deCote.dehors.length === 0, `rien ne sort de l’écran à ${width} px (${scheme})`, deCote.dehors.join(', '))
     await context.close()
   }
 }
@@ -912,7 +937,7 @@ for (const scheme of ['dark', 'light']) {
   const départ = await position()
   // Basculer la main renvoie toutes les commandes de l'autre côté : c'est le
   // plus grand déplacement que la démonstration sache produire.
-  await page.getByRole('button', { name: /^(Gauche|Left|Izquierda)$/ }).click()
+  await page.locator('#demo').getByRole('button', { name: /^(Gauche|Left|Izquierda)$/ }).click()
   const aussitôt = await position()
   await page.waitForTimeout(700)
   const arrivée = await position()
@@ -1327,6 +1352,71 @@ for (const thème of ['dark', 'light']) {
 }
 
 // --- Le choix de l'appareil, partagé par tout le site ----------------------
+
+
+// --- La main valide, choisie sous l'image 3D ------------------------------
+//
+// L'image du haut de page ne montrait que la main droite. Le choix est
+// maintenant proposé sous l'image, et c'est le même que dans la
+// démonstration.
+for (const motion of ['no-preference', 'reduce']) {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    reducedMotion: motion
+  })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  const cas = motion === 'reduce' ? 'image fixe' : 'image 3D'
+  const sousImage = page.locator('.hero-main')
+  const démo = page.locator('#demo')
+  const pressé = (portée, nom) =>
+    portée.getByRole('button', { name: nom, exact: true }).getAttribute('aria-pressed')
+  const rendue = (main) =>
+    page
+      .waitForFunction(
+        (m) => document.querySelector('.hero-scene [data-main-rendu], .hero-scene[data-main-rendu]')
+          ?.getAttribute('data-main-rendu') === m,
+        main,
+        { timeout: 4000 }
+      )
+      .then(() => true)
+      .catch(() => false)
+
+  check((await sousImage.count()) === 1, `sous l’image, le choix de la main valide (${cas})`)
+  check((await pressé(sousImage, /^(Droite|Right|Derecha)$/)) === 'true', `main droite par défaut (${cas})`)
+
+  await sousImage.getByRole('button', { name: /^(Gauche|Left|Izquierda)$/ }).tap()
+  check(await rendue('left'), `choisir « gauche » retourne l’image vers la main gauche (${cas})`)
+  check(
+    (await pressé(démo, /^(Gauche|Left|Izquierda)$/)) === 'true',
+    `le choix fait sous l’image se retrouve dans la démonstration (${cas})`
+  )
+
+  if (motion === 'reduce') {
+    // Sur l'image fixe, on peut mesurer : les commandes passent à gauche.
+    const côté = await page.evaluate(() => {
+      const svg = document.querySelector('.hero-scene-plat')
+      const cadre = svg.getBoundingClientRect()
+      const centres = [...svg.querySelectorAll('rect[filter]')].map((r) => {
+        const b = r.getBoundingClientRect()
+        return (b.left + b.right) / 2 - cadre.left
+      })
+      return centres.reduce((a, b) => a + b, 0) / centres.length / cadre.width
+    })
+    check(côté < 0.5, 'sur l’image fixe, les commandes passent du côté de la main gauche', côté.toFixed(2))
+  }
+
+  await démo.getByRole('button', { name: /^(Droite|Right|Derecha)$/ }).first().tap()
+  // Hors écran, la scène 3D est en pause — c'est voulu. On remonte la voir.
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+  check(
+    (await pressé(sousImage, /^(Droite|Right|Derecha)$/)) === 'true' && (await rendue('right')),
+    `le choix fait dans la démonstration se retrouve sous l’image (${cas})`
+  )
+  await context.close()
+}
 
 {
   const context = await browser.newContext({

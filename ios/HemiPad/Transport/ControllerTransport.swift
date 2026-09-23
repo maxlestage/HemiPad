@@ -1,12 +1,13 @@
 import Foundation
 
-/// Les trois façons dont HemiPad peut atteindre une machine.
+/// Les façons dont HemiPad peut atteindre une machine.
+///
+/// Aucune ne demande de matériel en plus : l'iPhone ou l'iPad fait tout lui-
+/// même. Le pont USB a été retiré — il fallait acheter et brancher un boîtier.
 enum TransportKind: String, Codable, CaseIterable, Identifiable, Sendable {
-    /// HID over GATT : l'iPhone se présente lui-même comme une manette Bluetooth.
+    /// HID over GATT : l'iPhone ou l'iPad se présente lui-même comme une
+    /// manette Bluetooth, sous le nom HemiPad.
     case bluetoothHID
-    /// Pont matériel ou logiciel (ESP32, Raspberry Pi en gadget USB, agent de
-    /// bureau) qui rejoue les rapports HID sur le port USB de la machine.
-    case bridge
     /// Boucle locale : rien n'est émis, tout est journalisé. Sert aux essais
     /// et aux aperçus SwiftUI.
     case loopback
@@ -15,8 +16,7 @@ enum TransportKind: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .bluetoothHID: return "Bluetooth HID"
-        case .bridge: return "Pont HemiPad"
+        case .bluetoothHID: return "Bluetooth"
         case .loopback: return "Mode démo"
         }
     }
@@ -24,9 +24,7 @@ enum TransportKind: String, Codable, CaseIterable, Identifiable, Sendable {
     var detail: String {
         switch self {
         case .bluetoothHID:
-            return "L'iPhone s'annonce comme manette. Dépend du niveau d'accès HID accordé par iOS."
-        case .bridge:
-            return "Un petit boîtier USB (ESP32, Pi Zero) ou l'agent de bureau reçoit les rapports et les rejoue."
+            return "L'appareil s'annonce comme manette HemiPad, sans boîtier ni câble. Accepté par les ordinateurs (Windows, Linux) et Android."
         case .loopback:
             return "Aucune émission : pour régler la manette sans console sous la main."
         }
@@ -64,18 +62,15 @@ enum TransportError: LocalizedError, Equatable {
     case bluetoothUnavailable
     case hidServiceRejected
     case notConnected
-    case bridgeUnreachable(String)
 
     var errorDescription: String? {
         switch self {
         case .bluetoothUnavailable:
             return "Bluetooth indisponible. Activez-le dans les Réglages."
         case .hidServiceRejected:
-            return "iOS a refusé de publier le service HID. Passez par le pont HemiPad."
+            return "iOS a refusé de publier le service manette. Coupez puis rallumez le Bluetooth, puis réessayez."
         case .notConnected:
             return "Aucune machine connectée."
-        case .bridgeUnreachable(let host):
-            return "Pont injoignable à l'adresse \(host)."
         }
     }
 }
@@ -83,8 +78,7 @@ enum TransportError: LocalizedError, Equatable {
 /// Contrat commun à tous les transports.
 ///
 /// Un transport ne connaît ni l'accessibilité ni les consoles : il reçoit des
-/// octets HID déjà encodés et les achemine. Cette frontière permet d'ajouter
-/// un pont (USB, réseau, matériel) sans toucher au reste de l'application.
+/// octets HID déjà encodés et les achemine.
 protocol ControllerTransport: AnyObject {
     var kind: TransportKind { get }
     var state: ConnectionState { get }

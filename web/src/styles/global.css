@@ -366,7 +366,8 @@ input {
 }
 
 /* Deux choix seulement : une gélule, pas une grille. */
-.hero-appareil.segmented-compact {
+.hero-appareil.segmented-compact,
+.hero-main.segmented-compact {
   display: flex;
   flex-wrap: nowrap;
   gap: 4px;
@@ -374,7 +375,8 @@ input {
   border-radius: 999px;
 }
 
-.hero-appareil button {
+.hero-appareil button,
+.hero-main button {
   min-height: 46px;
   padding: 0 16px;
   font-size: 0.9rem;
@@ -589,6 +591,10 @@ main > section {
 
 .demo-grid {
   display: grid;
+  /* Une colonne qui ne s'élargit jamais au-delà de l'écran : sans ce
+     `minmax(0, …)`, le cadre de l'iPad imposait sa largeur à toute la
+     colonne, réglages compris, qui débordaient d'un petit téléphone. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 30px;
 }
 
@@ -602,7 +608,7 @@ main > section {
 .phone {
   position: relative;
   justify-self: center;
-  width: min(290px, 80vw);
+  width: min(290px, 80vw, 100%);
   padding: 10px;
   border-radius: 46px;
   border: 1px solid rgba(255, 255, 255, 0.5);
@@ -623,7 +629,10 @@ main > section {
 /* L'iPad est l'appareil mis en avant : cadre plus large, coins moins
    arrondis, bordures régulières, et pas d'île. */
 .phone.is-ipad {
-  width: min(420px, 94vw);
+  /* Un peu plus large que la colonne sur un téléphone, mais centré : il
+     déborde d'autant des deux côtés et garde 12 px de marge contre les
+     bords de l'écran. Il débordait avant d'un seul côté, jusqu'au bord. */
+  width: min(420px, calc(100vw - 24px));
   padding: 14px;
   border-radius: 28px;
 }
@@ -1042,16 +1051,24 @@ input[type='range'] {
   color: var(--on-accent);
 }
 
+/*
+ * Les macros passent à la ligne au lieu de défiler de côté.
+ *
+ * Une bande à faire glisser latéralement demande un geste précis, de biais,
+ * que la main valide doit doser — et la moitié des macros restait hors de
+ * l'écran sans que rien ne le dise. Tout est visible d'un coup, désormais.
+ */
 .macro-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: thin;
+  padding: 0;
+  margin: 0;
+  list-style: none;
 }
 
 .macro-row li {
-  flex: 0 0 auto;
+  flex: 1 1 140px;
   padding: 10px 14px;
   border-radius: 14px;
   border: 1px solid var(--border);
@@ -1165,7 +1182,7 @@ input[type='range'] {
   font-size: 0.76rem;
 }
 
-.path-steps li + li::before {
+.path-steps:not(.is-list) li + li::before {
   content: '→';
   margin-right: 7px;
   color: var(--text-dim);

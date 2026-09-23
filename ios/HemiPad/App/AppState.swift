@@ -40,7 +40,6 @@ final class AppState: ObservableObject {
     let transport: TransportCoordinator
     let sticky = StickyModifierEngine()
     let tilt = TiltStick()
-    let bridges = BridgeBrowser()
 
     private(set) var macroRunner: MacroRunner!
     private var cancellables: Set<AnyCancellable> = []

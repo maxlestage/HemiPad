@@ -13,6 +13,5 @@ extension View {
             .environmentObject(state.transport)
             .environmentObject(state.sticky)
             .environmentObject(state.tilt)
-            .environmentObject(state.bridges)
     }
 }

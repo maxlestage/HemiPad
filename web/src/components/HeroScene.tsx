@@ -2,6 +2,7 @@ import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode 
 
 import { useI18n } from '../i18n/index.tsx'
 import { appareils, useAppareil } from '../lib/appareil.tsx'
+import { useMainValide } from '../lib/mainValide.tsx'
 import { useMotion } from '../lib/motion.tsx'
 import { useSuiviOrientation, useSuiviPointeur } from '../lib/useSuiviOrientation.ts'
 import { HeroStill } from './HeroStill.tsx'
@@ -64,6 +65,7 @@ export function HeroScene() {
   const { reduced } = useMotion()
   const { t } = useI18n()
   const { appareil, setAppareil } = useAppareil()
+  const { main, setMain } = useMainValide()
   const conteneur = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(true)
   const [ongletActif, setOngletActif] = useState(true)
@@ -110,6 +112,7 @@ export function HeroScene() {
       ref={conteneur}
       data-scene={relief ? 'relief' : 'plate'}
       data-appareil={appareil}
+      data-main={main}
     >
       <div className="hero-scene-zone">
         {relief ? (
@@ -140,6 +143,25 @@ export function HeroScene() {
               onClick={() => setAppareil(item)}
             >
               {item === 'ipad' ? t.demo.device.ipad : t.demo.device.iphone}
+            </button>
+          ))}
+        </div>
+
+        {/*
+          La main valide, ici aussi : c'est le premier réglage d'une personne
+          hémiplégique, et l'image doit montrer *son* côté sans qu'elle ait à
+          descendre jusqu'à la démonstration. Même choix que là-bas.
+        */}
+        <div className="segmented segmented-compact hero-main" role="group" aria-label={t.demo.hand}>
+          {(['left', 'right'] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={main === item ? 'is-active' : ''}
+              aria-pressed={main === item}
+              onClick={() => setMain(item)}
+            >
+              {item === 'left' ? t.demo.handLeft : t.demo.handRight}
             </button>
           ))}
         </div>
