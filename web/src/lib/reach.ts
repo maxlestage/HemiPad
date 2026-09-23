@@ -100,7 +100,16 @@ export interface Layout {
  */
 const DEFAULT_SPACING = 1.35
 const MIN_SPACING = 1.06
-const MIN_TARGET = 28
+/**
+ * Le plancher des cibles : 44 points, le minimum des règles d'accessibilité
+ * d'Apple, et celui de l'application. La démonstration descendait jusqu'à 28 —
+ * elle montrait alors, sur son iPhone, des boutons que l'application
+ * n'aurait jamais dessinés.
+ */
+export const MIN_TARGET = 44
+/** Les bornes des réglages, partagées avec l'application. */
+export const MAX_TARGET = 100
+export const MAX_SPACING = 2
 
 export function halfExtent(size: Size): number {
   return Math.abs(size.width - size.height) < 0.5
@@ -147,28 +156,50 @@ export function solveLayout(options: LayoutOptions): Layout {
   return applyFreePositions(arc, options)
 }
 
+/**
+ * Cherche la plus grande cible qui tient, puis, seulement si même le plancher
+ * ne tient pas, le plus grand espacement qui le permet.
+ *
+ * L'ancienne recherche descendait par paliers de 4 % et gardait la première
+ * valeur qui passait. Elle ratait donc la plus grande de jusqu'à 4 %, et d'une
+ * façon qui dépendait du point de départ : demander 68 pt en donnait 63, alors
+ * que 64 tenaient très bien. Pousser le curseur vers le haut faisait parfois
+ * *rétrécir* les boutons.
+ *
+ * La recherche parcourt maintenant une grille fixe — la demande puis chaque
+ * point entier en dessous pour les cibles, le centième pour l'espacement —
+ * du haut vers le bas, et garde la
+ * première valeur qui tient. Demander plus ajoute des candidates sans en
+ * retirer aucune : la cible obtenue ne peut plus reculer quand la demande
+ * augmente. Les tests le vérifient point par point.
+ */
 function solveArc(options: LayoutOptions): Layout {
-  const requestedSpacing = Math.max(options.spacing ?? DEFAULT_SPACING, MIN_SPACING)
-  const minimumTarget = Math.min(MIN_TARGET, options.target)
-  let spacing = requestedSpacing
+  const requestedSpacing = gridSpacing(Math.max(options.spacing ?? DEFAULT_SPACING, MIN_SPACING))
+  const requestedTarget = options.target
+  const floor = Math.min(MIN_TARGET, requestedTarget)
 
-  for (;;) {
-    let target = options.target
-    for (;;) {
+  // Le cas courant d'abord : la demande tient telle quelle.
+  const direct = tryLayout(options, requestedTarget, requestedSpacing)
+  if (direct) return direct
+
+  for (let hundredths = Math.round(requestedSpacing * 100); hundredths >= MIN_SPACING * 100; hundredths -= 1) {
+    const spacing = hundredths / 100
+    // Si même le plancher ne tient pas à cet espacement, inutile de chercher
+    // plus grand : l'espacement doit céder. Un seul essai par palier.
+    if (!tryLayout(options, floor, spacing)) continue
+    for (let target = requestedTarget; target > floor; target = Math.ceil(target) - 1) {
       const attempt = tryLayout(options, target, spacing)
       if (attempt) return attempt
-      const next = target - Math.max(1, target * 0.04)
-      if (next < minimumTarget) break
-      target = next
     }
-    const nextSpacing = spacing - 0.04
-    if (nextSpacing < MIN_SPACING) {
-      return (
-        tryLayout(options, minimumTarget, MIN_SPACING, true) ?? empty(options)
-      )
-    }
-    spacing = nextSpacing
+    return tryLayout(options, floor, spacing) ?? empty(options)
   }
+
+  return tryLayout(options, floor, MIN_SPACING, true) ?? empty(options)
+}
+
+/** L'espacement demandé, ramené au centième inférieur. */
+function gridSpacing(spacing: number): number {
+  return Math.floor(spacing * 100 + 1e-9) / 100
 }
 
 function empty(options: LayoutOptions): Layout {
