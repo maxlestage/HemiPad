@@ -62,6 +62,8 @@ enum TransportError: LocalizedError, Equatable {
     case bluetoothUnavailable
     case hidServiceRejected
     case notConnected
+    case advertisingRefused
+    case bluetoothPaused
 
     var errorDescription: String? {
         switch self {
@@ -71,6 +73,10 @@ enum TransportError: LocalizedError, Equatable {
             return "iOS a refusé de publier le service manette. Coupez puis rallumez le Bluetooth, puis réessayez."
         case .notConnected:
             return "Aucune machine connectée."
+        case .advertisingRefused:
+            return "iOS a refusé de lancer l'annonce Bluetooth."
+        case .bluetoothPaused:
+            return "Le Bluetooth s'est arrêté pendant sa mise en route : il est en pause pour que l'application reste utilisable. Touchez « Réessayer » pour le relancer."
         }
     }
 }

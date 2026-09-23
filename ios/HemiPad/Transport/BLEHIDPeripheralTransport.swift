@@ -26,6 +26,15 @@ import UIKit
 /// - **Une fiche d'identité HemiPad** (Device Information, PnP ID) : la
 ///   machine range l'appareil parmi les manettes sous le nom HemiPad.
 ///
+/// ## Ne jamais planter
+/// CoreBluetooth signale certaines erreurs par une exception Objective-C, que
+/// Swift ne rattrape pas : l'application s'arrêterait net. Chaque appel risqué
+/// passe donc par `ObjCExceptionCatcher` — au pire la fonction concernée est
+/// désactivée, avec un message clair. Et si l'application s'arrête malgré tout
+/// pendant la publication du profil, `BLEPublicationSentinel` le remarque au
+/// lancement suivant et publie un profil plus prudent, puis se met en pause :
+/// jamais de plantage à chaque ouverture.
+///
 /// ## Ce qu'iOS garde pour lui
 /// Le nom que la machine affiche *après* l'appairage est celui de l'appareil,
 /// et seul iOS le fixe : l'écran de connexion propose de le renommer
@@ -80,6 +89,17 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
 
     private let advertisedName: String
     private static let maximumAdvertisingAttempts = 3
+    /// Le Report Reference a-t-il déjà été retiré pour un nouvel essai ?
+    private var retriedWithoutReportReference = false
+
+    /// Le garde-fou de publication. Créé une seule fois par lancement : c'est
+    /// à ce moment qu'il regarde si la publication précédente a été
+    /// interrompue par un arrêt de l'application.
+    private static let sentinel: BLEPublicationSentinel = {
+        let sentinel = BLEPublicationSentinel()
+        sentinel.recordInterruptedPublication()
+        return sentinel
+    }()
 
     // UUID standards du profil HID over GATT.
     private enum UUIDs {
@@ -110,22 +130,63 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
     func start() {
         state = .preparing
         advertisingAttempts = 0
+        guard Self.sentinel.level < .paused else {
+            state = .failed(TransportError.bluetoothPaused.localizedDescription)
+            return
+        }
         if manager == nil {
-            manager = CBPeripheralManager(delegate: self, queue: .main, options: [
-                CBPeripheralManagerOptionRestoreIdentifierKey: "app.hemipad.peripheral"
-            ])
+            createManager()
         } else if manager?.state == .poweredOn {
             publishServices()
         }
     }
 
     func stop() {
-        manager?.stopAdvertising()
-        manager?.removeAllServices()
+        if let manager {
+            guarded("arrêt de l'annonce") { manager.stopAdvertising() }
+            guarded("retrait des services") { manager.removeAllServices() }
+            manager.delegate = nil
+        }
+        manager = nil
+        // Un arrêt volontaire n'est pas un plantage : la note de publication
+        // en cours ne doit pas survivre.
+        Self.sentinel.didPublish()
         subscriptions.removeAll()
         queue.removeAll()
         restoredServices = false
         state = .idle
+    }
+
+    /// Exécute un appel CoreBluetooth qui peut lever une exception
+    /// Objective-C. Renvoie faux, et journalise, au lieu de planter.
+    @discardableResult
+    private func guarded(_ what: String, _ body: () -> Void) -> Bool {
+        do {
+            try ObjCExceptionCatcher.run(body)
+            return true
+        } catch {
+            logger.error("\(what, privacy: .public) refusé par CoreBluetooth : \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    private func createManager() {
+        var created: CBPeripheralManager?
+        // Avec la restauration par le système d'abord ; si iOS la refuse, sans.
+        guarded("gestionnaire Bluetooth") {
+            created = CBPeripheralManager(delegate: self, queue: .main, options: [
+                CBPeripheralManagerOptionRestoreIdentifierKey: "app.hemipad.peripheral"
+            ])
+        }
+        if created == nil {
+            guarded("gestionnaire Bluetooth sans restauration") {
+                created = CBPeripheralManager(delegate: self, queue: .main, options: nil)
+            }
+        }
+        manager = created
+        if created == nil {
+            state = .failed(TransportError.bluetoothUnavailable.localizedDescription)
+        }
     }
 
     func send(reportID: HIDReportDescriptors.ReportID, payload: [UInt8]) {
@@ -153,8 +214,14 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
             // Caractéristique absente (services en cours de publication) : le
             // rapport n'a nulle part où aller, on le laisse tomber.
             guard let target = self.characteristic(for: entry.reportID) else { return true }
-            // `nil` : toutes les machines abonnées à *cette* caractéristique.
-            return manager.updateValue(Data(entry.payload), for: target, onSubscribedCentrals: nil)
+            var accepted = false
+            let sent = self.guarded("envoi d'un rapport") {
+                // `nil` : toutes les machines abonnées à *cette* caractéristique.
+                accepted = manager.updateValue(Data(entry.payload), for: target, onSubscribedCentrals: nil)
+            }
+            // Refusé par une exception, ce rapport ne partira jamais : on ne
+            // le garde pas, sinon il bloquerait tous les suivants.
+            return sent ? accepted : true
         }
     }
 
@@ -182,7 +249,8 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
 
     private func publishServices() {
         guard let manager else { return }
-        manager.removeAllServices()
+        let sentinel = Self.sentinel
+        guarded("retrait des services") { manager.removeAllServices() }
 
         let reportMap = CBMutableCharacteristic(
             type: UUIDs.reportMap,
@@ -226,18 +294,30 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
             permissions: [.readEncryptionRequired]
         )
         // Report Reference : [identifiant du rapport, type 0x01 = entrée].
-        gamepad.descriptors = [
-            CBMutableDescriptor(
-                type: UUIDs.reportReference,
-                value: Data([HIDReportDescriptors.ReportID.gamepad.rawValue, 0x01])
-            )
-        ]
-        keyboard.descriptors = [
-            CBMutableDescriptor(
-                type: UUIDs.reportReference,
-                value: Data([HIDReportDescriptors.ReportID.keyboard.rawValue, 0x01])
-            )
-        ]
+        // iOS ne documente pas ce descripteur pour les applications : s'il le
+        // refuse, le profil part sans, et le garde-fou s'en souvient.
+        var withReportReference = sentinel.level == .full
+        if withReportReference {
+            withReportReference = guarded("Report Reference") {
+                gamepad.descriptors = [
+                    CBMutableDescriptor(
+                        type: UUIDs.reportReference,
+                        value: Data([HIDReportDescriptors.ReportID.gamepad.rawValue, 0x01])
+                    )
+                ]
+                keyboard.descriptors = [
+                    CBMutableDescriptor(
+                        type: UUIDs.reportReference,
+                        value: Data([HIDReportDescriptors.ReportID.keyboard.rawValue, 0x01])
+                    )
+                ]
+            }
+            if !withReportReference {
+                gamepad.descriptors = nil
+                keyboard.descriptors = nil
+                sentinel.lower(to: .withoutReportReference)
+            }
+        }
         gamepadReport = gamepad
         keyboardReport = keyboard
 
@@ -279,9 +359,28 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
             )
         ]
 
-        manager.add(battery)
-        manager.add(deviceInformation)
-        manager.add(hidService)
+        // La note « publication en cours » couvre l'étape risquée : si
+        // l'application s'arrête ici, le lancement suivant le saura.
+        sentinel.willPublish()
+        guarded("service Batterie") { manager.add(battery) }
+        guarded("fiche d'identité") { manager.add(deviceInformation) }
+        let added = guarded("service manette") { manager.add(hidService) }
+        if !added {
+            sentinel.didPublish()
+            hidServiceFailed(withReportReference: withReportReference)
+        }
+    }
+
+    /// Le service manette n'a pas pu être publié. Si le Report Reference était
+    /// là, il est le premier suspect : un seul nouvel essai sans lui.
+    private func hidServiceFailed(withReportReference: Bool) {
+        if withReportReference && !retriedWithoutReportReference {
+            retriedWithoutReportReference = true
+            Self.sentinel.lower(to: .withoutReportReference)
+            publishServices()
+            return
+        }
+        state = .failed(TransportError.hidServiceRejected.localizedDescription)
     }
 
     private func advertise() {
@@ -291,10 +390,15 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
             return
         }
         advertisingAttempts += 1
-        manager.startAdvertising([
-            CBAdvertisementDataLocalNameKey: advertisedName,
-            CBAdvertisementDataServiceUUIDsKey: [UUIDs.hidService]
-        ])
+        let started = guarded("annonce") {
+            manager.startAdvertising([
+                CBAdvertisementDataLocalNameKey: advertisedName,
+                CBAdvertisementDataServiceUUIDsKey: [UUIDs.hidService]
+            ])
+        }
+        if !started {
+            retryAdvertising(after: TransportError.advertisingRefused)
+        }
     }
 
     /// Un échec d'annonce est souvent passager (radio occupée, bascule du
@@ -354,14 +458,21 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
+        let isHID = service.uuid == UUIDs.hidService
+        if isHID {
+            // Réussie ou refusée proprement, la publication est terminée sans
+            // que l'application s'arrête.
+            Self.sentinel.didPublish()
+        }
         if let error {
-            logger.error("ajout du service refusé: \(error.localizedDescription)")
-            if service.uuid == UUIDs.hidService {
-                state = .failed(TransportError.hidServiceRejected.localizedDescription)
+            logger.error("ajout du service refusé: \(error.localizedDescription, privacy: .public)")
+            if isHID {
+                let hadReportReference = (gamepadReport?.descriptors?.isEmpty == false)
+                hidServiceFailed(withReportReference: hadReportReference)
             }
             return
         }
-        if service.uuid == UUIDs.hidService {
+        if isHID {
             advertise()
         }
     }
@@ -386,7 +497,7 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
 
         // Une manette doit répondre au doigt : on demande l'intervalle de
         // connexion le plus court que la machine accepte.
-        peripheral.setDesiredConnectionLatency(.low, for: central)
+        guarded("latence basse") { peripheral.setDesiredConnectionLatency(.low, for: central) }
 
         // L'état courant, tout de suite : sans lui, la machine attendait le
         // prochain geste pour savoir ce qui est enfoncé.
@@ -434,22 +545,24 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
             value = nil
         }
         guard let value else {
-            peripheral.respond(to: request, withResult: .requestNotSupported)
+            guarded("réponse à une lecture") { peripheral.respond(to: request, withResult: .requestNotSupported) }
             return
         }
         guard request.offset <= value.count else {
-            peripheral.respond(to: request, withResult: .invalidOffset)
+            guarded("réponse à une lecture") { peripheral.respond(to: request, withResult: .invalidOffset) }
             return
         }
-        request.value = Data(value[request.offset...])
-        peripheral.respond(to: request, withResult: .success)
+        guarded("réponse à une lecture") {
+            request.value = Data(value[request.offset...])
+            peripheral.respond(to: request, withResult: .success)
+        }
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveWrite requests: [CBATTRequest]) {
         // Le point de contrôle HID sert surtout à la mise en veille : on accuse
         // réception sans rien changer, l'état d'entrée reste géré côté iPhone.
         guard let first = requests.first else { return }
-        peripheral.respond(to: first, withResult: .success)
+        guarded("réponse à une écriture") { peripheral.respond(to: first, withResult: .success) }
     }
 
     func peripheralManager(
