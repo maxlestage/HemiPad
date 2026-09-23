@@ -313,7 +313,12 @@ export const es: Dictionary = {
     updated: 'Actualizado'
   },
   controlNames: {
-    directional: 'Joystick o cruceta',
+    directional: 'Joystick',
+    dpad: 'Cruceta',
+    dpadUp: 'Cruceta: arriba',
+    dpadDown: 'Cruceta: abajo',
+    dpadLeft: 'Cruceta: izquierda',
+    dpadRight: 'Cruceta: derecha',
     faceW: 'Botón izquierdo',
     faceN: 'Botón superior',
     faceS: 'Botón inferior',

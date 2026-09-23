@@ -557,7 +557,7 @@ for (const scheme of ['dark', 'light']) {
     v.cible.texte
   )
   check(Math.abs(d.faceS - 100) < 2, "et dessinés à 100 points de l'iPad", `${d.faceS.toFixed(1)} pt`)
-  check(d.nombre === 13 && d.chevauchements === 0 && d.dehors === 0, "à 100 points, toutes les commandes tiennent sur l'iPad sans se chevaucher", JSON.stringify(d))
+  check(d.nombre === 14 && d.chevauchements === 0 && d.dehors === 0, "à 100 points, toutes les commandes tiennent sur l'iPad sans se chevaucher", JSON.stringify(d))
 
   await curseur.fill('2')
   await page.waitForTimeout(50)
@@ -570,7 +570,7 @@ for (const scheme of ['dark', 'light']) {
     "à ×2, l'iPad garde ses 100 points et resserre l'écart",
     `${v.cible.texte} · ${v.espacement.texte}`
   )
-  check(d.nombre === 13 && d.chevauchements === 0 && d.dehors === 0, 'à ×2 et 100 points, rien ne se chevauche ni ne sort', JSON.stringify(d))
+  check(d.nombre === 14 && d.chevauchements === 0 && d.dehors === 0, 'à ×2 et 100 points, rien ne se chevauche ni ne sort', JSON.stringify(d))
 
   await appareil('iPhone')
   await page.waitForTimeout(50)
@@ -578,15 +578,17 @@ for (const scheme of ['dark', 'light']) {
   v = await valeurs()
   d = await disposition()
   check(
-    v.cible.tenue < 100 && v.cible.tenue >= 70 && v.cible.texte.includes(`100 → ${v.cible.tenue}`),
-    "sur l'iPhone, le curseur dit ce qui est demandé et ce que l'écran tient — plus de 70 points",
+    // 65 points avec la croix et le stick côte à côte ; 44 quand les
+    // cibles cédaient avant l'écart.
+    v.cible.tenue < 100 && v.cible.tenue >= 62 && v.cible.texte.includes(`100 → ${v.cible.tenue}`),
+    "sur l'iPhone, le curseur dit ce qui est demandé et ce que l'écran tient — plus de 60 points",
     v.cible.texte
   )
   check(
     (await page.locator('.control-block:has([data-valeur="cible"]) .hint').count()) === 1,
     "et explique pourquoi l'écran réduit"
   )
-  check(d.nombre === 13 && d.chevauchements === 0 && d.dehors === 0, "à 100 points et ×2, l'iPhone garde toutes ses commandes, sans chevauchement", JSON.stringify(d))
+  check(d.nombre === 14 && d.chevauchements === 0 && d.dehors === 0, "à 100 points et ×2, l'iPhone garde toutes ses commandes, sans chevauchement", JSON.stringify(d))
 
   await appareil('iPad')
   await taille.fill('150')
@@ -595,8 +597,73 @@ for (const scheme of ['dark', 'light']) {
   await immobiles()
   v = await valeurs()
   d = await disposition()
-  check(v.cible.tenue >= 140, "au bout du curseur, l'iPad pose ses commandes à plus de 140 points", v.cible.texte)
-  check(d.nombre === 13 && d.chevauchements === 0 && d.dehors === 0, 'à 150 points demandés, rien ne se chevauche ni ne sort', JSON.stringify(d))
+  check(v.cible.tenue >= 125, "au bout du curseur, l'iPad pose ses quatorze commandes à plus de 125 points", v.cible.texte)
+  check(d.nombre === 14 && d.chevauchements === 0 && d.dehors === 0, 'à 150 points demandés, rien ne se chevauche ni ne sort', JSON.stringify(d))
+  await context.close()
+}
+
+// --- La croix directionnelle, sur toutes les manettes ---------------------
+//
+// Une vraie manette a un stick *et* une croix. La démonstration n'avait que
+// le stick : impossible de naviguer dans un menu comme on le ferait avec la
+// manette d'origine.
+{
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.locator('#demo').scrollIntoViewIfNeeded()
+
+  const noms = ['Nintendo Switch', 'PlayStation', 'Xbox', 'Steam Deck / PC', /^(Rétro|Retro)/, /^(Ordinateur|Computer|Ordenador)$/]
+  const sansCroix = []
+  for (const nom of noms) {
+    await page.locator('.demo-controls').getByRole('button', { name: nom }).first().click()
+    await page.waitForTimeout(80)
+    const croix = await page.locator('.control[data-control="dpad"]').count()
+    const stick = await page.locator('.control[data-control="directional"]').count()
+    if (croix !== 1 || stick !== 1) sansCroix.push(String(nom))
+  }
+  check(sansCroix.length === 0, 'chaque manette a sa croix directionnelle, à côté du stick', sansCroix.join(', '))
+  await page.locator('.demo-controls').getByRole('button', { name: 'Nintendo Switch' }).first().click()
+
+  const croix = page.locator('.control[data-control="dpad"]')
+  const branches = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('.control[data-control="dpad"] .dpad-arm.is-active')].map((el) =>
+        el.parentNode.getAttribute('transform')
+      )
+    )
+  await page.waitForTimeout(600)
+  const boite = await croix.boundingBox()
+  // Appui à droite du centre : seule la branche droite s'allume.
+  await croix.click({ position: { x: boite.width * 0.88, y: boite.height / 2 } })
+  await page.waitForTimeout(120)
+  check(
+    JSON.stringify(await branches()) === JSON.stringify(['rotate(90)']),
+    'appuyer à droite sur la croix n’allume que la branche droite',
+    JSON.stringify(await branches())
+  )
+  // Verrouillant par défaut : un second appui relâche la branche.
+  await croix.click({ position: { x: boite.width * 0.88, y: boite.height / 2 } })
+  await croix.focus()
+  await page.keyboard.press('ArrowDown')
+  await page.waitForTimeout(120)
+  check(
+    JSON.stringify(await branches()) === JSON.stringify(['rotate(180)']) &&
+      (await croix.getAttribute('aria-pressed')) === 'true',
+    'au clavier, les flèches actionnent la croix',
+    JSON.stringify(await branches())
+  )
+  await page.keyboard.press('ArrowDown')
+
+  // La croix se masque comme les autres commandes, et rend sa place.
+  await page.locator('.demo-controls').getByRole('button', { name: /^(Modifier|Edit|Editar)$/ }).click()
+  await croix.click()
+  await page.locator('.control-panel').getByRole('button', { name: /^(Masquer|Hide|Ocultar)$/ }).click()
+  await page.waitForTimeout(150)
+  check(
+    (await croix.count()) === 0 && (await page.locator('[data-hidden-control="dpad"]').count()) === 1,
+    'la croix se masque, et reste récupérable'
+  )
   await context.close()
 }
 

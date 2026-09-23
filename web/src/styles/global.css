@@ -731,6 +731,28 @@ main > section {
   pointer-events: none;
 }
 
+/* La croix directionnelle : quatre branches claires dans le disque, et
+   seule la branche enfoncée prend la couleur de la console. */
+.dpad-arm {
+  fill: rgba(255, 255, 255, 0.1);
+  transition: fill 0.12s ease;
+  pointer-events: none;
+}
+
+.dpad-arm.is-active {
+  fill: var(--accent);
+}
+
+.dpad-center {
+  fill: rgba(255, 255, 255, 0.1);
+}
+
+.dpad-arrow {
+  fill: var(--screen-text);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
 .stick-cross {
   stroke: rgba(255, 255, 255, 0.35);
   stroke-width: 1;

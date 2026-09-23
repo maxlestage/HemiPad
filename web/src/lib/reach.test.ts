@@ -100,7 +100,7 @@ test('la disposition est le miroir exact entre les deux mains', () => {
 test('un cadre trop petit réduit les cibles au lieu d’en supprimer', () => {
   const canvas = { width: 220, height: 320 }
   const layout = solveLayout({ hand: 'right', canvas, target: 96, rings: rings(96) })
-  assert.equal(layout.placements.length, 13)
+  assert.equal(layout.placements.length, 14)
   assert.ok(layout.target < 96)
 })
 
@@ -205,7 +205,7 @@ test('les chevauchements sont signalés, pas empêchés', () => {
       }
     })
   )
-  assert.equal(layout.placements.length, 13, 'aucune commande retirée')
+  assert.equal(layout.placements.length, 14, 'aucune commande retirée')
   assert.ok(layout.overlapping.includes('faceS'))
   assert.ok(layout.overlapping.includes('faceE'))
 })
@@ -298,7 +298,7 @@ test('sur toute la plage : rien de plus que demandé, jamais sous 44, rien ne se
           assert.ok(layout.target <= demande, cas)
           assert.ok(layout.target >= MIN_TARGET, cas)
           assert.ok(layout.spacing <= spacing + 1e-9, cas)
-          assert.equal(layout.placements.length, 13, cas)
+          assert.equal(layout.placements.length, 14, cas)
           assert.equal(layout.overlapping.length, 0, cas)
           for (const p of layout.placements) {
             assert.ok(p.center.x - p.size.width / 2 >= -0.5, `${cas} : ${p.id} à gauche`)
@@ -327,5 +327,33 @@ test('des boutons bien plus gros : 100 points tenus sur iPad même à ×2, plus 
   const telephone = resoudre(iphone!, 100, 2)
   assert.ok(telephone.target < 100)
   assert.ok(telephone.target >= 70, `${telephone.target} pt`)
-  assert.equal(telephone.placements.length, 13)
+  assert.equal(telephone.placements.length, 14)
+})
+
+test('toutes les manettes ont une croix directionnelle, à côté du stick', () => {
+  const layout = solveLayout(base(56, { canvas: { width: 520, height: 820 } }))
+  const stick = layout.placements.find((p) => p.id === 'directional')
+  const croix = layout.placements.find((p) => p.id === 'dpad')
+  assert.ok(stick && croix, 'le stick et la croix sont posés tous les deux')
+  assert.equal(croix.size.width, stick.size.width, 'la croix a la taille du stick')
+  // Les deux sont les commandes les plus proches du pouce.
+  const distance = (p: { center: { x: number; y: number } }) =>
+    Math.hypot(p.center.x - layout.pivot.x, p.center.y - layout.pivot.y)
+  const autres = layout.placements.filter((p) => p !== stick && p !== croix)
+  assert.ok(Math.max(distance(stick), distance(croix)) < Math.min(...autres.map(distance)))
+})
+
+test('masquer la croix ou le stick rend sa place aux autres commandes', () => {
+  const cadre = { width: 393, height: 852 }
+  const deux = solveLayout(base(150, { canvas: cadre, topBand: 118 }))
+  for (const masque of ['dpad', 'directional']) {
+    const un = solveLayout(base(150, { canvas: cadre, topBand: 118, preferences: { [masque]: { hidden: true } } }))
+    assert.equal(un.placements.length, 13)
+    assert.ok(!un.placements.some((p) => p.id === masque))
+    assert.ok(un.target > deux.target, `sans ${masque} : ${un.target} pt contre ${deux.target}`)
+  }
+  const aucun = solveLayout(
+    base(56, { canvas: cadre, preferences: { dpad: { hidden: true }, directional: { hidden: true } } })
+  )
+  assert.equal(aucun.placements.length, 12)
 })

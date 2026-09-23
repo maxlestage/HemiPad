@@ -91,7 +91,10 @@ struct ControlPreference: Codable, Equatable, Sendable {
 /// Clés de préférences. Une chaîne stable, parce qu'elle est écrite sur le
 /// disque et doit survivre à l'ajout d'une commande dans l'énumération.
 enum ControlKey {
+    /// Le stick. La clé garde son nom d'origine : elle est déjà écrite sur
+    /// les appareils.
     static let directional = "directional"
+    static let dpad = "dpad"
 
     static func key(for control: ControlID) -> String {
         control.rawValue

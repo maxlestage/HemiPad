@@ -131,7 +131,7 @@ final class FreeLayoutTests: XCTestCase {
             $0.freePosition = CGPoint(x: 0.5, y: 0.5)
         }
         let solution = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
-        XCTAssertEqual(solution.placements.count, 13, "aucune commande n'est retirée")
+        XCTAssertEqual(solution.placements.count, 14, "aucune commande n'est retirée")
         XCTAssertTrue(solution.overlapping.contains(ControlKey.key(for: .faceSouth)))
         XCTAssertTrue(solution.overlapping.contains(ControlKey.key(for: .faceEast)))
     }
@@ -354,7 +354,7 @@ final class ControllerLayoutTests: XCTestCase {
             size: CGSize(width: 393, height: 740)
         )
         XCTAssertGreaterThan(solution.targetSize, 55)
-        XCTAssertEqual(solution.placements.count, 13)
+        XCTAssertEqual(solution.placements.count, 14)
         XCTAssertTrue(solution.overlapping.isEmpty)
     }
 
@@ -441,7 +441,7 @@ final class ControllerLayoutTests: XCTestCase {
                     XCTAssertLessThanOrEqual(solution.targetSize, profile.baseTargetSize + 0.001)
                     XCTAssertGreaterThanOrEqual(solution.targetSize, ControllerLayout.minimumTargetSize)
                     XCTAssertLessThanOrEqual(solution.spacing, spacing + 0.001)
-                    XCTAssertEqual(solution.placements.count, 13, "aucune commande ne disparaît")
+                    XCTAssertEqual(solution.placements.count, 14, "aucune commande ne disparaît")
                     XCTAssertTrue(solution.overlapping.isEmpty, "\(size) ×\(spacing) : \(points) pt")
                     previous = solution.targetSize
                 }
@@ -490,7 +490,53 @@ final class ControllerLayoutTests: XCTestCase {
             size: CGSize(width: 320, height: 480)
         )
         XCTAssertTrue(cramped.wasDownscaled)
-        XCTAssertEqual(cramped.placements.count, 13, "aucune commande ne disparaît")
+        XCTAssertEqual(cramped.placements.count, 14, "aucune commande ne disparaît")
+    }
+
+    /// Une vraie manette a un stick *et* une croix : toutes les consoles
+    /// les affichent tous les deux, au plus près du pouce.
+    func testEveryConsoleHasADirectionalPadNextToTheStick() {
+        for console in ConsoleProfile.all {
+            let solution = ControllerLayout.solve(
+                profile: .default,
+                console: console,
+                size: CGSize(width: 768, height: 1024)
+            )
+            let stick = solution.placement(for: ControlKey.directional)
+            let dpad = solution.placement(for: ControlKey.dpad)
+            XCTAssertNotNil(stick, "\(console.displayName) : pas de stick")
+            XCTAssertNotNil(dpad, "\(console.displayName) : pas de croix")
+            guard let stick, let dpad else { continue }
+            XCTAssertEqual(dpad.size.width, stick.size.width, accuracy: 0.001)
+            let pivot = solution.envelope.pivot
+            func distance(_ placement: ControllerLayout.Placement) -> CGFloat {
+                hypot(placement.center.x - pivot.x, placement.center.y - pivot.y)
+            }
+            let others = solution.placements.filter { $0.id != stick.id && $0.id != dpad.id }
+            XCTAssertLessThan(max(distance(stick), distance(dpad)), others.map(distance).min() ?? .infinity)
+        }
+    }
+
+    func testHidingTheDirectionalPadGivesItsRoomBack() {
+        let size = CGSize(width: 393, height: 740)
+        var profile = HemiplegiaProfile.default
+        let both = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+        profile.updatePreference(for: ControlKey.dpad) { $0.isVisible = false }
+        let stickOnly = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+        XCTAssertNil(stickOnly.placement(for: ControlKey.dpad))
+        XCTAssertNotNil(stickOnly.placement(for: ControlKey.directional))
+        XCTAssertEqual(stickOnly.placements.count, both.placements.count - 1)
+        XCTAssertGreaterThan(stickOnly.targetSize, both.targetSize)
+    }
+
+    func testDirectionalPadArmsFollowTheDirectionalPadSetting() {
+        var profile = HemiplegiaProfile.default
+        profile.activationMode = .direct
+        profile.updatePreference(for: ControlKey.dpad) { $0.activation = .latch }
+        for control in [ControlID.dpadUp, .dpadDown, .dpadLeft, .dpadRight] {
+            XCTAssertEqual(profile.activation(for: control), .latch)
+        }
+        XCTAssertEqual(profile.activation(for: .faceSouth), .direct)
     }
 
     func testConsoleWithoutCaptureDropsOnlyThatControl() {
@@ -502,7 +548,7 @@ final class ControllerLayoutTests: XCTestCase {
         let controls = retro.placements.compactMap(\.element.control)
         XCTAssertFalse(controls.contains(.capture))
         XCTAssertTrue(controls.contains(.start))
-        XCTAssertEqual(retro.placements.count, 12)
+        XCTAssertEqual(retro.placements.count, 13)
     }
 
     func testDirectionalWidgetSitsClosestToTheThumb() {
