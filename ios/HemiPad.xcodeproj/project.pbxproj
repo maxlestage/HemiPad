@@ -33,7 +33,6 @@
 		188DD51375A807069D17F206 /* ControllerTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */; };
 		F2618A889BBE7E4492EC5CC1 /* HIDSendQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 735D00335B5AD406A0D45141 /* HIDSendQueue.swift */; };
 		52F1F51463F7143D5022D810 /* LoopbackTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */; };
-		7BF045128E25E225C1AA778E /* NetworkBridgeTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD759A51A14661CDA2A0435 /* NetworkBridgeTransport.swift */; };
 		4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */; };
 		DF529476E6552026367555CA /* CalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */; };
 		E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C35973498C6132B703FF4AB /* ConnectScreen.swift */; };
@@ -88,7 +87,6 @@
 		025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerTransport.swift; sourceTree = "<group>"; };
 		735D00335B5AD406A0D45141 /* HIDSendQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDSendQueue.swift; sourceTree = "<group>"; };
 		6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopbackTransport.swift; sourceTree = "<group>"; };
-		3FD759A51A14661CDA2A0435 /* NetworkBridgeTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkBridgeTransport.swift; sourceTree = "<group>"; };
 		9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportCoordinator.swift; sourceTree = "<group>"; };
 		B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationView.swift; sourceTree = "<group>"; };
 		3C35973498C6132B703FF4AB /* ConnectScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectScreen.swift; sourceTree = "<group>"; };
@@ -218,7 +216,6 @@
 				025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */,
 				735D00335B5AD406A0D45141 /* HIDSendQueue.swift */,
 				6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */,
-				3FD759A51A14661CDA2A0435 /* NetworkBridgeTransport.swift */,
 				9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */,
 			);
 			path = Transport;
@@ -383,7 +380,6 @@
 				188DD51375A807069D17F206 /* ControllerTransport.swift in Sources */,
 				F2618A889BBE7E4492EC5CC1 /* HIDSendQueue.swift in Sources */,
 				52F1F51463F7143D5022D810 /* LoopbackTransport.swift in Sources */,
-				7BF045128E25E225C1AA778E /* NetworkBridgeTransport.swift in Sources */,
 				4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */,
 				DF529476E6552026367555CA /* CalibrationView.swift in Sources */,
 				E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */,

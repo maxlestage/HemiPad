@@ -3,24 +3,35 @@ import Foundation
 import OSLog
 import UIKit
 
-/// Transport HID over GATT : l'iPhone se comporte en périphérique Bluetooth.
+/// Transport HID over GATT : l'iPhone ou l'iPad devient lui-même une manette
+/// Bluetooth, sans boîtier ni câble.
 ///
 /// ## Ce que fait réellement ce code
-/// Il publie un profil HID complet (service 0x1812, *Report Map*, *HID
-/// Information*, caractéristiques de rapport pour la manette et le clavier,
-/// plus le service Batterie et Device Information), puis s'annonce. Une console
-/// ou un PC qui accepte un périphérique HID générique le voit comme une manette
-/// et un clavier combinés.
+/// Il publie un profil HID complet — *Report Map*, *HID Information*, une
+/// caractéristique de rapport pour la manette et une pour le clavier, chacune
+/// avec son *Report Reference* — plus les services Batterie et Device
+/// Information, puis s'annonce sous le nom « HemiPad ». Une machine qui
+/// accepte une manette Bluetooth standard le voit comme une manette et un
+/// clavier combinés.
 ///
-/// ## La limite à connaître
-/// iOS réserve certains services GATT, dont 0x1812 : selon la version du
-/// système et les droits accordés à l'application, `CBPeripheralManager` peut
-/// refuser l'ajout du service ou le retirer de l'annonce. Dans ce cas, l'erreur
-/// remonte telle quelle (`hidServiceRejected`) et l'application bascule vers le
-/// `NetworkBridgeTransport`, qui rejoue exactement les mêmes octets depuis un
-/// petit boîtier USB. Les descripteurs sont donc partagés entre les deux
-/// chemins : ce qui marche sur le pont marchera en Bluetooth le jour où l'accès
-/// est accordé.
+/// ## Se présenter comme une manette, pas comme un iPhone
+/// - **Le service HID sous sa forme longue.** iOS refuse aux applications
+///   l'identifiant court 0x1812 (« UUID non autorisé »). La norme Bluetooth
+///   définit la même valeur sous 128 bits — `00001812-0000-1000-8000-
+///   00805F9B34FB` — et c'est sous cette forme qu'il est publié : pour la
+///   machine, c'est le même service.
+/// - **Un *Report Reference* sur chaque rapport** (identifiant, « entrée »).
+///   Sans lui, Windows et Android ne savent pas quel rapport est la manette et
+///   lequel est le clavier, et n'en lisent aucun.
+/// - **Une fiche d'identité HemiPad** (Device Information, PnP ID) : la
+///   machine range l'appareil parmi les manettes sous le nom HemiPad.
+///
+/// ## Ce qu'iOS garde pour lui
+/// Le nom que la machine affiche *après* l'appairage est celui de l'appareil,
+/// et seul iOS le fixe : l'écran de connexion propose de le renommer
+/// « HemiPad ». Le Bluetooth classique n'est pas ouvert aux applications, et
+/// Switch, PS5 et Xbox n'acceptent en Bluetooth que leurs propres manettes :
+/// ce transport vise les ordinateurs et Android.
 ///
 /// ## Ce qui le rend robuste
 /// - **Aucun rapport perdu quand la radio sature.** `updateValue` refuse un
@@ -72,7 +83,9 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
 
     // UUID standards du profil HID over GATT.
     private enum UUIDs {
-        static let hidService = CBUUID(string: "1812")
+        // Forme longue de 0x1812 : la forme courte est refusée aux applications
+        // (voir l'en-tête du fichier).
+        static let hidService = CBUUID(string: "00001812-0000-1000-8000-00805F9B34FB")
         static let reportMap = CBUUID(string: "2A4B")
         static let hidInformation = CBUUID(string: "2A4A")
         static let hidControlPoint = CBUUID(string: "2A4C")
@@ -80,6 +93,11 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
         static let protocolMode = CBUUID(string: "2A4E")
         static let batteryService = CBUUID(string: "180F")
         static let batteryLevel = CBUUID(string: "2A19")
+        static let reportReference = CBUUID(string: "2908")
+        static let deviceInformation = CBUUID(string: "0000180A-0000-1000-8000-00805F9B34FB")
+        static let manufacturerName = CBUUID(string: "2A29")
+        static let modelNumber = CBUUID(string: "2A24")
+        static let pnpID = CBUUID(string: "2A50")
     }
 
     init(advertisedName: String = "HemiPad") {
@@ -207,6 +225,19 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
             value: nil,
             permissions: [.readEncryptionRequired]
         )
+        // Report Reference : [identifiant du rapport, type 0x01 = entrée].
+        gamepad.descriptors = [
+            CBMutableDescriptor(
+                type: UUIDs.reportReference,
+                value: Data([HIDReportDescriptors.ReportID.gamepad.rawValue, 0x01])
+            )
+        ]
+        keyboard.descriptors = [
+            CBMutableDescriptor(
+                type: UUIDs.reportReference,
+                value: Data([HIDReportDescriptors.ReportID.keyboard.rawValue, 0x01])
+            )
+        ]
         gamepadReport = gamepad
         keyboardReport = keyboard
 
@@ -222,7 +253,34 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
         )
         battery.characteristics = [batteryLevel]
 
+        // La fiche d'identité : fabricant, modèle, et le PnP ID que Windows et
+        // Android lisent pour classer l'appareil. Source 0x01 (Bluetooth SIG),
+        // fabricant 0xFFFF — la valeur réservée aux appareils sans
+        // identifiant attribué —, produit 0x4850 (« HP »), version 1.0.
+        let deviceInformation = CBMutableService(type: UUIDs.deviceInformation, primary: true)
+        deviceInformation.characteristics = [
+            CBMutableCharacteristic(
+                type: UUIDs.manufacturerName,
+                properties: [.read],
+                value: Data("HemiPad".utf8),
+                permissions: [.readable]
+            ),
+            CBMutableCharacteristic(
+                type: UUIDs.modelNumber,
+                properties: [.read],
+                value: Data("HemiPad Manette".utf8),
+                permissions: [.readable]
+            ),
+            CBMutableCharacteristic(
+                type: UUIDs.pnpID,
+                properties: [.read],
+                value: Data([0x01, 0xFF, 0xFF, 0x50, 0x48, 0x00, 0x01]),
+                permissions: [.readable]
+            )
+        ]
+
         manager.add(battery)
+        manager.add(deviceInformation)
         manager.add(hidService)
     }
 

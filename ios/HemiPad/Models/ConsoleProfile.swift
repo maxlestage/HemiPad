@@ -60,7 +60,7 @@ struct ConsoleProfile: Identifiable, Equatable, Sendable {
         ],
         accentHex: "#E60012",
         availableControls: allControls,
-        recommendedTransports: [.bridge, .bluetoothHID],
+        recommendedTransports: [.bluetoothHID],
         supportsKeyboard: false
     )
 
@@ -78,7 +78,7 @@ struct ConsoleProfile: Identifiable, Equatable, Sendable {
         ],
         accentHex: "#2E6FF2",
         availableControls: allControls,
-        recommendedTransports: [.bridge, .bluetoothHID],
+        recommendedTransports: [.bluetoothHID],
         supportsKeyboard: false
     )
 
@@ -96,7 +96,7 @@ struct ConsoleProfile: Identifiable, Equatable, Sendable {
         ],
         accentHex: "#16C60C",
         availableControls: allControls,
-        recommendedTransports: [.bridge, .bluetoothHID],
+        recommendedTransports: [.bluetoothHID],
         supportsKeyboard: false
     )
 
@@ -114,7 +114,7 @@ struct ConsoleProfile: Identifiable, Equatable, Sendable {
         ],
         accentHex: "#6C63FF",
         availableControls: allControls,
-        recommendedTransports: [.bluetoothHID, .bridge],
+        recommendedTransports: [.bluetoothHID],
         supportsKeyboard: true
     )
 
@@ -132,7 +132,7 @@ struct ConsoleProfile: Identifiable, Equatable, Sendable {
         ],
         accentHex: "#FF8A00",
         availableControls: withoutCapture,
-        recommendedTransports: [.bluetoothHID, .bridge],
+        recommendedTransports: [.bluetoothHID],
         supportsKeyboard: true
     )
 
@@ -150,7 +150,7 @@ struct ConsoleProfile: Identifiable, Equatable, Sendable {
         ],
         accentHex: "#00E5FF",
         availableControls: withoutCapture,
-        recommendedTransports: [.bluetoothHID, .bridge],
+        recommendedTransports: [.bluetoothHID],
         supportsKeyboard: true
     )
 
