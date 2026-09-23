@@ -4,11 +4,26 @@ import SwiftUI
 struct ConnectScreen: View {
     @EnvironmentObject private var state: AppState
     @EnvironmentObject private var transport: TransportCoordinator
+    /// La machine qu'on est en train de renommer, et le nom en cours de saisie.
+    @State private var renaming: RememberedMachine?
+    @State private var draftName = ""
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 StatusBarView()
+
+                if !state.machines.isEmpty {
+                    section("Machines mémorisées") {
+                        ForEach(state.machines) { machine in
+                            machineRow(machine)
+                        }
+                        Text("Chaque machine garde son nom et son profil de console : quand elle se reconnecte, HemiPad la reconnaît et reprend son profil. Tout reste sur l'appareil.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
 
                 section("Console") {
                     ForEach(ConsoleProfile.all) { profile in
@@ -131,6 +146,84 @@ struct ConnectScreen: View {
             .padding(14)
         }
         .background(AuroraBackground(reducedMotion: state.profile.reducedMotion))
+        .alert("Nommer la machine", isPresented: Binding(
+            get: { renaming != nil },
+            set: { if !$0 { renaming = nil } }
+        )) {
+            TextField("PC du salon", text: $draftName)
+            Button("Enregistrer") {
+                if let machine = renaming {
+                    state.renameMachine(machine.id, to: draftName)
+                }
+                renaming = nil
+            }
+            Button("Annuler", role: .cancel) { renaming = nil }
+        } message: {
+            Text("C'est le nom sous lequel HemiPad l'affichera quand elle se connecte.")
+        }
+    }
+
+    private func machineRow(_ machine: RememberedMachine) -> some View {
+        let isConnected = transport.connectedMachine == machine.id
+        let consoleName = machine.console.map { ConsoleProfile.profile(for: $0).displayName } ?? "Aucun profil"
+        return HStack(spacing: 12) {
+            Image(systemName: isConnected ? "dot.radiowaves.left.and.right" : "desktopcomputer")
+                .foregroundStyle(isConnected ? state.accent : Theme.secondaryText)
+                .frame(width: 26)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(machine.displayName)
+                    .font(.body.weight(.semibold))
+                Text(isConnected
+                     ? "Connectée · \(consoleName)"
+                     : "\(machine.lastConnection.formatted(.relative(presentation: .named))) · \(consoleName)")
+                    .font(.caption)
+                    .foregroundStyle(Theme.secondaryText)
+                Text(machine.connectionCount > 1 ? "\(machine.connectionCount) connexions" : "1 connexion")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.secondaryText)
+            }
+            Spacer()
+            Menu {
+                Button {
+                    draftName = machine.name ?? ""
+                    renaming = machine
+                } label: {
+                    Label("Renommer", systemImage: "pencil")
+                }
+                Menu {
+                    ForEach(ConsoleProfile.all) { profile in
+                        Button {
+                            state.setConsole(profile.target, forMachine: machine.id)
+                            if isConnected { state.consoleTarget = profile.target }
+                        } label: {
+                            if machine.console == profile.target {
+                                Label(profile.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(profile.displayName)
+                            }
+                        }
+                    }
+                } label: {
+                    Label("Profil de console", systemImage: "gamecontroller")
+                }
+                Button(role: .destructive) {
+                    state.forgetMachine(machine.id)
+                } label: {
+                    Label("Oublier cette machine", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.title3)
+                    .frame(width: 44, height: 44)
+            }
+            .accessibilityLabel(Text("Réglages de \(machine.displayName)"))
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardRadius)
+                .fill(Theme.surface.opacity(isConnected ? 1 : 0.6))
+        )
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
