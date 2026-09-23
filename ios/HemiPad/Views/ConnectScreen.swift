@@ -114,7 +114,7 @@ struct ConnectScreen: View {
                             .font(.callout.weight(.semibold))
                             .foregroundStyle(Theme.danger)
                         Button {
-                            transport.connect()
+                            transport.retry()
                         } label: {
                             Text("Réessayer")
                                 .font(.callout.weight(.semibold))

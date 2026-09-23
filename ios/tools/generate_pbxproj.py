@@ -31,6 +31,8 @@ MARKETING_VERSION = "1.0.0"
 
 FILE_TYPES = {
     ".swift": "sourcecode.swift",
+    ".m": "sourcecode.c.objc",
+    ".h": "sourcecode.c.h",
     ".plist": "text.plist.xml",
     ".xcassets": "folder.assetcatalog",
     ".md": "net.daringfireball.markdown",
@@ -54,6 +56,14 @@ def collect(directory: str, extension: str) -> list[str]:
                 full = os.path.join(base, name)
                 found.append(os.path.relpath(full, ROOT))
     return sorted(found)
+
+
+def quoted(value: str) -> str:
+    """Une valeur du .pbxproj : entre guillemets dès qu'elle sort de
+    l'alphabet que le format accepte nu (un tiret, par exemple)."""
+    if value and all(c.isalnum() or c in "_./$" for c in value):
+        return value
+    return '"' + value.replace('"', '\\"') + '"'
 
 
 def file_type(path: str) -> str:
@@ -107,8 +117,21 @@ class Tree:
         lines.append("\t\t};")
 
 
+def bridging_header() -> str | None:
+    """L'en-tête qui expose à Swift le peu d'Objective-C de l'application.
+
+    Il n'y en a qu'une raison : rattraper les exceptions Objective-C que
+    CoreBluetooth peut lever, et que Swift ne sait pas intercepter.
+    """
+    path = os.path.join(APP_NAME, "Support", f"{APP_NAME}-Bridging-Header.h")
+    return path if os.path.exists(os.path.join(ROOT, path)) else None
+
+
 def build_project() -> str:
-    app_sources = collect(APP_NAME, ".swift")
+    # Swift et Objective-C sont compilés ; les en-têtes sont seulement rangés
+    # dans le projet, pour qu'on les voie et qu'on les ouvre.
+    app_sources = sorted(collect(APP_NAME, ".swift") + collect(APP_NAME, ".m"))
+    app_headers = collect(APP_NAME, ".h")
     test_sources = collect(TEST_NAME, ".swift")
     resources = [os.path.join(APP_NAME, "Resources", "Assets.xcassets")]
     info_plist = os.path.join(APP_NAME, "Resources", "Info.plist")
@@ -172,11 +195,11 @@ def build_project() -> str:
     # --- PBXFileReference ---------------------------------------------------
     add("")
     add("/* Begin PBXFileReference section */")
-    for path in app_sources + test_sources + resources + [info_plist]:
+    for path in app_sources + app_headers + test_sources + resources + [info_plist]:
         name = os.path.basename(path)
         add(
             f"\t\t{uid('file', path)} /* {name} */ = {{isa = PBXFileReference; "
-            f"lastKnownFileType = {file_type(path)}; path = {name}; sourceTree = \"<group>\"; }};"
+            f"lastKnownFileType = {file_type(path)}; path = {quoted(name)}; sourceTree = \"<group>\"; }};"
         )
     add(
         f"\t\t{app_product} /* {APP_NAME}.app */ = {{isa = PBXFileReference; explicitFileType = "
@@ -203,7 +226,7 @@ def build_project() -> str:
 
     # --- PBXGroup -----------------------------------------------------------
     app_tree = Tree(APP_NAME, APP_NAME)
-    for path in app_sources + resources + [info_plist]:
+    for path in app_sources + app_headers + resources + [info_plist]:
         app_tree.add(os.path.relpath(path, APP_NAME), path)
 
     test_tree = Tree(TEST_NAME, TEST_NAME)
@@ -469,7 +492,7 @@ def project_settings(configuration: str) -> dict[str, str]:
 
 
 def app_settings(configuration: str, info_plist: str) -> dict[str, str]:
-    return {
+    settings = {
         "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
         "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
         "CODE_SIGN_STYLE": "Automatic",
@@ -487,6 +510,10 @@ def app_settings(configuration: str, info_plist: str) -> dict[str, str]:
         "SWIFT_VERSION": SWIFT_VERSION,
         "TARGETED_DEVICE_FAMILY": "\"1,2\"",
     }
+    header = bridging_header()
+    if header:
+        settings["SWIFT_OBJC_BRIDGING_HEADER"] = f"\"{header}\""
+    return settings
 
 
 def test_settings(configuration: str) -> dict[str, str]:
