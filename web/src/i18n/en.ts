@@ -311,7 +311,12 @@ export const en: Dictionary = {
     updated: 'Updated'
   },
   controlNames: {
-    directional: 'Stick or D-pad',
+    directional: 'Stick',
+    dpad: 'D-pad',
+    dpadUp: 'D-pad up',
+    dpadDown: 'D-pad down',
+    dpadLeft: 'D-pad left',
+    dpadRight: 'D-pad right',
     faceW: 'Left face button',
     faceN: 'Top face button',
     faceS: 'Bottom face button',

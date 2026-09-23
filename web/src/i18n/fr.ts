@@ -313,7 +313,12 @@ export const fr: Dictionary = {
     updated: 'Mise à jour'
   },
   controlNames: {
-    directional: 'Stick ou croix directionnelle',
+    directional: 'Stick',
+    dpad: 'Croix directionnelle',
+    dpadUp: 'Croix : haut',
+    dpadDown: 'Croix : bas',
+    dpadLeft: 'Croix : gauche',
+    dpadRight: 'Croix : droite',
     faceW: 'Bouton gauche',
     faceN: 'Bouton haut',
     faceS: 'Bouton bas',

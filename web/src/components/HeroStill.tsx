@@ -114,7 +114,8 @@ export function HeroStill({ className }: { className?: string }) {
       {layout.placements.map((placement) => {
         const { center, size, id } = placement
         const système = systemIds.includes(id)
-        const croix = id === 'directional'
+        const croix = id === 'dpad'
+        const zone = croix || id === 'directional'
         // La commande la plus avancée sur l'arc est celle que la scène animée
         // éclaire en premier : l'image fixe montre le même instant.
         const premier = avancementSurArc(center, layout.pivot, layout.span) < 0.05
@@ -127,8 +128,8 @@ export function HeroStill({ className }: { className?: string }) {
             height={size.height}
             rx={croix ? Math.min(size.width, size.height) / 4 : Math.min(size.width, size.height) / 2}
             fill={système ? 'var(--warn)' : 'var(--accent)'}
-            opacity={croix ? 0.28 : premier ? 0.95 : 0.6}
-            filter={croix ? undefined : système ? 'url(#ombre-accueil-chaud)' : 'url(#ombre-accueil-accent)'}
+            opacity={zone ? 0.28 : premier ? 0.95 : 0.6}
+            filter={zone ? undefined : système ? 'url(#ombre-accueil-chaud)' : 'url(#ombre-accueil-accent)'}
           />
         )
       })}

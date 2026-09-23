@@ -16,23 +16,12 @@ struct ControllerScreen: View {
     @EnvironmentObject private var arbiter: InputArbiter
     @EnvironmentObject private var tilt: TiltStick
 
-    @State private var directionalMode: DirectionalMode = .stick
     /// Plusieurs commandes peuvent être sélectionnées : verrouiller les deux
     /// gâchettes ou masquer les quatre boutons système se fait alors d'un
     /// geste, pas de quatre allers-retours.
     @State private var selectedKeys: Set<String> = []
     @State private var showEditor = false
     @State private var drag: DragState?
-
-    /// Le pouce ne peut pas tenir deux directions à la fois : on choisit.
-    enum DirectionalMode: String, CaseIterable, Identifiable {
-        case stick
-        case dpad
-
-        var id: String { rawValue }
-        var label: String { self == .stick ? "Stick" : "Croix" }
-        var symbol: String { self == .stick ? "circle.circle" : "dpad" }
-    }
 
     private struct DragState {
         let key: String
@@ -78,7 +67,6 @@ struct ControllerScreen: View {
                         editingBar(layout: layout)
                     } else {
                         HStack(spacing: 10) {
-                            modeToggle
                             if state.profile.tiltReplacesSecondStick {
                                 tiltIndicator
                             }
@@ -167,7 +155,27 @@ struct ControllerScreen: View {
     private func live(_ placement: ControllerLayout.Placement) -> some View {
         switch placement.element {
         case .directional:
-            directionalWidget(size: placement.size.width)
+            ThumbstickView(
+                id: .left,
+                size: placement.size.width,
+                accent: state.accent,
+                value: arbiter.state.leftStick,
+                autoCenter: state.profile.stickAutoCenter,
+                onMove: { arbiter.moveStick(.left, to: $0) },
+                onRelease: { arbiter.releaseStick(.left) },
+                onRecenter: { arbiter.centerStick(.left) }
+            )
+        case .dpad:
+            // Le stick et la croix sont tous deux à l'écran, comme sur la
+            // manette d'origine : passer de l'un à l'autre ne coûte plus un
+            // appui sur un sélecteur. Qui n'en veut qu'un masque l'autre.
+            DPadView(
+                size: placement.size.width,
+                accent: state.accent,
+                pressed: arbiter.state.pressed,
+                onPress: { state.press($0) },
+                onRelease: { state.release($0) }
+            )
         case .button(let control):
             padButton(control, size: placement.size.width)
         case .pill(let control):
@@ -278,8 +286,11 @@ struct ControllerScreen: View {
     }
 
     private func label(for element: ControllerLayout.Element) -> String {
-        guard let control = element.control else { return "Stick ou croix directionnelle" }
-        return control.fallbackLabel
+        switch element {
+        case .directional: return "Stick"
+        case .dpad: return "Croix directionnelle"
+        case .button(let control), .pill(let control): return control.fallbackLabel
+        }
     }
 
     @ViewBuilder
@@ -293,31 +304,6 @@ struct ControllerScreen: View {
             element: element
         )
         .hemipadEnvironment(state)
-    }
-
-    @ViewBuilder
-    private func directionalWidget(size: CGFloat) -> some View {
-        switch directionalMode {
-        case .stick:
-            ThumbstickView(
-                id: .left,
-                size: size,
-                accent: state.accent,
-                value: arbiter.state.leftStick,
-                autoCenter: state.profile.stickAutoCenter,
-                onMove: { arbiter.moveStick(.left, to: $0) },
-                onRelease: { arbiter.releaseStick(.left) },
-                onRecenter: { arbiter.centerStick(.left) }
-            )
-        case .dpad:
-            DPadView(
-                size: size,
-                accent: state.accent,
-                pressed: arbiter.state.pressed,
-                onPress: { state.press($0) },
-                onRelease: { state.release($0) }
-            )
-        }
     }
 
     private func padButton(_ control: ControlID, size: CGFloat) -> some View {
@@ -495,33 +481,6 @@ struct ControllerScreen: View {
         return state.profile.layoutMode == .free
             ? "Faites glisser une commande pour la placer, touchez-la pour la régler."
             : "Touchez une commande pour la régler. Passez en disposition libre pour la déplacer."
-    }
-
-    private var modeToggle: some View {
-        HStack(spacing: 0) {
-            ForEach(DirectionalMode.allCases) { mode in
-                Button {
-                    directionalMode = mode
-                    arbiter.centerStick(.left)
-                    Haptics.shared.latch()
-                } label: {
-                    Label(mode.label, systemImage: mode.symbol)
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(
-                            Capsule().fill(
-                                directionalMode == mode ? state.accent.opacity(0.9) : Color.clear
-                            )
-                        )
-                        .foregroundStyle(directionalMode == mode ? Theme.background : Theme.secondaryText)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(3)
-        .background(Capsule().fill(Theme.surface.opacity(0.85)))
-        .accessibilityLabel(Text("Commande directionnelle"))
     }
 
     private var tiltIndicator: some View {
