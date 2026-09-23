@@ -35,6 +35,10 @@ struct StaticControlView: View {
                 Circle()
                     .fill(accent.opacity(isHidden ? 0.25 : 0.7))
                     .frame(width: size.width * 0.34, height: size.width * 0.34)
+            } else if case .dpad = element {
+                Image(systemName: "dpad.fill")
+                    .font(.system(size: size.width * 0.5))
+                    .foregroundStyle(accent.opacity(isHidden ? 0.25 : 0.7))
             } else {
                 Text(glyph)
                     .font(.system(size: isPill ? size.height * 0.42 : size.width * 0.34, weight: .semibold, design: .rounded))

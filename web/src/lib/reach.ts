@@ -111,6 +111,9 @@ export const MIN_TARGET = 44
 export const MAX_TARGET = 150
 export const MAX_SPACING = 2
 
+/** Le stick (`directional`) et la croix (`dpad`), posés par le solveur lui-même. */
+export const INNER_IDS = ['directional', 'dpad']
+
 export function halfExtent(size: Size): number {
   return Math.abs(size.width - size.height) < 0.5
     ? size.width / 2
@@ -260,8 +263,20 @@ function tryLayout(
     })
     .filter((ring) => ring.ids.length > 0)
 
-  const directionalHidden = preferenceOf(options, 'directional').hidden === true
-  if (scaled.length === 0 && directionalHidden) return null
+  // Le stick et la croix directionnelle, les deux commandes que le pouce
+  // utilise le plus, au plus près de lui. Toutes les manettes ont les deux.
+  // Visibles ensemble, ils forment le premier arc ; si l'un est masqué,
+  // l'autre prend seul la place du stick, sous le premier arc.
+  const inner = INNER_IDS.filter((id) => !preferenceOf(options, id).hidden)
+  const innerSize = (id: string) => target * 1.6 * (preferenceOf(options, id).sizeScale ?? 1)
+  if (inner.length === 2) {
+    scaled.unshift({
+      ids: inner,
+      sizes: inner.map((id) => ({ width: innerSize(id), height: innerSize(id) }))
+    })
+  }
+  const single = inner.length === 1 ? inner[0]! : null
+  if (scaled.length === 0 && !single) return null
 
   const pivot: Point = {
     x: (hand === 'right' ? pivotFraction.x : 1 - pivotFraction.x) * canvas.width,
@@ -285,12 +300,11 @@ function tryLayout(
     previous = { radius, half }
   }
 
-  // 2. Commande directionnelle, au plus près du pouce.
+  // 2. Commande directionnelle seule, au plus près du pouce.
   const placements: Placement[] = []
   let directionalRadius = 0
-  if (!directionalHidden) {
-    const directionalSize =
-      target * 1.6 * (preferenceOf(options, 'directional').sizeScale ?? 1)
+  if (single) {
+    const directionalSize = innerSize(single)
     const firstRing = scaled[0]
     const firstRadius = radii[0]
     if (firstRing && firstRadius !== undefined) {
@@ -305,7 +319,7 @@ function tryLayout(
       directionalRadius = Math.max(directionalSize * 0.5, canvas.width * 0.12)
     }
     placements.push({
-      id: 'directional',
+      id: single,
       center: pointOnArc(pivot, directionalRadius, angleFor(1, 4, hand, span)),
       size: { width: directionalSize, height: directionalSize },
       halfExtent: directionalSize / 2
@@ -356,7 +370,7 @@ function tryLayout(
   return {
     placements: moved,
     pivot: { x: pivot.x + dx, y: pivot.y + dy },
-    radii: directionalHidden ? radii : [directionalRadius, ...radii],
+    radii: single ? [directionalRadius, ...radii] : radii,
     span,
     hand,
     target,

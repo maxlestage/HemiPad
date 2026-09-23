@@ -114,6 +114,7 @@ export function ReachDemo() {
     () =>
       [
         'directional',
+        'dpad',
         ...faceIds,
         ...shoulderIds,
         ...systemIds.filter((id) => !(profile.omits ?? []).includes(id))
@@ -155,7 +156,8 @@ export function ReachDemo() {
   }
 
   const press = (id: string) => {
-    const activation = preferences[id]?.activation ?? mode
+    // Les quatre branches de la croix partagent les réglages de la croix.
+    const activation = preferences[id.startsWith('dpad') ? 'dpad' : id]?.activation ?? mode
     if (activation === 'latch') {
       setActive((current) => {
         const next = new Set(current)
@@ -238,6 +240,18 @@ export function ReachDemo() {
     setDragged(null)
     hasMoved.current = false
     return moved
+  }
+
+  /// La branche de la croix sous le doigt : la direction dominante depuis son
+  /// centre. Toute la croix est une cible — pas seulement ses branches
+  /// dessinées, bien plus fines qu'un doigt.
+  const armAt = (event: PointerEvent, placement: Placement) => {
+    const point = toCanvas(event)
+    if (!point) return 'dpadUp'
+    const dx = point.x - placement.center.x
+    const dy = point.y - placement.center.y
+    if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'dpadRight' : 'dpadLeft'
+    return dy > 0 ? 'dpadDown' : 'dpadUp'
   }
 
   const clampTo = (point: { x: number; y: number }, placement: Placement) =>
@@ -371,6 +385,8 @@ export function ReachDemo() {
                   glyph={profile.glyphs[placement.id] ?? ''}
                   accent={profile.accent}
                   isActive={active.has(placement.id)}
+                  activeArms={placement.id === 'dpad' ? DPAD_ARMS.filter((arm) => active.has(arm)) : []}
+                  onArm={press}
                   isPending={pending === placement.id}
                   isEditing={isEditing}
                   isSelected={selected.has(placement.id)}
@@ -380,7 +396,7 @@ export function ReachDemo() {
                   onActivate={() => (isEditing ? toggleSelection(placement.id) : press(placement.id))}
                   onPointerDown={(event) => {
                     if (isEditing) startDrag(placement, event)
-                    else press(placement.id)
+                    else press(placement.id === 'dpad' ? armAt(event, placement) : placement.id)
                   }}
                   onPointerMove={(event) => moveDrag(placement, event)}
                   onPointerUp={() => {
@@ -646,6 +662,10 @@ interface ControlShapeProps {
   /** Échelle des petits accessoires (cadenas) : ils gardent leur taille à
    *  l'écran quelle que soit la taille de l'appareil dessiné. */
   chrome: number
+  /** Branches de la croix actuellement enfoncées. */
+  activeArms: string[]
+  /** Appui clavier sur une branche de la croix. */
+  onArm: (arm: string) => void
   onActivate: () => void
   onPointerDown: (event: PointerEvent) => void
   onPointerMove: (event: PointerEvent) => void
@@ -665,6 +685,8 @@ function ControlShape({
   isDragged,
   overlaps,
   chrome,
+  activeArms,
+  onArm,
   onActivate,
   onPointerDown,
   onPointerMove,
@@ -673,6 +695,8 @@ function ControlShape({
   const { center, size, id } = placement
   const isPill = Math.abs(size.width - size.height) > 0.5
   const isDirectional = id === 'directional'
+  const isDpad = id === 'dpad'
+  const pressed = isDpad ? activeArms.length > 0 : isActive
 
   return (
     // La commande est dessinée à l'origine et déplacée par une translation.
@@ -701,8 +725,15 @@ function ControlShape({
       tabIndex={0}
       data-control={id}
       aria-label={`${label}${glyph ? `, ${glyph}` : ''}`}
-      aria-pressed={isActive}
+      aria-pressed={pressed}
       onKeyDown={(event) => {
+        // Au clavier, les flèches actionnent les branches de la croix.
+        const arm = isDpad && !isEditing ? ARROW_ARMS[event.key] : undefined
+        if (arm) {
+          event.preventDefault()
+          onArm(arm)
+          return
+        }
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
           onActivate()
@@ -740,7 +771,9 @@ function ControlShape({
         </>
       )}
 
-      {!isDirectional && (
+      {isDpad && <DpadArms size={size.width} activeArms={activeArms} />}
+
+      {!isDirectional && !isDpad && (
         <text
           x={0}
           y={0}
@@ -763,6 +796,51 @@ function ControlShape({
           🔒
         </text>
       )}
+    </g>
+  )
+}
+
+const DPAD_ARMS = ['dpadUp', 'dpadRight', 'dpadDown', 'dpadLeft']
+
+const ARROW_ARMS: Record<string, string> = {
+  ArrowUp: 'dpadUp',
+  ArrowDown: 'dpadDown',
+  ArrowLeft: 'dpadLeft',
+  ArrowRight: 'dpadRight'
+}
+
+/**
+ * Les quatre branches de la croix, dessinées dans le disque de la commande.
+ * Chacune s'allume seule : c'est la direction envoyée, pas toute la croix.
+ */
+function DpadArms({ size, activeArms }: { size: number; activeArms: string[] }) {
+  const largeur = size * 0.3
+  const longueur = size * 0.4
+  // Branche vers le haut ; les trois autres en sont des rotations.
+  const branche = `M ${-largeur / 2} ${-longueur + largeur * 0.3}
+    Q ${-largeur / 2} ${-longueur} ${-largeur / 2 + largeur * 0.3} ${-longueur}
+    H ${largeur / 2 - largeur * 0.3}
+    Q ${largeur / 2} ${-longueur} ${largeur / 2} ${-longueur + largeur * 0.3}
+    V ${-largeur / 2} H ${-largeur / 2} Z`
+  const pointe = size * 0.08
+  return (
+    <g className="dpad" aria-hidden="true">
+      {DPAD_ARMS.map((arm, index) => (
+        <g key={arm} transform={`rotate(${index * 90})`}>
+          <path d={branche} className={`dpad-arm ${activeArms.includes(arm) ? 'is-active' : ''}`} />
+          <path
+            d={`M 0 ${-longueur * 0.78} l ${pointe} ${pointe * 1.1} h ${-pointe * 2} Z`}
+            className="dpad-arrow"
+          />
+        </g>
+      ))}
+      <rect
+        x={-largeur / 2}
+        y={-largeur / 2}
+        width={largeur}
+        height={largeur}
+        className="dpad-arm dpad-center"
+      />
     </g>
   )
 }
