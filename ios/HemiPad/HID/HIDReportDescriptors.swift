@@ -2,9 +2,8 @@ import Foundation
 
 /// Descripteurs de rapport HID utilisés par HemiPad.
 ///
-/// Les mêmes octets servent aux deux transports : en HID over GATT ils sont
-/// publiés dans la caractéristique *Report Map*, et le pont USB
-/// (`NetworkBridgeTransport`) les rejoue tels quels côté gadget Linux/ESP32.
+/// Ces octets sont publiés dans la caractéristique *Report Map* du profil
+/// Bluetooth : c'est la carte que la machine lit pour comprendre les rapports.
 /// Garder une source unique évite que l'écran et la machine ne soient plus
 /// d'accord sur la signification d'un octet.
 enum HIDReportDescriptors {

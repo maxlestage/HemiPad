@@ -16,14 +16,8 @@ final class TransportCoordinator: ObservableObject {
             switchTransport()
         }
     }
-    @Published var bridgeEndpoint: String {
-        didSet { UserDefaults.standard.set(bridgeEndpoint, forKey: Self.endpointKey) }
-    }
     /// Nombre de rapports réellement émis, affiché dans l'écran de diagnostic.
     @Published private(set) var sentReports: Int = 0
-
-    private static let endpointKey = "hemipad.bridge.endpoint"
-    private static let defaultEndpoint = "ws://hemipad-bridge.local:8787"
 
     private var transport: ControllerTransport?
     private let gamepadEncoder = GamepadReportEncoder()
@@ -37,7 +31,6 @@ final class TransportCoordinator: ObservableObject {
 
     init(kind: TransportKind = .loopback) {
         self.kind = kind
-        bridgeEndpoint = UserDefaults.standard.string(forKey: Self.endpointKey) ?? Self.defaultEndpoint
     }
 
     func connect() {
@@ -86,9 +79,6 @@ final class TransportCoordinator: ObservableObject {
         switch kind {
         case .bluetoothHID:
             newTransport = BLEHIDPeripheralTransport()
-        case .bridge:
-            let url = URL(string: bridgeEndpoint) ?? URL(string: Self.defaultEndpoint)!
-            newTransport = NetworkBridgeTransport(endpoint: url)
         case .loopback:
             newTransport = LoopbackTransport()
         }
@@ -106,14 +96,10 @@ final class TransportCoordinator: ObservableObject {
         state = newTransport.state
     }
 
-    /// Quand le Bluetooth HID est refusé par le système, on ne laisse pas la
-    /// personne devant un écran mort : le mode démo prend le relais et
-    /// l'interface explique comment brancher un pont.
-    private func handleFailure() {
-        guard kind == .bluetoothHID else { return }
-        // Pas de bascule automatique silencieuse : on garde l'erreur visible.
-        // L'interface propose un bouton « utiliser un pont » explicite.
-    }
+    /// Quand le Bluetooth échoue, l'erreur reste visible telle quelle : pas de
+    /// bascule silencieuse vers le mode démo, qui ferait croire que la
+    /// manette fonctionne alors que rien ne part.
+    private func handleFailure() {}
 
     private func startFlushTimerIfNeeded() {
         guard flushTimer == nil else { return }

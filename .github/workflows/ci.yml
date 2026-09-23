@@ -117,10 +117,3 @@ jobs:
 
       - name: Structure du projet valide ?
         run: python3 ios/tools/validate_pbxproj.py
-
-      # Le pont rejoue les rapports de l'application : leurs descripteurs HID
-      # doivent rester identiques, sinon la console lit les bons octets avec la
-      # mauvaise carte.
-      - name: Tests du pont HemiPad
-        run: python3 test_bridge.py
-        working-directory: bridge

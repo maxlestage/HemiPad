@@ -1182,7 +1182,7 @@ input[type='range'] {
   font-size: 0.76rem;
 }
 
-.path-steps li + li::before {
+.path-steps:not(.is-list) li + li::before {
   content: '→';
   margin-right: 7px;
   color: var(--text-dim);

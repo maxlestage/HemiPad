@@ -13,6 +13,8 @@ export interface FeatureCopy {
 export interface PathCopy {
   title: string
   subtitle: string
+  /** `flow` : des étapes reliées par des flèches ; `list` : une simple liste. */
+  kind?: 'flow' | 'list'
   steps: string[]
   note: string
 }

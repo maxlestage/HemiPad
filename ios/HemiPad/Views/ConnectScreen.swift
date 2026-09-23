@@ -4,7 +4,6 @@ import SwiftUI
 struct ConnectScreen: View {
     @EnvironmentObject private var state: AppState
     @EnvironmentObject private var transport: TransportCoordinator
-    @EnvironmentObject private var bridges: BridgeBrowser
 
     var body: some View {
         ScrollView {
@@ -76,39 +75,29 @@ struct ConnectScreen: View {
                     }
                 }
 
-                if transport.kind == .bridge {
-                    section("Pont HemiPad") {
-                        TextField("ws://hemipad-bridge.local:8787", text: $transport.bridgeEndpoint)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .font(.system(.body, design: .monospaced))
-                            .padding(12)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.surface))
-
-                        if bridges.found.isEmpty {
-                            Text("Recherche des ponts sur le réseau local…")
-                                .font(.caption)
-                                .foregroundStyle(Theme.secondaryText)
-                        } else {
-                            ForEach(bridges.found) { bridge in
-                                Button {
-                                    transport.bridgeEndpoint = bridge.endpoint.absoluteString
-                                    transport.connect()
-                                } label: {
-                                    Label(bridge.name, systemImage: "dot.radiowaves.left.and.right")
-                                        .font(.callout)
-                                        .padding(10)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(RoundedRectangle(cornerRadius: 12).fill(Theme.surfaceHigh))
-                                }
-                                .buttonStyle(.plain)
-                            }
+                if transport.kind == .bluetoothHID {
+                    section("Avec quoi ça marche") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("Ordinateurs Windows et Linux, appareils Android : l'appareil s'y appaire comme une manette Bluetooth, sans boîtier ni câble.", systemImage: "checkmark.circle.fill")
+                            Label("Switch, PS5 et Xbox n'acceptent en Bluetooth que leurs propres manettes : aucune manette d'une autre marque ne s'y connecte directement.", systemImage: "xmark.circle.fill")
                         }
+                        .font(.caption)
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
 
+                    section("Le nom que verra la machine") {
+                        // HemiPad s'annonce sous son propre nom, mais une fois
+                        // appairée, la machine lit le nom de l'appareil, que
+                        // seul iOS fixe. Le renommer est gratuit et définitif.
+                        Text("Pendant la recherche, la machine voit « HemiPad ». Après l'appairage, elle affiche le nom de l'appareil : pour qu'elle ne voie jamais « iPhone » ni « iPad », renommez-le « HemiPad » dans Réglages › Général › Informations › Nom.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
                         Button {
                             transport.connect()
                         } label: {
-                            Text("Reconnecter")
+                            Text("Relancer l'annonce Bluetooth")
                                 .font(.callout.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -124,14 +113,10 @@ struct ConnectScreen: View {
                         Label(reason, systemImage: "exclamationmark.triangle.fill")
                             .font(.callout.weight(.semibold))
                             .foregroundStyle(Theme.danger)
-                        Text("Le pont HemiPad rejoue exactement les mêmes rapports HID depuis un boîtier USB. Le code de la manette ne change pas, seul le chemin change.")
-                            .font(.caption)
-                            .foregroundStyle(Theme.secondaryText)
                         Button {
-                            transport.kind = .bridge
                             transport.connect()
                         } label: {
-                            Text("Passer au pont")
+                            Text("Réessayer")
                                 .font(.callout.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
@@ -146,8 +131,6 @@ struct ConnectScreen: View {
             .padding(14)
         }
         .background(AuroraBackground(reducedMotion: state.profile.reducedMotion))
-        .onAppear { bridges.start() }
-        .onDisappear { bridges.stop() }
     }
 
     @ViewBuilder

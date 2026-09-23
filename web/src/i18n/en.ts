@@ -13,7 +13,7 @@ export const en: Dictionary = {
     demo: 'Demo',
     accessibility: 'Accessibility',
     keyboard: 'Keyboard',
-    consoles: 'Consoles',
+    consoles: 'Profiles',
     tech: 'Engineering',
     skip: 'Skip to the demo'
   },
@@ -22,7 +22,7 @@ export const en: Dictionary = {
     titleLead: 'The controller that adapts',
     titleAccent: 'to your hand',
     lede:
-      'HemiPad turns an iPhone into a controller for every console, and a coding keyboard for your computer. The whole interface is built around one constraint: ',
+      'HemiPad turns an iPhone or iPad into a Bluetooth controller, with nothing to buy, and a coding keyboard for your computer. The whole interface is built around one constraint: ',
     ledeStrong: 'one hand only, and it gets tired.',
     primary: 'Try the layout',
     secondary: 'What actually changes',
@@ -217,10 +217,10 @@ export const en: Dictionary = {
     ]
   },
   consoles: {
-    eyebrow: 'Compatibility',
+    eyebrow: 'Profiles',
     title: 'One controller, six ways of being read',
     lede:
-      'Glyphs, colours and the HID mapping change with the machine. The accessible geometry never does: what your thumb has learned stays true from one console to the next.',
+      'Glyphs, colours and the HID mapping follow the chosen profile — the symbols the game shows. The accessible geometry never changes: what your thumb has learned stays true from one profile to the next.',
     summaries: {
       switch: 'Pro Controller · A and B swapped',
       playstation: 'DualSense · ✕ ○ □ △',
@@ -232,23 +232,24 @@ export const en: Dictionary = {
   },
   architecture: {
     eyebrow: 'Engineering',
-    title: 'Two paths, a single set of HID reports',
+    title: 'A Bluetooth controller, nothing to buy',
     lede:
-      'Encoding is isolated from transport. The app produces standard HID reports; everything else is just a pipe, Bluetooth or USB.',
+      'The iPhone or iPad produces the same HID reports as an off-the-shelf controller, and sends them over Bluetooth by itself. No box, no cable.',
     paths: [
       {
-        title: 'Bluetooth HID',
-        subtitle: 'The iPhone advertises itself as a controller',
-        steps: ['Touch screen', 'HID reports', 'HID over GATT', 'Console'],
+        title: 'Direct Bluetooth',
+        subtitle: 'The device advertises itself as a controller named HemiPad',
+        steps: ['Touch screen', 'HID reports', 'HID over GATT', 'Computer or Android'],
         note:
-          'The shortest path. iOS reserves part of the HID profile: when the system refuses to publish the service, the app says so and offers the bridge.'
+          'iOS denies apps the short identifier of the controller service: HemiPad publishes its long form, the very same value to the host. So that the host shows “HemiPad” rather than “iPhone” after pairing, the app offers to rename the device.'
       },
       {
-        title: 'HemiPad bridge',
-        subtitle: 'A USB box replays the very same bytes',
-        steps: ['Touch screen', 'HID reports', 'WebSocket', 'ESP32 / Pi Zero', 'Console or PC'],
+        title: 'What accepts it',
+        subtitle: 'Any machine that accepts a standard Bluetooth controller',
+        kind: 'list',
+        steps: ['Windows', 'Linux', 'Android'],
         note:
-          'Descriptors are shared with the Bluetooth path: the same code produces the same reports, only the transport changes.'
+          'Switch, PS5 and Xbox only accept their own controllers over Bluetooth: no third-party controller connects to them directly. And no wired connection is possible: iOS lets no app change what its USB port announces.'
       }
     ],
     specs: [
@@ -293,7 +294,7 @@ export const en: Dictionary = {
       {
         title: 'Learn more',
         links: [
-          { label: 'Supported consoles', href: '#consoles' },
+          { label: 'Controller profiles', href: '#consoles' },
           { label: 'Architecture', href: '#technique' },
           { label: 'Share', href: '#partage' }
         ]
