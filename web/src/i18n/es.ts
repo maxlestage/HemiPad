@@ -59,7 +59,7 @@ export const es: Dictionary = {
     targetSize: 'Tamaño de los objetivos',
     unit: 'pt',
     downscaled:
-      'La pantalla es demasiado estrecha para ese tamaño: los objetivos se reducen en vez de eliminar un control.',
+      'La pantalla es demasiado estrecha para ese tamaño, incluso con la separación mínima: los objetivos se reducen en vez de eliminar un control.',
     activation: 'Modo de pulsación',
     console: 'Consola',
     releaseAll: 'Soltar todo',
@@ -75,9 +75,9 @@ export const es: Dictionary = {
     },
     spacing: 'Separación',
     spacingHint:
-      'Distancia mínima entre vecinos. Cuanto mayor es, más separados quedan — y más se reducen en una pantalla estrecha.',
+      'Distancia mínima entre vecinos. En una pantalla estrecha es lo primero que cede: los controles conservan su tamaño.',
     tightened:
-      'La pantalla es demasiado estrecha: la separación tuvo que reducirse después de que los objetivos llegaran a su tamaño mínimo.',
+      'La pantalla es demasiado estrecha: la separación se redujo para mantener los objetivos lo más grandes posible.',
     edit: {
       start: 'Editar',
       done: 'Hecho',

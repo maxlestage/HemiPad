@@ -108,7 +108,7 @@ const MIN_SPACING = 1.06
  */
 export const MIN_TARGET = 44
 /** Les bornes des réglages, partagées avec l'application. */
-export const MAX_TARGET = 100
+export const MAX_TARGET = 150
 export const MAX_SPACING = 2
 
 export function halfExtent(size: Size): number {
@@ -145,8 +145,8 @@ export function pointOnArc(pivot: Point, radius: number, angle: number): Point {
  * d'atteinte, et **libre**, où la personne les place elle-même — l'automatique
  * servant alors de point de départ.
  *
- * En automatique, quand ça ne tient pas, les cibles rétrécissent d'abord
- * (jusqu'au plancher), et seulement ensuite l'espacement se resserre : un
+ * En automatique, quand ça ne tient pas, l'espacement se resserre d'abord
+ * (jusqu'à son plancher), et seulement ensuite les cibles rétrécissent : un
  * bouton trop petit n'est plus une cible, alors qu'un écart un peu réduit
  * reste utilisable.
  */
@@ -157,21 +157,23 @@ export function solveLayout(options: LayoutOptions): Layout {
 }
 
 /**
- * Cherche la plus grande cible qui tient, puis, seulement si même le plancher
- * ne tient pas, le plus grand espacement qui le permet.
+ * Garde les cibles à la taille demandée aussi longtemps que possible : quand
+ * ça ne tient pas, c'est l'espacement qui cède d'abord, jusqu'à son plancher,
+ * et les cibles ne rétrécissent qu'ensuite.
  *
- * L'ancienne recherche descendait par paliers de 4 % et gardait la première
- * valeur qui passait. Elle ratait donc la plus grande de jusqu'à 4 %, et d'une
- * façon qui dépendait du point de départ : demander 68 pt en donnait 63, alors
- * que 64 tenaient très bien. Pousser le curseur vers le haut faisait parfois
- * *rétrécir* les boutons.
+ * L'ordre était l'inverse : les boutons fondaient jusqu'à 44 points avant que
+ * l'écart ne bouge d'un centième. Demander 100 points et un écart ×2 sur un
+ * iPhone donnait des boutons de 44 points, très écartés — le contraire de ce
+ * dont une main qui vise mal a besoin. Un bouton trop petit n'est plus une
+ * cible ; un écart un peu réduit reste utilisable.
  *
- * La recherche parcourt maintenant une grille fixe — la demande puis chaque
- * point entier en dessous pour les cibles, le centième pour l'espacement —
- * du haut vers le bas, et garde la
- * première valeur qui tient. Demander plus ajoute des candidates sans en
- * retirer aucune : la cible obtenue ne peut plus reculer quand la demande
- * augmente. Les tests le vérifient point par point.
+ * La recherche parcourt une grille fixe — la demande puis chaque point entier
+ * en dessous pour les cibles, le centième pour l'espacement — du haut vers le
+ * bas, et garde la première valeur qui tient. Le résultat ne dépend donc pas
+ * du chemin : demander plus grand ne donne jamais plus petit (l'ancienne
+ * descente par paliers de 4 % donnait 63 points pour 68 demandés, quand 64
+ * en donnaient 64), et écarter davantage ne grossit jamais les cibles. Les
+ * tests le vérifient point par point.
  */
 function solveArc(options: LayoutOptions): Layout {
   const requestedSpacing = gridSpacing(Math.max(options.spacing ?? DEFAULT_SPACING, MIN_SPACING))
@@ -182,16 +184,15 @@ function solveArc(options: LayoutOptions): Layout {
   const direct = tryLayout(options, requestedTarget, requestedSpacing)
   if (direct) return direct
 
-  for (let hundredths = Math.round(requestedSpacing * 100); hundredths >= MIN_SPACING * 100; hundredths -= 1) {
-    const spacing = hundredths / 100
-    // Si même le plancher ne tient pas à cet espacement, inutile de chercher
-    // plus grand : l'espacement doit céder. Un seul essai par palier.
-    if (!tryLayout(options, floor, spacing)) continue
-    for (let target = requestedTarget; target > floor; target = Math.ceil(target) - 1) {
-      const attempt = tryLayout(options, target, spacing)
+  // La plus grande cible qui tient, l'espacement étant au plancher.
+  for (let target = requestedTarget; target >= floor; target = Math.ceil(target) - 1) {
+    if (!tryLayout(options, target, MIN_SPACING)) continue
+    // Elle tient : on lui rend autant d'écart que possible.
+    for (let hundredths = Math.round(requestedSpacing * 100); hundredths > MIN_SPACING * 100; hundredths -= 1) {
+      const attempt = tryLayout(options, target, hundredths / 100)
       if (attempt) return attempt
     }
-    return tryLayout(options, floor, spacing) ?? empty(options)
+    return tryLayout(options, target, MIN_SPACING) ?? empty(options)
   }
 
   return tryLayout(options, floor, MIN_SPACING, true) ?? empty(options)

@@ -168,31 +168,34 @@ struct ControllerLayout {
         if let direct = tryLayout(requestedTarget, requestedSpacing) { return direct }
 
         /*
-         * La règle : les cibles rétrécissent d'abord, jusqu'à 44 points ;
-         * l'espacement ne cède qu'ensuite.
+         * La règle : les cibles gardent la taille demandée aussi longtemps
+         * que possible. C'est l'espacement qui cède d'abord, jusqu'à son
+         * plancher ; les cibles ne rétrécissent qu'ensuite.
          *
-         * L'ancienne version réduisait la cible par pas de 4 % à partir de
-         * la demande. Deux demandes voisines tombaient alors sur des grilles
-         * différentes : demander 68 points en donnait 63, quand 64 en donnait
-         * 64. Pousser le curseur *rapetissait* les boutons.
+         * L'ordre était l'inverse, et 100 points demandés avec un écart ×2
+         * donnaient sur iPhone des boutons de 44 points très écartés : le
+         * contraire de ce dont une main qui vise mal a besoin. Un bouton
+         * trop petit n'est plus une cible ; un écart un peu réduit reste
+         * utilisable.
          *
-         * On cherche donc d'abord le plus grand espacement, au centième,
-         * qui tient avec des cibles au plancher ; puis, à cet espacement, la
-         * plus grande cible, au point près. Le résultat ne dépend plus du
-         * chemin parcouru : demander plus ne donne jamais moins, et écarter
-         * davantage ne grossit jamais les cibles.
+         * La recherche parcourt une grille fixe — la demande puis chaque
+         * point entier en dessous, le centième pour l'espacement — et garde
+         * la première valeur qui tient. Le résultat ne dépend pas du chemin :
+         * demander plus ne donne jamais moins (l'ancienne descente par pas
+         * de 4 % donnait 63 points pour 68 demandés, quand 64 en donnaient
+         * 64), et écarter davantage ne grossit jamais les cibles.
          */
-        var hundredths = Int((requestedSpacing * 100).rounded())
-        while CGFloat(hundredths) >= minimumSpacing * 100 {
-            let spacing = CGFloat(hundredths) / 100
-            hundredths -= 1
-            guard tryLayout(minimumTargetSize, spacing) != nil else { continue }
-            var target = requestedTarget
-            while target > minimumTargetSize {
-                if let solution = tryLayout(target, spacing) { return solution }
-                target = ceil(target) - 1
+        var target = requestedTarget
+        while target >= minimumTargetSize {
+            defer { target = ceil(target) - 1 }
+            guard tryLayout(target, minimumSpacing) != nil else { continue }
+            // Elle tient : on lui rend autant d'écart que possible.
+            var hundredths = Int((requestedSpacing * 100).rounded())
+            while CGFloat(hundredths) > minimumSpacing * 100 {
+                if let solution = tryLayout(target, CGFloat(hundredths) / 100) { return solution }
+                hundredths -= 1
             }
-            if let solution = tryLayout(minimumTargetSize, spacing) { return solution }
+            if let solution = tryLayout(target, minimumSpacing) { return solution }
         }
 
         // Même au plancher, rien ne tient : on pose quand même tout, quitte à

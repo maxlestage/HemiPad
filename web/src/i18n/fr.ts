@@ -59,7 +59,7 @@ export const fr: Dictionary = {
     targetSize: 'Taille des cibles',
     unit: 'pt',
     downscaled:
-      "L'écran est trop étroit pour cette taille : les cibles sont réduites plutôt qu'une commande supprimée.",
+      "L'écran est trop étroit pour cette taille, même en resserrant l'écart au minimum : les cibles sont réduites plutôt qu'une commande supprimée.",
     activation: "Mode d'appui",
     console: 'Console',
     releaseAll: 'Tout relâcher',
@@ -75,8 +75,8 @@ export const fr: Dictionary = {
     },
     spacing: 'Espacement',
     spacingHint:
-      "Écart minimal entre deux voisines. Plus il est grand, plus elles sont séparées — et plus elles rétrécissent quand l'écran est étroit.",
-    tightened: "L'écran est trop étroit : l'espacement a dû être resserré après que les cibles ont atteint leur taille minimale.",
+      "Écart minimal entre deux voisines. Quand l'écran est étroit, c'est lui qui cède en premier : les commandes gardent leur taille.",
+    tightened: "L'écran est trop étroit : l'espacement a été resserré pour garder les cibles aussi grandes que possible.",
     edit: {
       start: 'Modifier',
       done: 'Terminé',
