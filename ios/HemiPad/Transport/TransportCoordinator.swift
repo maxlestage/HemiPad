@@ -37,6 +37,14 @@ final class TransportCoordinator: ObservableObject {
         switchTransport()
     }
 
+    /// « Réessayer » après un échec : c'est un choix explicite de la personne,
+    /// le seul qui sorte le Bluetooth de sa pause de sécurité. On repart du
+    /// profil complet.
+    func retry() {
+        BLEPublicationSentinel().reset()
+        switchTransport()
+    }
+
     func disconnect() {
         flushTimer?.invalidate()
         flushTimer = nil
