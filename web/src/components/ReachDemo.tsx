@@ -6,6 +6,9 @@ import { consoles, faceIds, shoulderIds, systemIds, type ConsoleProfile } from '
 import {
   arcPath,
   clampCenter,
+  MAX_SPACING,
+  MAX_TARGET,
+  MIN_TARGET,
   solveLayout,
   type ActivationMode,
   type Hand,
@@ -21,10 +24,23 @@ import {
  * Ce n'est pas un détail de présentation : sur un iPad posé sur une table ou
  * un support, la main valide ne porte plus l'appareil et l'écran offre des
  * cibles bien plus grandes. C'est l'appareil que le projet met en avant.
+ *
+ * Les écrans sont mesurés en *vrais* points — ceux d'un iPad 9,7 pouces et
+ * d'un iPhone 15 — et non à la taille du dessin. Sans cela, « 100 pt »
+ * n'aurait voulu rien dire : l'ancien iPad de 420 points de large ne tenait
+ * pas au-delà de 64, et le curseur promettait une taille que l'appareil
+ * réel, lui, tient sans peine. Le prix est assumé : dessinées dans la page,
+ * les commandes paraissent plus petites qu'avant, parce qu'elles sont à
+ * l'échelle d'un écran deux fois plus grand.
+ *
+ * `chrome` agrandit ce qui n'est pas une commande — bandeau d'état, île,
+ * pivot — pour qu'il garde à l'écran la taille qu'il avait. La bande
+ * réservée en haut est celle de l'application (118 points) sur iPhone ;
+ * l'iPad garde un peu plus pour loger son bandeau agrandi.
  */
 const DEVICES = {
-  ipad: { canvas: { width: 420, height: 560 }, topBand: 104 },
-  iphone: { canvas: { width: 320, height: 470 }, topBand: 96 }
+  ipad: { canvas: { width: 768, height: 1024 }, topBand: 124, chrome: 1.7 },
+  iphone: { canvas: { width: 393, height: 852 }, topBand: 118, chrome: 393 / 320 }
 } as const satisfies Record<Appareil, unknown>
 
 const MARGIN = 6
@@ -52,7 +68,8 @@ function ringsFor(profile: ConsoleProfile, target: number): RingSpec[] {
 export function ReachDemo() {
   const { t } = useI18n()
   const [hand, setHand] = useState<Hand>('right')
-  const [target, setTarget] = useState(58)
+  // 70 points : la taille par défaut de l'application (56 × 1,25).
+  const [target, setTarget] = useState(70)
   const [spacing, setSpacing] = useState(1.35)
   const [mode, setMode] = useState<ActivationMode>('latch')
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('arc')
@@ -69,7 +86,7 @@ export function ReachDemo() {
 
   const svgRef = useRef<SVGSVGElement | null>(null)
   const profile = consoles[consoleIndex] ?? consoles[0]!
-  const { canvas: CANVAS, topBand: TOP_BAND } = DEVICES[device]
+  const { canvas: CANVAS, topBand: TOP_BAND, chrome: K } = DEVICES[device]
 
   const layout = useMemo(
     () =>
@@ -86,6 +103,11 @@ export function ReachDemo() {
       }),
     [hand, target, spacing, layoutMode, preferences, profile, CANVAS, TOP_BAND]
   )
+
+  // Ce que l'écran tient réellement. En disposition libre, rien n'est
+  // réduit : c'est la demande telle quelle.
+  const heldTarget = Math.round(layout.target)
+  const heldSpacing = layout.spacing
 
   const hiddenIds = useMemo(
     () =>
@@ -286,7 +308,7 @@ export function ReachDemo() {
               ))}
 
             {layoutMode === 'arc' && (
-              <circle cx={layout.pivot.x} cy={layout.pivot.y} r={7} className="pivot" />
+              <circle cx={layout.pivot.x} cy={layout.pivot.y} r={7 * K} className="pivot" />
             )}
 
             {/*
@@ -298,20 +320,20 @@ export function ReachDemo() {
             {device === 'iphone' && (
               <rect
                 className="phone-island"
-                x={(CANVAS.width - 96) / 2}
-                y={12}
-                width={96}
-                height={26}
-                rx={13}
+                x={(CANVAS.width - 96 * K) / 2}
+                y={12 * K}
+                width={96 * K}
+                height={26 * K}
+                rx={13 * K}
               />
             )}
 
             <g
               className="screen-status"
               aria-hidden="true"
-              transform={device === 'iphone' ? 'translate(0 22)' : undefined}
+              transform={`scale(${K})${device === 'iphone' ? ' translate(0 22)' : ''}`}
             >
-              <rect x={14} y={22} width={CANVAS.width - 28} height={46} rx={14} />
+              <rect x={14} y={22} width={CANVAS.width / K - 28} height={46} rx={14} />
               <circle cx={34} cy={45} r={5} fill={profile.accent} />
               <text x={50} y={39} className="status-title">
                 {profile.name}
@@ -322,14 +344,14 @@ export function ReachDemo() {
               {active.size > 0 && (
                 <>
                   <rect
-                    x={CANVAS.width - 96}
+                    x={CANVAS.width / K - 96}
                     y={32}
                     width={74}
                     height={26}
                     rx={13}
                     className="status-badge"
                   />
-                  <text x={CANVAS.width - 59} y={46} className="status-badge-text">
+                  <text x={CANVAS.width / K - 59} y={46} className="status-badge-text">
                     {t.demo.active(active.size)}
                   </text>
                 </>
@@ -353,6 +375,7 @@ export function ReachDemo() {
                   isSelected={selected.has(placement.id)}
                   overlaps={layout.overlapping.includes(placement.id)}
                   isLocked={preferences[placement.id]?.locked === true}
+                  chrome={K}
                   onActivate={() => (isEditing ? toggleSelection(placement.id) : press(placement.id))}
                   onPointerDown={(event) => {
                     if (isEditing) startDrag(placement, event)
@@ -378,6 +401,7 @@ export function ReachDemo() {
                   index={index}
                   total={hiddenIds.length}
                   canvas={CANVAS}
+                  chrome={K}
                   isSelected={selected.has(id)}
                   label={t.controlNames[id] ?? id}
                   glyph={profile.glyphs[id] ?? ''}
@@ -501,41 +525,58 @@ export function ReachDemo() {
             </div>
           </fieldset>
 
+          {/*
+            Les curseurs affichent ce qui est *demandé*, et ce que l'écran
+            tient quand il ne peut pas suivre : « 100 → 84 pt ». N'afficher
+            que la valeur tenue faisait croire que le curseur ne répondait
+            plus ; n'afficher que la demande aurait menti sur l'écran.
+          */}
           <fieldset className="control-block">
             <legend>
               {t.demo.targetSize}{' '}
-              <span className="value">
-                {Math.round(layout.target)} {t.demo.unit}
+              <span className="value" data-valeur="cible" data-demande={target} data-tenue={heldTarget}>
+                {heldTarget < target ? `${target} → ${heldTarget}` : target} {t.demo.unit}
               </span>
             </legend>
             <input
               type="range"
-              min={40}
-              max={86}
+              min={MIN_TARGET}
+              max={MAX_TARGET}
               step={2}
               value={target}
               onChange={(event) => setTarget(Number(event.target.value))}
               aria-label={t.demo.targetSize}
+              aria-valuetext={`${target} ${t.demo.unit}`}
             />
-            {layout.target < target - 0.5 && <p className="hint">{t.demo.downscaled}</p>}
+            {heldTarget < target && <p className="hint">{t.demo.downscaled}</p>}
           </fieldset>
 
           <fieldset className="control-block">
             <legend>
               {t.demo.spacing}{' '}
-              <span className="value">×{layout.spacing.toFixed(2)}</span>
+              <span
+                className="value"
+                data-valeur="espacement"
+                data-demande={spacing}
+                data-tenue={heldSpacing}
+              >
+                {heldSpacing < spacing - 0.005
+                  ? `×${spacing.toFixed(2)} → ×${heldSpacing.toFixed(2)}`
+                  : `×${spacing.toFixed(2)}`}
+              </span>
             </legend>
             <input
               type="range"
-              min={1.05}
-              max={1.6}
+              min={1.1}
+              max={MAX_SPACING}
               step={0.05}
               value={spacing}
               onChange={(event) => setSpacing(Number(event.target.value))}
               aria-label={t.demo.spacing}
+              aria-valuetext={`×${spacing.toFixed(2)}`}
             />
             <p className="hint">
-              {layout.spacing < spacing - 0.005 ? t.demo.tightened : t.demo.spacingHint}
+              {heldSpacing < spacing - 0.005 ? t.demo.tightened : t.demo.spacingHint}
             </p>
           </fieldset>
 
@@ -601,6 +642,9 @@ interface ControlShapeProps {
   isLocked: boolean
   isDragged: boolean
   overlaps: boolean
+  /** Échelle des petits accessoires (cadenas) : ils gardent leur taille à
+   *  l'écran quelle que soit la taille de l'appareil dessiné. */
+  chrome: number
   onActivate: () => void
   onPointerDown: (event: PointerEvent) => void
   onPointerMove: (event: PointerEvent) => void
@@ -619,6 +663,7 @@ function ControlShape({
   isLocked,
   isDragged,
   overlaps,
+  chrome,
   onActivate,
   onPointerDown,
   onPointerMove,
@@ -687,7 +732,10 @@ function ControlShape({
       {isDirectional && (
         <>
           <circle cx={0} cy={0} r={size.width * 0.22} className="stick-knob" />
-          <path d="M -10 0 H 10 M 0 -10 V 10" className="stick-cross" />
+          <path
+            d={`M ${-size.width * 0.17} 0 H ${size.width * 0.17} M 0 ${-size.width * 0.17} V ${size.width * 0.17}`}
+            className="stick-cross"
+          />
         </>
       )}
 
@@ -706,10 +754,10 @@ function ControlShape({
 
       {isLocked && isEditing && (
         <text
-          x={-size.width / 2 + 6}
-          y={size.height / 2 - 4}
+          x={-size.width / 2 + 6 * chrome}
+          y={size.height / 2 - 4 * chrome}
           className="control-lock"
-          style={{ fontSize: 13 }}
+          style={{ fontSize: 13 * chrome }}
         >
           🔒
         </text>
@@ -725,6 +773,7 @@ function HiddenChip({
   index,
   total,
   canvas,
+  chrome,
   label,
   glyph,
   isSelected,
@@ -734,16 +783,19 @@ function HiddenChip({
   index: number
   total: number
   canvas: { width: number; height: number }
+  chrome: number
   label: string
   glyph: string
   isSelected: boolean
   onSelect: () => void
 }) {
-  const side = 34
-  const gap = 10
+  const gap = 10 * chrome
+  // Toutes les commandes masquées doivent tenir sur la largeur : au-delà de
+  // quelques-unes, les pastilles rapetissent au lieu de sortir de l'écran.
+  const side = Math.min(34 * chrome, (canvas.width - 2 * gap - (total - 1) * gap) / total)
   const width = total * side + (total - 1) * gap
   const x = (canvas.width - width) / 2 + index * (side + gap) + side / 2
-  const y = canvas.height - side / 2 - 10
+  const y = canvas.height - side / 2 - gap
 
   return (
     <g
