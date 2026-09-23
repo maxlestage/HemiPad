@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type CSSProperties, type PointerEvent } from
 
 import { useI18n } from '../i18n/index.tsx'
 import { useAppareil, type Appareil } from '../lib/appareil.tsx'
+import { useMainValide } from '../lib/mainValide.tsx'
 import { consoles, faceIds, shoulderIds, systemIds, type ConsoleProfile } from '../lib/consoles.ts'
 import {
   arcPath,
@@ -11,7 +12,6 @@ import {
   MIN_TARGET,
   solveLayout,
   type ActivationMode,
-  type Hand,
   type LayoutMode,
   type Placement,
   type Preferences,
@@ -67,7 +67,9 @@ function ringsFor(profile: ConsoleProfile, target: number): RingSpec[] {
  */
 export function ReachDemo() {
   const { t } = useI18n()
-  const [hand, setHand] = useState<Hand>('right')
+  // La main valide est partagée avec le haut de page : les deux sélecteurs
+  // pilotent la même valeur.
+  const { main: hand, setMain: setHand } = useMainValide()
   // 100 points : la taille par défaut de l'application. L'iPad les tient ;
   // l'iPhone dit ce qu'il en garde.
   const [target, setTarget] = useState(100)

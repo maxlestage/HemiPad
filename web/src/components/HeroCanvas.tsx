@@ -1,6 +1,7 @@
 import { Canvas } from '@react-three/fiber'
 
 import { useAppareil } from '../lib/appareil.tsx'
+import { useMainValide } from '../lib/mainValide.tsx'
 import { useTheme } from '../lib/theme.tsx'
 import { MarkScene } from './MarkScene.tsx'
 
@@ -17,6 +18,7 @@ export function HeroCanvas({ actif }: { actif: boolean }) {
   // son propre arbre. Le thème se lit donc ici, et descend en propriété.
   const { resolved } = useTheme()
   const { appareil } = useAppareil()
+  const { main } = useMainValide()
 
   return (
     <Canvas
@@ -32,7 +34,7 @@ export function HeroCanvas({ actif }: { actif: boolean }) {
       gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}
       style={{ pointerEvents: 'none' }}
     >
-      <MarkScene theme={resolved} appareil={appareil} />
+      <MarkScene theme={resolved} appareil={appareil} main={main} />
     </Canvas>
   )
 }
