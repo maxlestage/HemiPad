@@ -324,13 +324,15 @@ function Commandes({ m, placements, pivot, span, palette }: {
         // Les touches système sont les seules en chaud : ce sont celles qu'on
         // presse rarement, et l'œil doit pouvoir les distinguer d'un coup.
         const systeme = systemIds.includes(placement.id)
-        // La croix directionnelle, posée par le solveur au pivot : carrée à
-        // coins doux, elle se lit comme un pad.
-        const croix = placement.id === 'directional'
+        // Le stick et la croix directionnelle, posés par le solveur au plus
+        // près du pouce, restent en retrait : ce sont des zones, pas des
+        // boutons. La croix, carrée à coins doux, se lit comme un pad.
+        const croix = placement.id === 'dpad'
+        const zone = croix || placement.id === 'directional'
         const rayon = croix ? Math.min(largeur, hauteur) / 4 : Math.min(largeur, hauteur) / 2
         return {
           id: placement.id,
-          position: [x, y, croix ? 0.01 : 0.012] as [number, number, number],
+          position: [x, y, zone ? 0.01 : 0.012] as [number, number, number],
           // L'ombre tombe un peu vers le bas, comme sous une lumière venue
           // d'en haut, et déborde de la commande de chaque côté.
           ombre: {
@@ -339,7 +341,7 @@ function Commandes({ m, placements, pivot, span, palette }: {
           },
           forme: rectangleArrondi(largeur, hauteur, rayon),
           couleur: systeme ? palette.chaud : palette.accent,
-          base: croix ? 0.42 : shoulderIds.includes(placement.id) ? 0.78 : 1,
+          base: zone ? 0.42 : shoulderIds.includes(placement.id) ? 0.78 : 1,
           avancement
         }
       }),

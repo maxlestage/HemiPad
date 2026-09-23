@@ -19,8 +19,11 @@ import Foundation
 /// propre mode d'appui.
 struct ControllerLayout {
     enum Element: Equatable {
-        /// Commande directionnelle principale : stick ou croix, au choix.
+        /// Le stick analogique.
         case directional
+        /// La croix directionnelle. Toutes les manettes en ont une, à côté du
+        /// stick : l'une sert à se déplacer, l'autre à naviguer dans les menus.
+        case dpad
         /// Bouton rond.
         case button(ControlID)
         /// Bouton système en gélule.
@@ -28,7 +31,7 @@ struct ControllerLayout {
 
         var control: ControlID? {
             switch self {
-            case .directional: return nil
+            case .directional, .dpad: return nil
             case .button(let control), .pill(let control): return control
             }
         }
@@ -37,6 +40,7 @@ struct ControllerLayout {
         var key: String {
             switch self {
             case .directional: return ControlKey.directional
+            case .dpad: return ControlKey.dpad
             case .button(let control), .pill(let control): return ControlKey.key(for: control)
             }
         }
@@ -123,7 +127,7 @@ struct ControllerLayout {
     /// Toutes les commandes qu'une console propose, masquées comprises : c'est
     /// la liste que l'écran de réglages parcourt.
     static func allElements(for console: ConsoleProfile) -> [Element] {
-        var elements: [Element] = [.directional]
+        var elements: [Element] = [.directional, .dpad]
         elements.append(contentsOf: faceOrder.filter(console.has).map(Element.button))
         elements.append(contentsOf: shoulderOrder.filter(console.has).map(Element.button))
         elements.append(contentsOf: systemOrder.filter(console.has).map(Element.pill))
@@ -271,9 +275,22 @@ struct ControllerLayout {
         envelope: ReachEnvelope,
         forced: Bool = false
     ) -> Solution? {
-        let rings = rings(target: target, profile: profile, console: console)
-        let directionalVisible = profile.isVisible(ControlKey.directional)
-        guard !rings.isEmpty || directionalVisible else { return nil }
+        var rings = rings(target: target, profile: profile, console: console)
+
+        // Le stick et la croix, les deux commandes que le pouce utilise le
+        // plus, au plus près de lui. Visibles ensemble, ils forment le
+        // premier arc ; si l'un est masqué, l'autre prend seul la place du
+        // stick, sous le premier arc.
+        let inner = [Element.directional, .dpad].filter { profile.isVisible($0.key) }
+        func innerSize(_ element: Element) -> CGSize {
+            let side = target * 1.6 * profile.preference(element.key).sizeScale
+            return CGSize(width: side, height: side)
+        }
+        if inner.count == 2 {
+            rings.insert(Ring(elements: inner, sizes: inner.map(innerSize)), at: 0)
+        }
+        let single = inner.count == 1 ? inner[0] : nil
+        guard !rings.isEmpty || single != nil else { return nil }
 
         // 1. Rayon minimal de chaque arc.
         var radii: [CGFloat] = []
@@ -293,11 +310,12 @@ struct ControllerLayout {
             previous = (radius, half)
         }
 
-        // 2. Commande directionnelle, au plus près du pouce et sous le premier arc.
+        // 2. Commande directionnelle seule, au plus près du pouce et sous le
+        //    premier arc.
         var placements: [Placement] = []
         var directionalRadius: CGFloat = 0
-        if directionalVisible {
-            let directionalSize = target * 1.6 * profile.preference(ControlKey.directional).sizeScale
+        if let single {
+            let directionalSize = innerSize(single).width
             if let firstRadius = radii.first, let firstRing = rings.first {
                 let maximum = firstRadius - (directionalSize / 2 + firstRing.maximumHalfExtent) * spacing
                 guard maximum > 0 || forced else { return nil }
@@ -308,7 +326,7 @@ struct ControllerLayout {
             }
             placements.append(
                 Placement(
-                    element: .directional,
+                    element: single,
                     center: envelope.position(radius: directionalRadius, index: 1, count: 4),
                     size: CGSize(width: directionalSize, height: directionalSize)
                 )
@@ -375,7 +393,7 @@ struct ControllerLayout {
             envelope: envelope.offset(by: delta),
             targetSize: target,
             spacing: spacing,
-            radii: directionalVisible ? [directionalRadius] + radii : radii,
+            radii: single != nil ? [directionalRadius] + radii : radii,
             wasDownscaled: target < requestedTarget - 0.5,
             wasTightened: spacing < requestedSpacing - 0.005,
             mode: profile.layoutMode

@@ -290,7 +290,9 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
     }
 
     func activation(for control: ControlID) -> ActivationMode {
-        activation(for: ControlKey.key(for: control))
+        // Les quatre directions de la croix partagent les réglages de la
+        // croix : c'est elle qu'on règle, pas chacune de ses branches.
+        activation(for: control.isDirectionalPad ? ControlKey.dpad : ControlKey.key(for: control))
     }
 
     func isVisible(_ key: String) -> Bool {
