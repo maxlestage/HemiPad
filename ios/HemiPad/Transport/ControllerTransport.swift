@@ -81,6 +81,13 @@ enum TransportError: LocalizedError, Equatable {
     }
 }
 
+/// Une machine qui se connecte ou se déconnecte, reconnue par l'identifiant
+/// que iOS lui donne. C'est ce qui permet de la mémoriser.
+enum MachineEvent: Equatable, Sendable {
+    case connected(UUID)
+    case disconnected(UUID)
+}
+
 /// Contrat commun à tous les transports.
 ///
 /// Un transport ne connaît ni l'accessibilité ni les consoles : il reçoit des
@@ -89,6 +96,8 @@ protocol ControllerTransport: AnyObject {
     var kind: TransportKind { get }
     var state: ConnectionState { get }
     var onStateChange: ((ConnectionState) -> Void)? { get set }
+    /// Prévenu quand une machine arrive ou part.
+    var onMachineEvent: ((MachineEvent) -> Void)? { get set }
 
     func start()
     func stop()

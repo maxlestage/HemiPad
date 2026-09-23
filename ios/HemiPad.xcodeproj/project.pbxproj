@@ -25,6 +25,8 @@
 		4EBD8A20FAD75EC4633112D5 /* ControlPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014AFB76CDA9C6C1CD679D00 /* ControlPreference.swift */; };
 		9F91E75284792597FEDAD2EB /* ControllerLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69F77A8FF1D39227AE686CA8 /* ControllerLayout.swift */; };
 		3E5148DB5B08263FDDD3C506 /* GamepadState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D4C596333CCBDA2697FF957 /* GamepadState.swift */; };
+		08FEB868D43E16D1E33BAA35 /* ConnectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 312E37F6002F3ECE50F020EE /* ConnectionStore.swift */; };
+		02168B9F2B0B9B3D20363F9B /* SQLiteDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CFC5CF91176B5B5BC3A639 /* SQLiteDatabase.swift */; };
 		A728C0C91803BE840FDE71B4 /* EnvironmentInjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6577CA5F597CC6F8457F47D /* EnvironmentInjection.swift */; };
 		3EC0A594F8E7C3B7B83811E9 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D59D702F23397B57362B8F /* Haptics.swift */; };
 		711EBFD8D509AE352500A01F /* ObjCExceptionCatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 8A82C0DE8EEF07B4FCF15343 /* ObjCExceptionCatcher.m */; };
@@ -48,6 +50,7 @@
 		D9FEED05890AF71768FF6D2F /* ThumbstickView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7123F399F0DF6A760FB50902 /* ThumbstickView.swift */; };
 		B79A0C9F7FBE3034550D4F63 /* AccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB437C691563EC152EDF116 /* AccessibilityTests.swift */; };
 		F6777DD70FAB4F355FBAECF5 /* BLEPublicationSentinelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0238F216A9BEB464C8E406DB /* BLEPublicationSentinelTests.swift */; };
+		B03615EFDFD07D16D45BD758 /* ConnectionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61F93AEA3F74629753CAFFA6 /* ConnectionStoreTests.swift */; };
 		D7560EDA67799A7B259B68EF /* HIDEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */; };
 		50942359A60ACD478718775B /* HIDSendQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */; };
 		E9456B9D0BC68D4B5AC276D6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A272734AF51988E48B135C0E /* Assets.xcassets */; };
@@ -82,6 +85,8 @@
 		014AFB76CDA9C6C1CD679D00 /* ControlPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPreference.swift; sourceTree = "<group>"; };
 		69F77A8FF1D39227AE686CA8 /* ControllerLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerLayout.swift; sourceTree = "<group>"; };
 		2D4C596333CCBDA2697FF957 /* GamepadState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamepadState.swift; sourceTree = "<group>"; };
+		312E37F6002F3ECE50F020EE /* ConnectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStore.swift; sourceTree = "<group>"; };
+		52CFC5CF91176B5B5BC3A639 /* SQLiteDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteDatabase.swift; sourceTree = "<group>"; };
 		B6577CA5F597CC6F8457F47D /* EnvironmentInjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentInjection.swift; sourceTree = "<group>"; };
 		D4D59D702F23397B57362B8F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		8A82C0DE8EEF07B4FCF15343 /* ObjCExceptionCatcher.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCExceptionCatcher.m; sourceTree = "<group>"; };
@@ -107,6 +112,7 @@
 		4581F004CED70ED836039D70 /* ObjCExceptionCatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCExceptionCatcher.h; sourceTree = "<group>"; };
 		0AB437C691563EC152EDF116 /* AccessibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityTests.swift; sourceTree = "<group>"; };
 		0238F216A9BEB464C8E406DB /* BLEPublicationSentinelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEPublicationSentinelTests.swift; sourceTree = "<group>"; };
+		61F93AEA3F74629753CAFFA6 /* ConnectionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStoreTests.swift; sourceTree = "<group>"; };
 		984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDEncodingTests.swift; sourceTree = "<group>"; };
 		746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDSendQueueTests.swift; sourceTree = "<group>"; };
 		A272734AF51988E48B135C0E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -206,6 +212,15 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		561BDE86B0644D21A1463C13 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				312E37F6002F3ECE50F020EE /* ConnectionStore.swift */,
+				52CFC5CF91176B5B5BC3A639 /* SQLiteDatabase.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
 		D332256CB4A3B8BBC1ECA96D /* Support */ = {
 			isa = PBXGroup;
 			children = (
@@ -258,6 +273,7 @@
 				DC62EABBC84C917BF1CBC660 /* HID */,
 				052E1D80EEC6C127E9EE7019 /* Models */,
 				75D2A272E136CFB9B7E39E2A /* Resources */,
+				561BDE86B0644D21A1463C13 /* Storage */,
 				D332256CB4A3B8BBC1ECA96D /* Support */,
 				4A1A6693D61080D16C21DA7B /* Transport */,
 				2CF8D1CF0013B3E6A60E0637 /* Views */,
@@ -270,6 +286,7 @@
 			children = (
 				0AB437C691563EC152EDF116 /* AccessibilityTests.swift */,
 				0238F216A9BEB464C8E406DB /* BLEPublicationSentinelTests.swift */,
+				61F93AEA3F74629753CAFFA6 /* ConnectionStoreTests.swift */,
 				984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */,
 				746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */,
 			);
@@ -385,6 +402,8 @@
 				4EBD8A20FAD75EC4633112D5 /* ControlPreference.swift in Sources */,
 				9F91E75284792597FEDAD2EB /* ControllerLayout.swift in Sources */,
 				3E5148DB5B08263FDDD3C506 /* GamepadState.swift in Sources */,
+				08FEB868D43E16D1E33BAA35 /* ConnectionStore.swift in Sources */,
+				02168B9F2B0B9B3D20363F9B /* SQLiteDatabase.swift in Sources */,
 				A728C0C91803BE840FDE71B4 /* EnvironmentInjection.swift in Sources */,
 				3EC0A594F8E7C3B7B83811E9 /* Haptics.swift in Sources */,
 				711EBFD8D509AE352500A01F /* ObjCExceptionCatcher.m in Sources */,
@@ -415,6 +434,7 @@
 			files = (
 				B79A0C9F7FBE3034550D4F63 /* AccessibilityTests.swift in Sources */,
 				F6777DD70FAB4F355FBAECF5 /* BLEPublicationSentinelTests.swift in Sources */,
+				B03615EFDFD07D16D45BD758 /* ConnectionStoreTests.swift in Sources */,
 				D7560EDA67799A7B259B68EF /* HIDEncodingTests.swift in Sources */,
 				50942359A60ACD478718775B /* HIDSendQueueTests.swift in Sources */,
 			);

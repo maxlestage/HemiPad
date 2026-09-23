@@ -71,6 +71,7 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
         }
     }
     var onStateChange: ((ConnectionState) -> Void)?
+    var onMachineEvent: ((MachineEvent) -> Void)?
 
     private var manager: CBPeripheralManager?
     private var gamepadReport: CBMutableCharacteristic?
@@ -151,7 +152,7 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
         // Un arrêt volontaire n'est pas un plantage : la note de publication
         // en cours ne doit pas survivre.
         Self.sentinel.didPublish()
-        subscriptions.removeAll()
+        forgetAllSubscriptions()
         queue.removeAll()
         restoredServices = false
         state = .idle
@@ -416,6 +417,16 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
         }
     }
 
+    /// Toutes les machines partent d'un coup (arrêt, coupure de la radio) :
+    /// chacune est annoncée partie, pour que sa session se referme.
+    private func forgetAllSubscriptions() {
+        let departed = Array(subscriptions.keys)
+        subscriptions.removeAll()
+        for id in departed {
+            onMachineEvent?(.disconnected(id))
+        }
+    }
+
     private func updateConnectionState() {
         if let first = subscriptions.values.first {
             state = .connected(first.central.identifier.uuidString.prefix(8).description)
@@ -435,6 +446,11 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
                 // et une machine est peut-être connectée. Tout republier la
                 // déconnecterait.
                 restoredServices = false
+                // Les machines restées abonnées pendant la relance sont
+                // toujours là : on les annonce, comme une connexion.
+                for id in subscriptions.keys {
+                    onMachineEvent?(.connected(id))
+                }
                 advertise()
                 updateConnectionState()
             } else {
@@ -443,7 +459,7 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
         case .poweredOff, .resetting:
             // Les abonnements ne survivent pas à une coupure de la radio :
             // au retour, tout est republié et la machine se reconnecte.
-            subscriptions.removeAll()
+            forgetAllSubscriptions()
             queue.removeAll()
             state = peripheral.state == .poweredOff
                 ? .failed(TransportError.bluetoothUnavailable.localizedDescription)
@@ -491,9 +507,13 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
         central: CBCentral,
         didSubscribeTo characteristic: CBCharacteristic
     ) {
+        let isNewMachine = subscriptions[central.identifier] == nil
         var entry = subscriptions[central.identifier] ?? (central: central, characteristics: [])
         entry.characteristics.insert(ObjectIdentifier(characteristic))
         subscriptions[central.identifier] = entry
+        if isNewMachine {
+            onMachineEvent?(.connected(central.identifier))
+        }
 
         // Une manette doit répondre au doigt : on demande l'intervalle de
         // connexion le plus court que la machine accepte.
@@ -518,6 +538,9 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
         guard var entry = subscriptions[central.identifier] else { return }
         entry.characteristics.remove(ObjectIdentifier(characteristic))
         subscriptions[central.identifier] = entry.characteristics.isEmpty ? nil : entry
+        if entry.characteristics.isEmpty {
+            onMachineEvent?(.disconnected(central.identifier))
+        }
         if subscriptions.isEmpty {
             queue.removeAll()
         }
