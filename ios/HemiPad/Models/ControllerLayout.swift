@@ -144,58 +144,70 @@ struct ControllerLayout {
         console: ConsoleProfile,
         size: CGSize
     ) -> Solution {
+        // L'espacement demandé est ramené au centième : le solveur ne
+        // parcourt que cette grille, et la parcourt entière. La cible, elle,
+        // est d'abord essayée telle quelle, puis au point entier inférieur.
         let requestedTarget = profile.baseTargetSize
-        let requestedSpacing = max(profile.controlSpacing, minimumSpacing)
+        let requestedSpacing = floor(max(profile.controlSpacing, minimumSpacing) * 100 + 1e-9) / 100
         let baseEnvelope = ReachEnvelope(profile: profile, size: size)
-        var spacing = requestedSpacing
 
-        while true {
-            var target = requestedTarget
-            while true {
-                if let solution = attempt(
-                    target: target,
-                    spacing: spacing,
-                    requestedTarget: requestedTarget,
-                    requestedSpacing: requestedSpacing,
-                    profile: profile,
-                    console: console,
-                    size: size,
-                    envelope: baseEnvelope
-                ) {
-                    return solution
-                }
-                let nextTarget = target - max(2, target * 0.04)
-                guard nextTarget >= minimumTargetSize else { break }
-                target = nextTarget
-            }
-
-            // Les cibles sont au plancher : c'est l'espacement qui cède ensuite,
-            // jamais l'inverse. Un bouton sous 44 pt n'est plus une cible.
-            let nextSpacing = spacing - 0.04
-            guard nextSpacing >= minimumSpacing else {
-                return attempt(
-                    target: minimumTargetSize,
-                    spacing: minimumSpacing,
-                    requestedTarget: requestedTarget,
-                    requestedSpacing: requestedSpacing,
-                    profile: profile,
-                    console: console,
-                    size: size,
-                    envelope: baseEnvelope,
-                    forced: true
-                ) ?? Solution(
-                    placements: [],
-                    envelope: baseEnvelope,
-                    targetSize: minimumTargetSize,
-                    spacing: minimumSpacing,
-                    radii: [],
-                    wasDownscaled: true,
-                    wasTightened: true,
-                    mode: profile.layoutMode
-                )
-            }
-            spacing = nextSpacing
+        func tryLayout(_ target: CGFloat, _ spacing: CGFloat, forced: Bool = false) -> Solution? {
+            attempt(
+                target: target,
+                spacing: spacing,
+                requestedTarget: requestedTarget,
+                requestedSpacing: requestedSpacing,
+                profile: profile,
+                console: console,
+                size: size,
+                envelope: baseEnvelope,
+                forced: forced
+            )
         }
+
+        if let direct = tryLayout(requestedTarget, requestedSpacing) { return direct }
+
+        /*
+         * La règle : les cibles rétrécissent d'abord, jusqu'à 44 points ;
+         * l'espacement ne cède qu'ensuite.
+         *
+         * L'ancienne version réduisait la cible par pas de 4 % à partir de
+         * la demande. Deux demandes voisines tombaient alors sur des grilles
+         * différentes : demander 68 points en donnait 63, quand 64 en donnait
+         * 64. Pousser le curseur *rapetissait* les boutons.
+         *
+         * On cherche donc d'abord le plus grand espacement, au centième,
+         * qui tient avec des cibles au plancher ; puis, à cet espacement, la
+         * plus grande cible, au point près. Le résultat ne dépend plus du
+         * chemin parcouru : demander plus ne donne jamais moins, et écarter
+         * davantage ne grossit jamais les cibles.
+         */
+        var hundredths = Int((requestedSpacing * 100).rounded())
+        while CGFloat(hundredths) >= minimumSpacing * 100 {
+            let spacing = CGFloat(hundredths) / 100
+            hundredths -= 1
+            guard tryLayout(minimumTargetSize, spacing) != nil else { continue }
+            var target = requestedTarget
+            while target > minimumTargetSize {
+                if let solution = tryLayout(target, spacing) { return solution }
+                target = ceil(target) - 1
+            }
+            if let solution = tryLayout(minimumTargetSize, spacing) { return solution }
+        }
+
+        // Même au plancher, rien ne tient : on pose quand même tout, quitte à
+        // ce que des commandes se chevauchent. Un bouton caché est pire
+        // qu'un bouton serré.
+        return tryLayout(minimumTargetSize, minimumSpacing, forced: true) ?? Solution(
+            placements: [],
+            envelope: baseEnvelope,
+            targetSize: minimumTargetSize,
+            spacing: minimumSpacing,
+            radii: [],
+            wasDownscaled: true,
+            wasTightened: true,
+            mode: profile.layoutMode
+        )
     }
 
     private struct Ring {

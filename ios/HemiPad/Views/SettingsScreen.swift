@@ -48,7 +48,7 @@ struct SettingsScreen: View {
                     slider(
                         "Espacement des commandes",
                         cgValue: $state.profile.controlSpacing,
-                        range: 1.05...1.6
+                        range: 1.1...2
                     )
                     caption("Écart minimal entre deux voisines, en proportion de leur taille. Plus il est grand, plus les commandes sont séparées — et plus elles rétrécissent quand l'écran est étroit.")
 
@@ -135,8 +135,19 @@ struct SettingsScreen: View {
                 }
 
                 group("Confort") {
-                    slider("Taille des cibles", cgValue: $state.profile.targetScale, range: 0.9...2)
-                    caption("Cible actuelle : \(Int(state.profile.baseTargetSize)) points.")
+                    // Réglée en points, de 44 à 100 : c'est l'unité que la
+                    // légende annonce, plutôt qu'un coefficient sans repère.
+                    slider(
+                        "Taille des cibles",
+                        value: Binding(
+                            get: { Double(state.profile.baseTargetSize) },
+                            set: { state.profile.targetScale = CGFloat($0.rounded()) / 56 }
+                        ),
+                        range: 44...Double(HemiplegiaProfile.maximumTargetSize),
+                        unit: "pt",
+                        decimals: 0
+                    )
+                    caption("Si l'écran est trop petit pour toutes les commandes à cette taille, elles rétrécissent — jamais sous 44 points — plutôt qu'une ne disparaisse.")
                     Toggle("Retour haptique", isOn: $state.profile.hapticsEnabled)
                     Toggle("Animations réduites", isOn: $state.profile.reducedMotion)
                 }
@@ -185,13 +196,15 @@ struct SettingsScreen: View {
         _ title: String,
         value: Binding<Double>,
         range: ClosedRange<Double>,
-        unit: String = ""
+        unit: String = "",
+        decimals: Int = 2
     ) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        let number = String(format: "%.\(decimals)f", value.wrappedValue)
+        return VStack(alignment: .leading, spacing: 2) {
             HStack {
                 Text(title).font(.callout)
                 Spacer()
-                Text(unit.isEmpty ? String(format: "%.2f", value.wrappedValue) : String(format: "%.2f %@", value.wrappedValue, unit))
+                Text(unit.isEmpty ? number : "\(number) \(unit)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(Theme.secondaryText)
             }

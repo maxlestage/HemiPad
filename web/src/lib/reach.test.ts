@@ -4,6 +4,9 @@ import { test } from 'node:test'
 import {
   angleFor,
   clampCenter,
+  MAX_SPACING,
+  MAX_TARGET,
+  MIN_TARGET,
   overlaps,
   solveLayout,
   type Preferences,
@@ -207,4 +210,112 @@ test('le recadrage garde la commande entière', () => {
   const center = clampCenter({ x: -40, y: 900 }, { width: 60, height: 60 }, canvas, 6, 96)
   assert.equal(center.x, 36)
   assert.equal(center.y, 470 - 6 - 30)
+})
+
+/*
+ * Le curseur va de 44 à 100 points et l'espacement jusqu'à ×2 : ces tests
+ * parcourent toute la plage, sur les écrans réels et sur ceux du dessin.
+ *
+ * L'ancien solveur réduisait les cibles par pas de 4 % : demander 68 points
+ * donnait 63, quand 64 en donnait 64. Pousser le curseur *rapetissait* les
+ * boutons. C'est le premier test ci-dessous qui l'attrape.
+ */
+const ecrans = [
+  { nom: 'iPad', canvas: { width: 768, height: 1024 }, topBand: 124 },
+  { nom: 'iPhone', canvas: { width: 393, height: 852 }, topBand: 118 },
+  { nom: 'petit dessin', canvas: { width: 320, height: 470 }, topBand: 96 }
+]
+const espacements = [1.1, 1.35, 1.6, 2]
+const demandes = Array.from({ length: 29 }, (_, index) => MIN_TARGET + index * 2)
+
+const resoudre = (
+  ecran: (typeof ecrans)[number],
+  target: number,
+  spacing: number,
+  hand: 'left' | 'right' = 'right'
+) =>
+  solveLayout({
+    hand,
+    canvas: ecran.canvas,
+    topBand: ecran.topBand,
+    margin: 6,
+    target,
+    spacing,
+    rings: rings(target)
+  })
+
+test('la plage va bien de 44 à 100 points et jusqu’à ×2', () => {
+  assert.equal(MIN_TARGET, 44)
+  assert.equal(MAX_TARGET, 100)
+  assert.equal(MAX_SPACING, 2)
+  assert.equal(demandes.at(-1), MAX_TARGET)
+})
+
+test('demander plus grand ne rend jamais les cibles plus petites', () => {
+  for (const ecran of ecrans) {
+    for (const spacing of espacements) {
+      let precedente = 0
+      for (const demande of demandes) {
+        const tenue = resoudre(ecran, demande, spacing).target
+        assert.ok(
+          tenue >= precedente,
+          `${ecran.nom} ×${spacing} : ${demande} pt demandés donnent ${tenue}, moins que ${precedente}`
+        )
+        precedente = tenue
+      }
+    }
+  }
+})
+
+test('écarter davantage ne grossit jamais les cibles, et ne resserre jamais', () => {
+  for (const ecran of ecrans) {
+    for (const demande of [44, 58, 80, 100]) {
+      let cible = Infinity
+      let ecart = 0
+      for (let centiemes = 110; centiemes <= 200; centiemes += 5) {
+        const layout = resoudre(ecran, demande, centiemes / 100)
+        assert.ok(layout.target <= cible, `${ecran.nom} ${demande} pt ×${centiemes / 100}`)
+        assert.ok(layout.spacing >= ecart - 1e-9, `${ecran.nom} ${demande} pt ×${centiemes / 100}`)
+        cible = layout.target
+        ecart = layout.spacing
+      }
+    }
+  }
+})
+
+test('sur toute la plage : rien de plus que demandé, jamais sous 44, rien ne se chevauche ni ne sort', () => {
+  for (const ecran of ecrans) {
+    for (const hand of ['left', 'right'] as const) {
+      for (const spacing of espacements) {
+        for (const demande of demandes) {
+          const layout = resoudre(ecran, demande, spacing, hand)
+          const cas = `${ecran.nom} ${hand} ${demande} pt ×${spacing}`
+          assert.ok(layout.target <= demande, cas)
+          assert.ok(layout.target >= MIN_TARGET, cas)
+          assert.ok(layout.spacing <= spacing + 1e-9, cas)
+          assert.equal(layout.placements.length, 13, cas)
+          assert.equal(layout.overlapping.length, 0, cas)
+          for (const p of layout.placements) {
+            assert.ok(p.center.x - p.size.width / 2 >= -0.5, `${cas} : ${p.id} à gauche`)
+            assert.ok(p.center.x + p.size.width / 2 <= ecran.canvas.width + 0.5, `${cas} : ${p.id} à droite`)
+            assert.ok(p.center.y - p.size.height / 2 >= ecran.topBand - 0.5, `${cas} : ${p.id} en haut`)
+            assert.ok(p.center.y + p.size.height / 2 <= ecran.canvas.height + 0.5, `${cas} : ${p.id} en bas`)
+          }
+        }
+      }
+    }
+  }
+})
+
+test('un vrai iPad tient 100 points, et encore plus de 80 à ×2', () => {
+  const [ipad, iphone] = ecrans
+  assert.equal(resoudre(ipad!, 100, 1.35).target, 100)
+  const ecarte = resoudre(ipad!, 100, 2)
+  assert.equal(ecarte.spacing, 2, "l'iPad garde l'espacement demandé")
+  assert.ok(ecarte.target >= 80, `${ecarte.target} pt seulement`)
+  // Un iPhone ne tient pas 100 points pour treize commandes : il le dit, et
+  // garde toutes les commandes à 44 points au moins.
+  const telephone = resoudre(iphone!, 100, 2)
+  assert.ok(telephone.target < 100)
+  assert.equal(telephone.placements.length, 13)
 })

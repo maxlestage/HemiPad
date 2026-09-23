@@ -260,10 +260,14 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
     )
 
     /// Taille de cible en points, dérivée de l'échelle. Jamais sous 44 pt,
-    /// minimum recommandé par les règles d'accessibilité d'Apple.
+    /// minimum recommandé par les règles d'accessibilité d'Apple, ni au-delà
+    /// de 100 pt : c'est le haut du curseur, et ce qu'un iPad tient encore
+    /// pour toutes les commandes à la fois.
     var baseTargetSize: CGFloat {
-        max(44, 56 * targetScale)
+        min(Self.maximumTargetSize, max(44, 56 * targetScale))
     }
+
+    static let maximumTargetSize: CGFloat = 100
 
     // MARK: - Réglages par commande
 

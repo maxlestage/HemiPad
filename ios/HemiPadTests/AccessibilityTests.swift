@@ -250,7 +250,11 @@ final class ControllerLayoutTests: XCTestCase {
         small.targetScale = 0.9
         var leftHanded = HemiplegiaProfile.default
         leftHanded.dominantHand = .left
-        return [.default, .lowEffort, .tremorControl, large, small, leftHanded]
+        // Le haut des deux curseurs à la fois : 100 points, espacement ×2.
+        var widest = HemiplegiaProfile.default
+        widest.targetScale = 2
+        widest.controlSpacing = 2
+        return [.default, .lowEffort, .tremorControl, large, small, leftHanded, widest]
     }
 
     func testNothingOverlaps() {
@@ -394,6 +398,65 @@ final class ControllerLayoutTests: XCTestCase {
         )
         XCTAssertEqual(roomy.targetSize, profile.baseTargetSize, accuracy: 0.5)
         XCTAssertFalse(roomy.wasDownscaled)
+    }
+
+    /// Le curseur va de 44 à 100 points : le pousser ne doit jamais rendre
+    /// les boutons plus petits. L'ancien solveur, qui réduisait par pas de
+    /// 4 %, donnait 63 points pour 68 demandés, quand 64 en donnaient 64.
+    func testAskingForLargerTargetsNeverYieldsSmallerOnes() {
+        for size in sizes + [CGSize(width: 768, height: 1024)] {
+            for spacing in [1.1, 1.35, 1.6, 2.0] as [CGFloat] {
+                var previous: CGFloat = 0
+                for points in stride(from: 44, through: 100, by: 2) {
+                    var profile = HemiplegiaProfile.default
+                    profile.controlSpacing = spacing
+                    profile.targetScale = CGFloat(points) / 56
+                    let solution = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+                    XCTAssertGreaterThanOrEqual(
+                        solution.targetSize,
+                        previous - 0.001,
+                        "\(size) ×\(spacing) : \(points) pt demandés"
+                    )
+                    XCTAssertLessThanOrEqual(solution.targetSize, profile.baseTargetSize + 0.001)
+                    XCTAssertGreaterThanOrEqual(solution.targetSize, ControllerLayout.minimumTargetSize)
+                    XCTAssertLessThanOrEqual(solution.spacing, spacing + 0.001)
+                    XCTAssertEqual(solution.placements.count, 13, "aucune commande ne disparaît")
+                    XCTAssertTrue(solution.overlapping.isEmpty, "\(size) ×\(spacing) : \(points) pt")
+                    previous = solution.targetSize
+                }
+            }
+        }
+    }
+
+    /// Écarter davantage peut rétrécir les cibles, jamais les grossir.
+    func testWiderSpacingNeverGrowsTargets() {
+        for size in sizes {
+            var previous = CGFloat.infinity
+            for hundredths in stride(from: 110, through: 200, by: 5) {
+                var profile = HemiplegiaProfile.default
+                profile.targetScale = 80.0 / 56
+                profile.controlSpacing = CGFloat(hundredths) / 100
+                let solution = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+                XCTAssertLessThanOrEqual(solution.targetSize, previous + 0.001, "\(size) ×\(hundredths)")
+                previous = solution.targetSize
+            }
+        }
+    }
+
+    func testIPadHoldsOneHundredPointsAndTwiceTheSpacing() {
+        var profile = HemiplegiaProfile.default
+        profile.targetScale = 2
+        XCTAssertEqual(profile.baseTargetSize, 100, "le haut du curseur est 100 points")
+        let ipad = CGSize(width: 768, height: 1024)
+        XCTAssertEqual(
+            ControllerLayout.solve(profile: profile, console: .switch2, size: ipad).targetSize,
+            100,
+            accuracy: 0.5
+        )
+        profile.controlSpacing = 2
+        let spaced = ControllerLayout.solve(profile: profile, console: .switch2, size: ipad)
+        XCTAssertEqual(spaced.spacing, 2, accuracy: 0.001)
+        XCTAssertGreaterThanOrEqual(spaced.targetSize, 75)
     }
 
     func testCrampedScreenReducesTargetsRatherThanHidingThem() {
