@@ -460,16 +460,130 @@ for (const scheme of ['dark', 'light']) {
   const curseur = page
     .locator('.demo-controls')
     .getByLabel(/^(Espacement|Spacing|Separación)$/)
-  await curseur.fill('1.05')
+  await curseur.fill('1.1')
   await page.waitForTimeout(50)
   await immobiles()
   const serre = await ecartMinimal()
-  await curseur.fill('1.6')
+  await curseur.fill('2')
   await page.waitForTimeout(50)
   await immobiles()
   const large = await ecartMinimal()
 
   check(large > serre, "le curseur d'espacement écarte réellement les commandes", `${serre.toFixed(1)} px → ${large.toFixed(1)} px`)
+
+  // --- Toute la plage : 44 à 100 points, jusqu'à ×2 ------------------------
+  //
+  // Les curseurs vont jusqu'au bout, et le bout fonctionne : sur l'iPad,
+  // 100 points sont réellement tenus ; sur l'iPhone, l'écran le dit quand il
+  // ne peut pas suivre. Et pousser le curseur ne rapetisse jamais les
+  // boutons — l'ancien solveur le faisait, par pas de 4 %.
+  const taille = page.locator('.demo-controls').getByLabel(/^(Taille des cibles|Target size|Tamaño de los objetivos)$/)
+  const bornes = async (loc) => [await loc.getAttribute('min'), await loc.getAttribute('max')].map(Number)
+  const [tMin, tMax] = await bornes(taille)
+  const [, eMax] = await bornes(curseur)
+  check(tMin === 44 && tMax === 100, 'la taille des cibles va de 44 à 100 points', `${tMin} → ${tMax}`)
+  check(eMax === 2, "l'espacement va jusqu'à ×2", `max ${eMax}`)
+
+  const valeurs = () =>
+    page.evaluate(() => {
+      const lire = (nom) => {
+        const el = document.querySelector(`[data-valeur="${nom}"]`)
+        return { demande: Number(el.dataset.demande), tenue: Number(el.dataset.tenue), texte: el.textContent.trim() }
+      }
+      return { cible: lire('cible'), espacement: lire('espacement') }
+    })
+
+  // Dans les coordonnées du dessin : largeur rendue ramenée aux points de
+  // l'appareil dessiné.
+  const disposition = () =>
+    page.evaluate(() => {
+      const svg = document.querySelector('.phone-screen')
+      const cadre = svg.getBoundingClientRect()
+      const echelle = svg.viewBox.baseVal.width / cadre.width
+      const commandes = [...document.querySelectorAll('.control:not(.is-hidden-control)')].map((el) => {
+        const r = el.querySelector('.control-shape').getBoundingClientRect()
+        return { id: el.dataset.control, left: r.left, right: r.right, top: r.top, bottom: r.bottom, largeur: r.width * echelle }
+      })
+      // Chaque commande a un rayon d'encombrement — la moitié du diamètre
+      // pour un bouton rond, de la diagonale pour une pilule — comme dans le
+      // solveur : deux commandes se chevauchent si leurs centres sont plus
+      // proches que la somme de ces rayons.
+      const rayon = (c) => Math.hypot(c.right - c.left, c.bottom - c.top) / (Math.abs(c.right - c.left - (c.bottom - c.top)) < 1 ? 2 * Math.SQRT2 : 2)
+      let chevauchements = 0
+      for (let i = 0; i < commandes.length; i += 1) {
+        for (let j = i + 1; j < commandes.length; j += 1) {
+          const a = commandes[i]
+          const b = commandes[j]
+          const d = Math.hypot((a.left + a.right - b.left - b.right) / 2, (a.top + a.bottom - b.top - b.bottom) / 2)
+          if (d < rayon(a) + rayon(b) - 1) chevauchements += 1
+        }
+      }
+      const dehors = commandes.filter(
+        (c) => c.left < cadre.left - 1 || c.right > cadre.right + 1 || c.top < cadre.top - 1 || c.bottom > cadre.bottom + 1
+      ).length
+      const faceS = commandes.find((c) => c.id === 'faceS')
+      return { nombre: commandes.length, chevauchements, dehors, faceS: faceS?.largeur ?? 0 }
+    })
+
+  const appareil = (nom) => page.locator('.demo-controls').getByRole('button', { name: nom, exact: true }).click()
+
+  await appareil('iPad')
+  await curseur.fill('1.35')
+  let precedente = 0
+  let recul = ''
+  for (const cran of ['1.35', '2']) {
+    await curseur.fill(cran)
+    precedente = 0
+    for (let demande = 44; demande <= 100; demande += 2) {
+      await taille.fill(String(demande))
+      const { cible } = await valeurs()
+      if (cible.tenue < precedente || cible.tenue > demande || cible.tenue < 44) {
+        recul ||= `×${cran} : ${demande} pt demandés → ${cible.tenue} (avant : ${precedente})`
+      }
+      precedente = cible.tenue
+    }
+  }
+  check(recul === '', 'pousser le curseur de taille ne rapetisse jamais les boutons, sur toute la plage', recul)
+
+  await curseur.fill('1.35')
+  await taille.fill('100')
+  await page.waitForTimeout(50)
+  await immobiles()
+  let v = await valeurs()
+  let d = await disposition()
+  check(
+    v.cible.tenue === 100 && v.cible.texte.replace(/\s+/g, ' ') === '100 pt',
+    "sur l'iPad, 100 points sont réellement tenus",
+    v.cible.texte
+  )
+  check(Math.abs(d.faceS - 100) < 2, "et dessinés à 100 points de l'iPad", `${d.faceS.toFixed(1)} pt`)
+  check(d.nombre === 13 && d.chevauchements === 0 && d.dehors === 0, "à 100 points, toutes les commandes tiennent sur l'iPad sans se chevaucher", JSON.stringify(d))
+
+  await curseur.fill('2')
+  await page.waitForTimeout(50)
+  await immobiles()
+  v = await valeurs()
+  d = await disposition()
+  check(v.espacement.tenue === 2 && v.cible.tenue >= 75, "l'iPad tient ×2 avec des cibles encore grandes", `${v.cible.texte} · ${v.espacement.texte}`)
+  check(d.nombre === 13 && d.chevauchements === 0 && d.dehors === 0, 'à ×2 et 100 points, rien ne se chevauche ni ne sort', JSON.stringify(d))
+
+  await appareil('iPhone')
+  await page.waitForTimeout(50)
+  await immobiles()
+  v = await valeurs()
+  d = await disposition()
+  check(
+    v.cible.tenue < 100 && v.cible.tenue >= 44 && v.cible.texte.includes(`100 → ${v.cible.tenue}`),
+    "sur l'iPhone, le curseur dit ce qui est demandé et ce que l'écran tient",
+    v.cible.texte
+  )
+  check(
+    (await page.locator('.control-block:has([data-valeur="cible"]) .hint').count()) === 1,
+    "et explique pourquoi l'écran réduit"
+  )
+  check(d.nombre === 13 && d.chevauchements === 0 && d.dehors === 0, "à 100 points et ×2, l'iPhone garde toutes ses commandes, sans chevauchement", JSON.stringify(d))
+
+  await appareil('iPad')
   await context.close()
 }
 

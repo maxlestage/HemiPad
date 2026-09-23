@@ -27,7 +27,7 @@ export interface ÉcranHero {
  */
 export const HERO_APPAREILS: Record<Appareil, ÉcranHero> = {
   ipad: { canvas: { width: 420, height: 560 }, topBand: 104, target: 48 },
-  iphone: { canvas: { width: 300, height: 650 }, topBand: 118, target: 42 }
+  iphone: { canvas: { width: 300, height: 650 }, topBand: 118, target: 44 }
 }
 
 export const HERO_MARGIN = 6
