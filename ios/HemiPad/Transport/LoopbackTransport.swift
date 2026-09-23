@@ -12,6 +12,8 @@ final class LoopbackTransport: ControllerTransport {
         didSet { onStateChange?(state) }
     }
     var onStateChange: ((ConnectionState) -> Void)?
+    /// Le mode démo ne voit jamais de machine.
+    var onMachineEvent: ((MachineEvent) -> Void)?
 
     /// Dernier rapport émis, exposé pour les tests et l'écran de diagnostic.
     private(set) var lastPayloads: [HIDReportDescriptors.ReportID: [UInt8]] = [:]

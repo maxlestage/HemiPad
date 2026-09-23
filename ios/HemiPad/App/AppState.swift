@@ -26,8 +26,16 @@ final class AppState: ObservableObject {
             guard consoleTarget != oldValue else { return }
             SettingsStore.save(consoleTarget)
             arbiter.releaseAll()
+            // Choisi pendant qu'une machine est connectée, le profil devient
+            // le sien : il sera repris à sa prochaine connexion.
+            if let id = transport.connectedMachine {
+                setConsole(consoleTarget, forMachine: id)
+            }
         }
     }
+
+    /// Les machines déjà connectées, la plus récente d'abord.
+    @Published private(set) var machines: [RememberedMachine] = []
 
     @Published var macros: [Macro]
     /// L'écran manette est-il en mode édition ? Dans cet état, les appuis ne
@@ -38,6 +46,9 @@ final class AppState: ObservableObject {
 
     let arbiter: InputArbiter
     let transport: TransportCoordinator
+    /// Le registre des connexions, en SQLite. Absent si la base n'a pas pu
+    /// s'ouvrir : l'application marche alors comme avant, sans mémoire.
+    let connections: ConnectionStore?
     let sticky = StickyModifierEngine()
     let tilt = TiltStick()
 
@@ -53,6 +64,7 @@ final class AppState: ObservableObject {
         consoleTarget = SettingsStore.loadConsole()
         arbiter = InputArbiter(profile: loadedProfile)
         transport = TransportCoordinator(kind: transportKind ?? SettingsStore.loadTransport())
+        connections = try? ConnectionStore.standard()
         macros = Macro.codeDefaults + Macro.gameDefaults
 
         sticky.stickyEnabled = loadedProfile.stickyModifiers
@@ -84,6 +96,58 @@ final class AppState: ObservableObject {
         transport.$kind
             .sink { kind in SettingsStore.save(kind) }
             .store(in: &cancellables)
+
+        transport.machineName = { [weak self] id in
+            self?.machines.first(where: { $0.id == id })?.displayName
+        }
+        transport.onMachineEvent = { [weak self] event in
+            self?.handle(event)
+        }
+        reloadMachines()
+    }
+
+    // MARK: - Machines mémorisées
+
+    private func handle(_ event: MachineEvent) {
+        guard let connections else { return }
+        switch event {
+        case .connected(let id):
+            guard let machine = try? connections.recordConnection(of: id, transport: transport.kind) else { break }
+            reloadMachines()
+            // Une machine connue retrouve son profil de console, sans rien
+            // demander. Une nouvelle prend celui en cours.
+            if let console = machine.console {
+                if console != consoleTarget { consoleTarget = console }
+            } else {
+                setConsole(consoleTarget, forMachine: id)
+            }
+            banner = machine.connectionCount > 1
+                ? "\(machine.displayName) reconnue."
+                : "Nouvelle machine : donnez-lui un nom dans Connexion."
+        case .disconnected(let id):
+            try? connections.recordDisconnection(of: id)
+            reloadMachines()
+        }
+    }
+
+    func reloadMachines() {
+        machines = (try? connections?.machines()) ?? []
+        transport.refreshMachineName()
+    }
+
+    func renameMachine(_ id: UUID, to name: String) {
+        try? connections?.rename(id, to: name)
+        reloadMachines()
+    }
+
+    func setConsole(_ console: ConsoleTarget?, forMachine id: UUID) {
+        try? connections?.setConsole(console, for: id)
+        reloadMachines()
+    }
+
+    func forgetMachine(_ id: UUID) {
+        try? connections?.forget(id)
+        reloadMachines()
     }
 
     // MARK: - Cycle de vie

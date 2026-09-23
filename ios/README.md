@@ -26,9 +26,10 @@ Cible minimale : iOS 16. Aucune dépendance externe.
 | `Models/` | Contrôles, état de la manette, profils de consoles, solveur de disposition |
 | `Accessibility/` | Profil hémiplégie, arcs d'atteinte, filtre anti-tremblement, arbitrage des appuis, modificateurs collants, macros, visée par inclinaison |
 | `HID/` | Descripteurs et encodeurs de rapports manette et clavier |
-| `Transport/` | Bluetooth HID (*HID over GATT*), file d'émission, mode démo, coordination |
+| `Transport/` | Bluetooth HID (*HID over GATT*), file d'émission, garde-fou de publication, mode démo, coordination |
+| `Storage/` | Registre des connexions en SQLite (la bibliothèque d'iOS, sans dépendance) : machines connues, leur nom, leur profil de console, l'historique des sessions |
 | `Views/` | Écrans SwiftUI : manette, clavier, connexion, réglages, calibration |
-| `Support/` | Thème, haptique, persistance, injection d'environnement |
+| `Support/` | Thème, haptique, persistance, injection d'environnement, rattrapage des exceptions Objective-C |
 
 ### Le chemin d'une pression
 

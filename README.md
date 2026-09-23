@@ -167,6 +167,7 @@ ios/                   Application Swift
     HID/               Descripteurs et encodeurs de rapports
     Models/            Contrôles, consoles, solveur de disposition
     Transport/         Bluetooth HID, mode démo
+    Storage/           Machines connues, en SQLite
     Views/             Écrans SwiftUI
   HemiPadTests/        58 tests unitaires
   tools/               Génération et vérification du projet Xcode

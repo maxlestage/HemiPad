@@ -18,6 +18,15 @@ final class TransportCoordinator: ObservableObject {
     }
     /// Nombre de rapports réellement émis, affiché dans l'écran de diagnostic.
     @Published private(set) var sentReports: Int = 0
+    /// La machine connectée en ce moment, si elle est reconnue.
+    @Published private(set) var connectedMachine: UUID?
+
+    /// Prévenu quand une machine arrive ou part : c'est ainsi qu'elle est
+    /// mémorisée.
+    var onMachineEvent: ((MachineEvent) -> Void)?
+    /// Le nom sous lequel afficher une machine connue, tiré du registre des
+    /// connexions. Sans lui, la barre d'état montre un identifiant.
+    var machineName: ((UUID) -> String?)?
 
     private var transport: ControllerTransport?
     private let gamepadEncoder = GamepadReportEncoder()
@@ -93,15 +102,49 @@ final class TransportCoordinator: ObservableObject {
         newTransport.onStateChange = { [weak self] state in
             guard let self else { return }
             Task { @MainActor in
-                self.state = state
+                self.state = self.presented(state)
                 if case .failed = state {
                     self.handleFailure()
                 }
             }
         }
+        newTransport.onMachineEvent = { [weak self] event in
+            guard let self else { return }
+            Task { @MainActor in self.handle(event) }
+        }
+        connectedMachine = nil
         transport = newTransport
         newTransport.start()
-        state = newTransport.state
+        state = presented(newTransport.state)
+    }
+
+    private func handle(_ event: MachineEvent) {
+        switch event {
+        case .connected(let id):
+            connectedMachine = id
+        case .disconnected(let id):
+            if connectedMachine == id { connectedMachine = nil }
+        }
+        onMachineEvent?(event)
+        if let current = transport?.state {
+            state = presented(current)
+        }
+    }
+
+    /// « Connecté · PC du salon » plutôt qu'un morceau d'identifiant, quand
+    /// la machine est connue.
+    private func presented(_ state: ConnectionState) -> ConnectionState {
+        guard case .connected = state,
+              let id = connectedMachine,
+              let name = machineName?(id) else { return state }
+        return .connected(name)
+    }
+
+    /// À appeler quand le nom d'une machine change : la barre d'état suit.
+    func refreshMachineName() {
+        if let current = transport?.state {
+            state = presented(current)
+        }
     }
 
     /// Quand le Bluetooth échoue, l'erreur reste visible telle quelle : pas de
