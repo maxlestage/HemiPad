@@ -301,6 +301,7 @@ final class ControllerLayoutTests: XCTestCase {
 
     func testSpacingSettingIsHonouredWhenThereIsRoom() {
         var profile = HemiplegiaProfile.default
+        profile.targetScale = 70.0 / 56
         profile.controlSpacing = 1.5
         let solution = ControllerLayout.solve(
             profile: profile,
@@ -322,19 +323,39 @@ final class ControllerLayoutTests: XCTestCase {
         }
     }
 
-    func testCrampedScreenTightensSpacingOnlyAfterTargetsHitTheFloor() {
+    /// À l'étroit, c'est l'écart qui cède d'abord : un bouton trop petit
+    /// n'est plus une cible, un écart un peu réduit reste utilisable.
+    func testCrampedScreenTightensSpacingBeforeShrinkingTargets() {
+        let size = CGSize(width: 375, height: 560)
         var profile = HemiplegiaProfile.default
         profile.controlSpacing = 1.6
+        let solution = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+        XCTAssertTrue(solution.wasTightened)
+        XCTAssertTrue(solution.wasDownscaled)
+        XCTAssertGreaterThanOrEqual(solution.spacing, ControllerLayout.minimumSpacing)
+
+        // Des cibles réduites alors que l'écart demandé tenait encore, ce
+        // serait l'ancienne règle. Une fois les cibles réduites, l'écart
+        // demandé ne change donc plus rien à leur taille.
+        profile.controlSpacing = ControllerLayout.minimumSpacing
+        let tightest = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+        XCTAssertEqual(solution.targetSize, tightest.targetSize, accuracy: 0.001)
+    }
+
+    /// Plus gros qu'avant sur iPhone : 100 points et ×2 donnaient 44 points,
+    /// parce que les cibles cédaient avant l'écart.
+    func testIPhoneKeepsLargeTargetsWhenBothSlidersAreAtTheTop() {
+        var profile = HemiplegiaProfile.default
+        profile.targetScale = 100.0 / 56
+        profile.controlSpacing = 2
         let solution = ControllerLayout.solve(
             profile: profile,
             console: .switch2,
-            size: CGSize(width: 375, height: 560)
+            size: CGSize(width: 393, height: 740)
         )
-        // Les cibles cèdent d'abord : un bouton sous 44 pt n'est plus une cible.
-        XCTAssertEqual(solution.targetSize, ControllerLayout.minimumTargetSize, accuracy: 0.5)
-        XCTAssertTrue(solution.wasTightened)
-        XCTAssertGreaterThanOrEqual(solution.spacing, ControllerLayout.minimumSpacing)
-        XCTAssertLessThan(solution.spacing, 1.6)
+        XCTAssertGreaterThan(solution.targetSize, 55)
+        XCTAssertEqual(solution.placements.count, 13)
+        XCTAssertTrue(solution.overlapping.isEmpty)
     }
 
     func testHiddenControlsDisappearAndFreeRoom() {
@@ -407,7 +428,7 @@ final class ControllerLayoutTests: XCTestCase {
         for size in sizes + [CGSize(width: 768, height: 1024)] {
             for spacing in [1.1, 1.35, 1.6, 2.0] as [CGFloat] {
                 var previous: CGFloat = 0
-                for points in stride(from: 44, through: 100, by: 2) {
+                for points in stride(from: 44, through: 150, by: 2) {
                     var profile = HemiplegiaProfile.default
                     profile.controlSpacing = spacing
                     profile.targetScale = CGFloat(points) / 56
@@ -443,20 +464,21 @@ final class ControllerLayoutTests: XCTestCase {
         }
     }
 
-    func testIPadHoldsOneHundredPointsAndTwiceTheSpacing() {
+    func testIPadHoldsOneHundredPointsEvenWithTwiceTheSpacing() {
         var profile = HemiplegiaProfile.default
-        profile.targetScale = 2
-        XCTAssertEqual(profile.baseTargetSize, 100, "le haut du curseur est 100 points")
-        let ipad = CGSize(width: 768, height: 1024)
-        XCTAssertEqual(
-            ControllerLayout.solve(profile: profile, console: .switch2, size: ipad).targetSize,
-            100,
-            accuracy: 0.5
-        )
+        XCTAssertEqual(profile.baseTargetSize, 100, accuracy: 0.001, "100 points par défaut")
+        profile.targetScale = 4
+        XCTAssertEqual(profile.baseTargetSize, 150, "le haut du curseur est 150 points")
+
+        profile.targetScale = 100.0 / 56
         profile.controlSpacing = 2
-        let spaced = ControllerLayout.solve(profile: profile, console: .switch2, size: ipad)
-        XCTAssertEqual(spaced.spacing, 2, accuracy: 0.001)
-        XCTAssertGreaterThanOrEqual(spaced.targetSize, 75)
+        let ipad = ControllerLayout.solve(
+            profile: profile,
+            console: .switch2,
+            size: CGSize(width: 768, height: 1024)
+        )
+        XCTAssertEqual(ipad.targetSize, 100, accuracy: 0.5, "la taille tient, c'est l'écart qui cède")
+        XCTAssertGreaterThan(ipad.spacing, ControllerLayout.minimumSpacing)
     }
 
     func testCrampedScreenReducesTargetsRatherThanHidingThem() {

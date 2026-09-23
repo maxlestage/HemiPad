@@ -125,11 +125,16 @@ test("l'espacement demandé se retrouve entre les commandes", () => {
   assert.ok(ecart(large) > ecart(serre), 'un espacement plus grand doit écarter les commandes')
 })
 
-test("l'espacement ne cède qu'après la taille des cibles", () => {
-  const layout = solveLayout(base(96, { canvas: { width: 220, height: 320 }, spacing: 1.6 }))
-  assert.ok(layout.target < 96, 'les cibles rétrécissent en premier')
-  assert.ok(layout.spacing <= 1.6)
+test("les cibles ne rétrécissent qu'après l'espacement", () => {
+  const cadre = { width: 220, height: 320 }
+  const layout = solveLayout(base(96, { canvas: cadre, spacing: 1.6 }))
+  assert.ok(layout.target < 96)
+  assert.ok(layout.spacing < 1.6, "l'espacement a cédé")
   assert.ok(layout.spacing >= 1.06, "l'espacement ne descend jamais sous le plancher")
+  // Une fois les cibles réduites, l'écart demandé ne change plus leur
+  // taille : elles ont déjà tout l'écart qu'on pouvait leur retirer.
+  const auPlancher = solveLayout(base(96, { canvas: cadre, spacing: 1.06 }))
+  assert.equal(layout.target, auPlancher.target)
 })
 
 test('une commande masquée disparaît et rend de la place', () => {
@@ -226,7 +231,7 @@ const ecrans = [
   { nom: 'petit dessin', canvas: { width: 320, height: 470 }, topBand: 96 }
 ]
 const espacements = [1.1, 1.35, 1.6, 2]
-const demandes = Array.from({ length: 29 }, (_, index) => MIN_TARGET + index * 2)
+const demandes = Array.from({ length: 54 }, (_, index) => MIN_TARGET + index * 2)
 
 const resoudre = (
   ecran: (typeof ecrans)[number],
@@ -244,9 +249,9 @@ const resoudre = (
     rings: rings(target)
   })
 
-test('la plage va bien de 44 à 100 points et jusqu’à ×2', () => {
+test('la plage va bien de 44 à 150 points et jusqu’à ×2', () => {
   assert.equal(MIN_TARGET, 44)
-  assert.equal(MAX_TARGET, 100)
+  assert.equal(MAX_TARGET, 150)
   assert.equal(MAX_SPACING, 2)
   assert.equal(demandes.at(-1), MAX_TARGET)
 })
@@ -307,15 +312,20 @@ test('sur toute la plage : rien de plus que demandé, jamais sous 44, rien ne se
   }
 })
 
-test('un vrai iPad tient 100 points, et encore plus de 80 à ×2', () => {
+test('des boutons bien plus gros : 100 points tenus sur iPad même à ×2, plus de 70 sur iPhone', () => {
   const [ipad, iphone] = ecrans
   assert.equal(resoudre(ipad!, 100, 1.35).target, 100)
+  // C'est l'écart qui cède, pas la taille.
   const ecarte = resoudre(ipad!, 100, 2)
-  assert.equal(ecarte.spacing, 2, "l'iPad garde l'espacement demandé")
-  assert.ok(ecarte.target >= 80, `${ecarte.target} pt seulement`)
-  // Un iPhone ne tient pas 100 points pour treize commandes : il le dit, et
-  // garde toutes les commandes à 44 points au moins.
+  assert.equal(ecarte.target, 100)
+  assert.ok(ecarte.spacing > 1.06 && ecarte.spacing < 2, `×${ecarte.spacing}`)
+  // Au maximum du curseur, un iPad pose ses treize commandes à plus de
+  // 140 points.
+  assert.ok(resoudre(ipad!, 150, 1.35).target >= 140)
+  // Un iPhone ne tient pas 100 points pour treize commandes : il en garde
+  // plus de 70 — il en gardait 44 quand les cibles cédaient avant l'écart.
   const telephone = resoudre(iphone!, 100, 2)
   assert.ok(telephone.target < 100)
+  assert.ok(telephone.target >= 70, `${telephone.target} pt`)
   assert.equal(telephone.placements.length, 13)
 })

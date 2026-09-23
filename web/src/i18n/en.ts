@@ -58,7 +58,7 @@ export const en: Dictionary = {
     targetSize: 'Target size',
     unit: 'pt',
     downscaled:
-      'The screen is too narrow for that size, so targets shrink rather than a control being dropped.',
+      'The screen is too narrow for that size, even with the tightest spacing, so targets shrink rather than a control being dropped.',
     activation: 'Press mode',
     console: 'Console',
     releaseAll: 'Release everything',
@@ -74,9 +74,9 @@ export const en: Dictionary = {
     },
     spacing: 'Spacing',
     spacingHint:
-      'Minimum gap between neighbours. The larger it is, the further apart they sit — and the more they shrink on a narrow screen.',
+      'Minimum gap between neighbours. On a narrow screen it gives way first, so controls keep their size.',
     tightened:
-      'The screen is too narrow: spacing had to tighten once targets had already reached their minimum size.',
+      'The screen is too narrow: spacing was tightened to keep targets as large as possible.',
     edit: {
       start: 'Edit',
       done: 'Done',

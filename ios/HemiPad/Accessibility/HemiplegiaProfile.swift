@@ -65,12 +65,15 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
     var reachSpan: CGFloat = .pi / 2.4
 
     /// Grossissement des cibles tactiles (1 = taille de base ≈ 56 pt).
-    var targetScale: CGFloat = 1.25
+    /// 100 points par défaut : un iPad les tient, un iPhone s'en approche
+    /// autant que son écran le permet.
+    var targetScale: CGFloat = 100.0 / 56
 
     /// Écart minimal entre deux commandes voisines, en proportion de leur
     /// taille. Deux cibles qui se frôlent sont deux cibles qu'un doigt
-    /// tremblant confond : mieux vaut des boutons un peu plus petits et
-    /// franchement séparés.
+    /// tremblant confond. Mais quand l'écran manque de place, c'est cet
+    /// écart qui cède en premier, pas la taille : un bouton trop petit n'est
+    /// plus une cible.
     var controlSpacing: CGFloat = 1.35
 
     /// Placement automatique sur les arcs, ou libre.
@@ -172,7 +175,7 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
         innerReach: CGFloat = 0.14,
         outerReach: CGFloat = 0.78,
         reachSpan: CGFloat = .pi / 2.4,
-        targetScale: CGFloat = 1.25,
+        targetScale: CGFloat = 100.0 / 56,
         controlSpacing: CGFloat = 1.35,
         layoutMode: LayoutMode = .arc,
         controlPreferences: [String: ControlPreference] = [:],
@@ -225,7 +228,7 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
         thumbPivot: CGPoint(x: 0.90, y: 0.88),
         innerReach: 0.14,
         outerReach: 0.70,
-        targetScale: 1.5,
+        targetScale: 120.0 / 56,
         controlSpacing: 1.45,
         activationMode: .latch,
         dwellDuration: 0.6,
@@ -244,7 +247,7 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
 
     /// Préréglage « spasticité » : anti-rebond long, filtrage fort, survol.
     static let tremorControl = HemiplegiaProfile(
-        targetScale: 1.4,
+        targetScale: 110.0 / 56,
         controlSpacing: 1.4,
         activationMode: .dwell,
         dwellDuration: 0.35,
@@ -261,13 +264,13 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
 
     /// Taille de cible en points, dérivée de l'échelle. Jamais sous 44 pt,
     /// minimum recommandé par les règles d'accessibilité d'Apple, ni au-delà
-    /// de 100 pt : c'est le haut du curseur, et ce qu'un iPad tient encore
-    /// pour toutes les commandes à la fois.
+    /// de 150 pt : c'est le haut du curseur, à peine plus que ce qu'un iPad
+    /// tient pour toutes les commandes à la fois.
     var baseTargetSize: CGFloat {
         min(Self.maximumTargetSize, max(44, 56 * targetScale))
     }
 
-    static let maximumTargetSize: CGFloat = 100
+    static let maximumTargetSize: CGFloat = 150
 
     // MARK: - Réglages par commande
 
