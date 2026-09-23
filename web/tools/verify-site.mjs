@@ -481,7 +481,7 @@ for (const scheme of ['dark', 'light']) {
   const bornes = async (loc) => [await loc.getAttribute('min'), await loc.getAttribute('max')].map(Number)
   const [tMin, tMax] = await bornes(taille)
   const [, eMax] = await bornes(curseur)
-  check(tMin === 44 && tMax === 100, 'la taille des cibles va de 44 à 100 points', `${tMin} → ${tMax}`)
+  check(tMin === 44 && tMax === 150, 'la taille des cibles va de 44 à 150 points', `${tMin} → ${tMax}`)
   check(eMax === 2, "l'espacement va jusqu'à ×2", `max ${eMax}`)
 
   const valeurs = () =>
@@ -534,7 +534,7 @@ for (const scheme of ['dark', 'light']) {
   for (const cran of ['1.35', '2']) {
     await curseur.fill(cran)
     precedente = 0
-    for (let demande = 44; demande <= 100; demande += 2) {
+    for (let demande = 44; demande <= 150; demande += 2) {
       await taille.fill(String(demande))
       const { cible } = await valeurs()
       if (cible.tenue < precedente || cible.tenue > demande || cible.tenue < 44) {
@@ -564,7 +564,12 @@ for (const scheme of ['dark', 'light']) {
   await immobiles()
   v = await valeurs()
   d = await disposition()
-  check(v.espacement.tenue === 2 && v.cible.tenue >= 75, "l'iPad tient ×2 avec des cibles encore grandes", `${v.cible.texte} · ${v.espacement.texte}`)
+  // C'est l'écart qui cède, pas la taille : les boutons restent à 100.
+  check(
+    v.cible.tenue === 100 && v.espacement.tenue < 2 && v.espacement.texte.includes('×2.00 → ×'),
+    "à ×2, l'iPad garde ses 100 points et resserre l'écart",
+    `${v.cible.texte} · ${v.espacement.texte}`
+  )
   check(d.nombre === 13 && d.chevauchements === 0 && d.dehors === 0, 'à ×2 et 100 points, rien ne se chevauche ni ne sort', JSON.stringify(d))
 
   await appareil('iPhone')
@@ -573,8 +578,8 @@ for (const scheme of ['dark', 'light']) {
   v = await valeurs()
   d = await disposition()
   check(
-    v.cible.tenue < 100 && v.cible.tenue >= 44 && v.cible.texte.includes(`100 → ${v.cible.tenue}`),
-    "sur l'iPhone, le curseur dit ce qui est demandé et ce que l'écran tient",
+    v.cible.tenue < 100 && v.cible.tenue >= 70 && v.cible.texte.includes(`100 → ${v.cible.tenue}`),
+    "sur l'iPhone, le curseur dit ce qui est demandé et ce que l'écran tient — plus de 70 points",
     v.cible.texte
   )
   check(
@@ -584,6 +589,30 @@ for (const scheme of ['dark', 'light']) {
   check(d.nombre === 13 && d.chevauchements === 0 && d.dehors === 0, "à 100 points et ×2, l'iPhone garde toutes ses commandes, sans chevauchement", JSON.stringify(d))
 
   await appareil('iPad')
+  await taille.fill('150')
+  await curseur.fill('1.35')
+  await page.waitForTimeout(50)
+  await immobiles()
+  v = await valeurs()
+  d = await disposition()
+  check(v.cible.tenue >= 140, "au bout du curseur, l'iPad pose ses commandes à plus de 140 points", v.cible.texte)
+  check(d.nombre === 13 && d.chevauchements === 0 && d.dehors === 0, 'à 150 points demandés, rien ne se chevauche ni ne sort', JSON.stringify(d))
+  await context.close()
+}
+
+// --- Des boutons assez gros pour se voir sur un téléphone -----------------
+//
+// La démonstration dessine un vrai iPad, deux fois plus large qu'un
+// téléphone : à 70 points par défaut, ses boutons faisaient 31 pixels sur
+// l'écran d'un iPhone. Trop petit — on nous l'a dit.
+{
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  const largeur = await page.evaluate(
+    () => document.querySelector('.control[data-control="faceS"] .control-shape').getBoundingClientRect().width
+  )
+  check(largeur >= 42, "sur un téléphone, les boutons de la démonstration font plus de 42 pixels", `${largeur.toFixed(1)} px`)
   await context.close()
 }
 

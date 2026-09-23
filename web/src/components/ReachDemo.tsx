@@ -68,8 +68,9 @@ function ringsFor(profile: ConsoleProfile, target: number): RingSpec[] {
 export function ReachDemo() {
   const { t } = useI18n()
   const [hand, setHand] = useState<Hand>('right')
-  // 70 points : la taille par défaut de l'application (56 × 1,25).
-  const [target, setTarget] = useState(70)
+  // 100 points : la taille par défaut de l'application. L'iPad les tient ;
+  // l'iPhone dit ce qu'il en garde.
+  const [target, setTarget] = useState(100)
   const [spacing, setSpacing] = useState(1.35)
   const [mode, setMode] = useState<ActivationMode>('latch')
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('arc')
