@@ -13,7 +13,7 @@ export const es: Dictionary = {
     demo: 'Demo',
     accessibility: 'Accesibilidad',
     keyboard: 'Teclado',
-    consoles: 'Consolas',
+    consoles: 'Perfiles',
     tech: 'Técnica',
     skip: 'Ir a la demostración'
   },
@@ -22,7 +22,7 @@ export const es: Dictionary = {
     titleLead: 'El mando que se adapta',
     titleAccent: 'a tu mano',
     lede:
-      'HemiPad convierte un iPhone en mando para todas las consolas y en teclado para programar en el ordenador. Toda la interfaz parte de una sola restricción: ',
+      'HemiPad convierte un iPhone o un iPad en mando Bluetooth, sin comprar nada, y en teclado para programar en el ordenador. Toda la interfaz parte de una sola restricción: ',
     ledeStrong: 'una sola mano disponible, y se cansa.',
     primary: 'Probar la disposición',
     secondary: 'Lo que cambia de verdad',
@@ -218,10 +218,10 @@ export const es: Dictionary = {
     ]
   },
   consoles: {
-    eyebrow: 'Compatibilidad',
+    eyebrow: 'Perfiles',
     title: 'Un mando, seis formas de ser leído',
     lede:
-      'Los glifos, los colores y la tabla HID cambian con la máquina. La geometría accesible no cambia nunca: lo que tu pulgar ha aprendido sigue valiendo de una consola a otra.',
+      'Los glifos, los colores y la tabla HID siguen el perfil elegido: los símbolos que muestra el juego. La geometría accesible no cambia nunca: lo que tu pulgar ha aprendido sigue valiendo de un perfil a otro.',
     summaries: {
       switch: 'Pro Controller · A y B invertidos',
       playstation: 'DualSense · ✕ ○ □ △',
@@ -233,23 +233,24 @@ export const es: Dictionary = {
   },
   architecture: {
     eyebrow: 'Técnica',
-    title: 'Dos caminos, un único juego de informes HID',
+    title: 'Un mando Bluetooth, sin comprar nada',
     lede:
-      'La codificación está separada del transporte. La aplicación produce informes HID estándar; lo demás es solo una tubería, Bluetooth o USB.',
+      'El iPhone o el iPad produce los mismos informes HID que un mando comercial y los emite él mismo por Bluetooth. Sin caja, sin cable.',
     paths: [
       {
-        title: 'Bluetooth HID',
-        subtitle: 'El iPhone se anuncia como mando',
-        steps: ['Pantalla táctil', 'Informes HID', 'HID over GATT', 'Consola'],
+        title: 'Bluetooth directo',
+        subtitle: 'El dispositivo se anuncia como un mando llamado HemiPad',
+        steps: ['Pantalla táctil', 'Informes HID', 'HID over GATT', 'Ordenador o Android'],
         note:
-          'El camino más directo. iOS reserva parte del perfil HID: cuando el sistema se niega a publicar el servicio, la aplicación lo dice y propone el puente.'
+          'iOS niega a las aplicaciones el identificador corto del servicio de mando: HemiPad publica su forma larga, el mismo valor para la máquina. Para que muestre «HemiPad» y no «iPhone» tras el emparejamiento, la aplicación propone renombrar el dispositivo.'
       },
       {
-        title: 'Puente HemiPad',
-        subtitle: 'Una caja USB reproduce los mismos bytes',
-        steps: ['Pantalla táctil', 'Informes HID', 'WebSocket', 'ESP32 / Pi Zero', 'Consola o PC'],
+        title: 'Qué lo acepta',
+        subtitle: 'Cualquier máquina que acepte un mando Bluetooth estándar',
+        kind: 'list',
+        steps: ['Windows', 'Linux', 'Android'],
         note:
-          'Los descriptores se comparten con el camino Bluetooth: el mismo código produce los mismos informes, solo cambia el transporte.'
+          'Switch, PS5 y Xbox solo aceptan sus propios mandos por Bluetooth: ningún mando de otra marca se conecta a ellas directamente. Y no es posible una conexión por cable: iOS no deja que ninguna aplicación cambie lo que anuncia su puerto USB.'
       }
     ],
     specs: [
@@ -294,7 +295,7 @@ export const es: Dictionary = {
       {
         title: 'Más información',
         links: [
-          { label: 'Consolas compatibles', href: '#consoles' },
+          { label: 'Perfiles de mando', href: '#consoles' },
           { label: 'Arquitectura', href: '#technique' },
           { label: 'Compartir', href: '#partage' }
         ]

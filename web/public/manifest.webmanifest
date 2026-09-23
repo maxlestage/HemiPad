@@ -2,7 +2,7 @@
   "id": "/",
   "name": "HemiPad — manette et clavier à une main",
   "short_name": "HemiPad",
-  "description": "Une manette tactile pour toutes les consoles et un clavier de code, utilisables d'une seule main.",
+  "description": "Une manette Bluetooth tactile et un clavier de code, utilisables d'une seule main, sans rien acheter.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "/?source=pwa",

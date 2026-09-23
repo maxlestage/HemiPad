@@ -31,8 +31,8 @@
 		EB79075BB20705C1C8DEB86F /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE98764A66BFA8D65C191D4 /* Theme.swift */; };
 		CB1AE04E11AD43098D148374 /* BLEHIDPeripheralTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */; };
 		188DD51375A807069D17F206 /* ControllerTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */; };
+		F2618A889BBE7E4492EC5CC1 /* HIDSendQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 735D00335B5AD406A0D45141 /* HIDSendQueue.swift */; };
 		52F1F51463F7143D5022D810 /* LoopbackTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */; };
-		7BF045128E25E225C1AA778E /* NetworkBridgeTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD759A51A14661CDA2A0435 /* NetworkBridgeTransport.swift */; };
 		4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */; };
 		DF529476E6552026367555CA /* CalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */; };
 		E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C35973498C6132B703FF4AB /* ConnectScreen.swift */; };
@@ -46,6 +46,7 @@
 		D9FEED05890AF71768FF6D2F /* ThumbstickView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7123F399F0DF6A760FB50902 /* ThumbstickView.swift */; };
 		B79A0C9F7FBE3034550D4F63 /* AccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB437C691563EC152EDF116 /* AccessibilityTests.swift */; };
 		D7560EDA67799A7B259B68EF /* HIDEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */; };
+		50942359A60ACD478718775B /* HIDSendQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */; };
 		E9456B9D0BC68D4B5AC276D6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A272734AF51988E48B135C0E /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -84,8 +85,8 @@
 		1DE98764A66BFA8D65C191D4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEHIDPeripheralTransport.swift; sourceTree = "<group>"; };
 		025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerTransport.swift; sourceTree = "<group>"; };
+		735D00335B5AD406A0D45141 /* HIDSendQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDSendQueue.swift; sourceTree = "<group>"; };
 		6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopbackTransport.swift; sourceTree = "<group>"; };
-		3FD759A51A14661CDA2A0435 /* NetworkBridgeTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkBridgeTransport.swift; sourceTree = "<group>"; };
 		9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportCoordinator.swift; sourceTree = "<group>"; };
 		B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationView.swift; sourceTree = "<group>"; };
 		3C35973498C6132B703FF4AB /* ConnectScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectScreen.swift; sourceTree = "<group>"; };
@@ -99,6 +100,7 @@
 		7123F399F0DF6A760FB50902 /* ThumbstickView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbstickView.swift; sourceTree = "<group>"; };
 		0AB437C691563EC152EDF116 /* AccessibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityTests.swift; sourceTree = "<group>"; };
 		984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDEncodingTests.swift; sourceTree = "<group>"; };
+		746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDSendQueueTests.swift; sourceTree = "<group>"; };
 		A272734AF51988E48B135C0E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A74B09C24ECBD2C0D11C6212 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6CB7409450D58760321454B4 /* HemiPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HemiPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -212,8 +214,8 @@
 			children = (
 				4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */,
 				025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */,
+				735D00335B5AD406A0D45141 /* HIDSendQueue.swift */,
 				6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */,
-				3FD759A51A14661CDA2A0435 /* NetworkBridgeTransport.swift */,
 				9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */,
 			);
 			path = Transport;
@@ -256,6 +258,7 @@
 			children = (
 				0AB437C691563EC152EDF116 /* AccessibilityTests.swift */,
 				984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */,
+				746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */,
 			);
 			path = HemiPadTests;
 			sourceTree = "<group>";
@@ -375,8 +378,8 @@
 				EB79075BB20705C1C8DEB86F /* Theme.swift in Sources */,
 				CB1AE04E11AD43098D148374 /* BLEHIDPeripheralTransport.swift in Sources */,
 				188DD51375A807069D17F206 /* ControllerTransport.swift in Sources */,
+				F2618A889BBE7E4492EC5CC1 /* HIDSendQueue.swift in Sources */,
 				52F1F51463F7143D5022D810 /* LoopbackTransport.swift in Sources */,
-				7BF045128E25E225C1AA778E /* NetworkBridgeTransport.swift in Sources */,
 				4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */,
 				DF529476E6552026367555CA /* CalibrationView.swift in Sources */,
 				E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */,
@@ -397,6 +400,7 @@
 			files = (
 				B79A0C9F7FBE3034550D4F63 /* AccessibilityTests.swift in Sources */,
 				D7560EDA67799A7B259B68EF /* HIDEncodingTests.swift in Sources */,
+				50942359A60ACD478718775B /* HIDSendQueueTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

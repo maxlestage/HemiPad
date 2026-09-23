@@ -13,7 +13,7 @@ export const fr: Dictionary = {
     demo: 'Démo',
     accessibility: 'Accessibilité',
     keyboard: 'Clavier',
-    consoles: 'Consoles',
+    consoles: 'Profils',
     tech: 'Technique',
     skip: 'Aller à la démonstration'
   },
@@ -22,7 +22,7 @@ export const fr: Dictionary = {
     titleLead: "La manette qui s'adapte",
     titleAccent: 'à votre main',
     lede:
-      "HemiPad transforme un iPhone en manette pour toutes les consoles, et en clavier de code pour l'ordinateur. Toute l'interface est construite autour d'une contrainte : ",
+      "HemiPad transforme un iPhone ou un iPad en manette Bluetooth, sans rien acheter, et en clavier de code pour l'ordinateur. Toute l'interface est construite autour d'une contrainte : ",
     ledeStrong: 'une seule main disponible, et elle se fatigue.',
     primary: 'Essayer la disposition',
     secondary: 'Ce qui change vraiment',
@@ -217,10 +217,10 @@ export const fr: Dictionary = {
     ]
   },
   consoles: {
-    eyebrow: 'Compatibilité',
+    eyebrow: 'Profils',
     title: "Une manette, six façons d'être lue",
     lede:
-      "Les glyphes, les couleurs et la table de correspondance HID changent avec la machine. La géométrie accessible, elle, ne bouge jamais : ce que votre pouce a appris reste vrai d'une console à l'autre.",
+      "Les glyphes, les couleurs et la table de correspondance HID suivent le profil choisi — celui des symboles que le jeu affiche. La géométrie accessible, elle, ne bouge jamais : ce que votre pouce a appris reste vrai d'un profil à l'autre.",
     summaries: {
       switch: 'Pro Controller · A et B inversés',
       playstation: 'DualSense · ✕ ○ □ △',
@@ -232,23 +232,24 @@ export const fr: Dictionary = {
   },
   architecture: {
     eyebrow: 'Technique',
-    title: 'Deux chemins, un seul jeu de rapports HID',
+    title: 'Une manette Bluetooth, sans rien acheter',
     lede:
-      "L'encodage est isolé du transport. L'application produit des rapports HID standards ; le reste n'est qu'un tuyau, Bluetooth ou USB.",
+      "L'iPhone ou l'iPad produit les mêmes rapports HID qu'une manette du commerce, et les émet lui-même en Bluetooth. Aucun boîtier, aucun câble.",
     paths: [
       {
-        title: 'Bluetooth HID',
-        subtitle: "L'iPhone s'annonce comme manette",
-        steps: ['Écran tactile', 'Rapports HID', 'HID over GATT', 'Console'],
+        title: 'Bluetooth direct',
+        subtitle: "L'appareil s'annonce comme une manette nommée HemiPad",
+        steps: ['Écran tactile', 'Rapports HID', 'HID over GATT', 'Ordinateur ou Android'],
         note:
-          "Le chemin le plus direct. iOS réserve une partie du profil HID : quand le système refuse de publier le service, l'application le dit et propose le pont."
+          "iOS refuse aux applications l'identifiant court du service manette : HemiPad le publie sous sa forme longue, la même valeur pour la machine. Pour qu'elle affiche « HemiPad » et non « iPhone » après l'appairage, l'application propose de renommer l'appareil."
       },
       {
-        title: 'Pont HemiPad',
-        subtitle: 'Un boîtier USB rejoue les mêmes octets',
-        steps: ['Écran tactile', 'Rapports HID', 'WebSocket', 'ESP32 / Pi Zero', 'Console ou PC'],
+        title: "Ce qui l'accepte",
+        subtitle: 'Toute machine qui accepte une manette Bluetooth standard',
+        kind: 'list',
+        steps: ['Windows', 'Linux', 'Android'],
         note:
-          'Les descripteurs sont partagés avec le chemin Bluetooth : le même code produit les mêmes rapports, seul le transport change.'
+          "Switch, PS5 et Xbox n'acceptent en Bluetooth que leurs propres manettes : aucune manette d'une autre marque ne s'y connecte directement. Et aucune connexion filaire n'est possible : iOS ne laisse aucune application changer ce que le port USB annonce."
       }
     ],
     specs: [
@@ -294,7 +295,7 @@ export const fr: Dictionary = {
       {
         title: 'En savoir plus',
         links: [
-          { label: 'Consoles gérées', href: '#consoles' },
+          { label: 'Profils de manette', href: '#consoles' },
           { label: 'Architecture', href: '#technique' },
           { label: 'Partager', href: '#partage' }
         ]

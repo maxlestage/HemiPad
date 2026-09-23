@@ -1,7 +1,8 @@
 import { useAppareil } from '../lib/appareil.tsx'
+import { useMainValide } from '../lib/mainValide.tsx'
 import { systemIds } from '../lib/consoles.ts'
 import { avancementSurArc, heroLayout, HERO_APPAREILS } from '../lib/heroLayout.ts'
-import { pointOnArc } from '../lib/reach.ts'
+import { pointOnArc, sweepSign } from '../lib/reach.ts'
 
 /**
  * La silhouette de chaque appareil, en unités de sa maquette.
@@ -25,14 +26,15 @@ const CADRES = {
  */
 export function HeroStill({ className }: { className?: string }) {
   const { appareil } = useAppareil()
-  const layout = heroLayout(appareil)
+  const { main } = useMainValide()
+  const layout = heroLayout(appareil, main)
   const { width, height } = HERO_APPAREILS[appareil].canvas
   const cadre = CADRES[appareil]
   const b = cadre.bordure
 
   const arcs = layout.radii.map((rayon) => {
     const points = Array.from({ length: 33 }, (_, i) => {
-      const angle = -Math.PI / 2 - (i / 32) * layout.span
+      const angle = -Math.PI / 2 + sweepSign(main) * (i / 32) * layout.span
       const point = pointOnArc(layout.pivot, rayon, angle)
       return `${point.x.toFixed(1)} ${point.y.toFixed(1)}`
     })
@@ -48,6 +50,7 @@ export function HeroStill({ className }: { className?: string }) {
       viewBox={`${-b} ${-b} ${width + b * 2} ${height + b * 2}`}
       role="img"
       data-appareil-rendu={appareil}
+      data-main-rendu={main}
       aria-label={
         appareil === 'ipad'
           ? "Un iPad montrant les commandes posées sur l'arc que le pouce atteint"
@@ -118,7 +121,7 @@ export function HeroStill({ className }: { className?: string }) {
         const zone = croix || id === 'directional'
         // La commande la plus avancée sur l'arc est celle que la scène animée
         // éclaire en premier : l'image fixe montre le même instant.
-        const premier = avancementSurArc(center, layout.pivot, layout.span) < 0.05
+        const premier = avancementSurArc(center, layout.pivot, layout.span, main) < 0.05
         return (
           <rect
             key={id}

@@ -22,22 +22,20 @@ des raccourcis clavier — en découle.
 
 ## Ce que l'application fait réellement
 
-L'iPhone produit des **rapports HID standards** — ceux qu'envoie n'importe
-quelle manette ou clavier USB — puis les achemine par l'un des deux chemins :
+L'iPhone ou l'iPad produit des **rapports HID standards** — ceux qu'envoie
+n'importe quelle manette ou clavier — et les émet lui-même en **Bluetooth**
+(*HID over GATT*) : il s'annonce comme une manette nommée HemiPad. Aucun
+boîtier, aucun câble, rien à acheter.
 
-1. **Bluetooth HID** (*HID over GATT*) : l'iPhone s'annonce lui-même comme
-   périphérique d'entrée.
-2. **Pont HemiPad** : un petit boîtier USB (Raspberry Pi Zero, carte
-   équivalente) reçoit les mêmes octets par Wi-Fi et les rejoue sur le port USB
-   de la console. Implémentation de référence dans [`bridge/`](bridge/).
-
-> **Limite à connaître.** iOS réserve une partie du profil HID : selon la
-> version du système et les droits accordés à l'application,
-> `CBPeripheralManager` peut refuser de publier le service 0x1812. HemiPad le
-> dit alors explicitement et propose de basculer sur le pont, qui utilise
-> exactement les mêmes descripteurs. Ce n'est pas un contournement bricolé :
-> c'est le même code d'encodage, sur un autre tuyau — et un test vérifie que
-> les deux descripteurs ne divergent jamais.
+> **Ce qu'Apple et les consoles imposent.** iOS refuse aux applications
+> l'identifiant court du service HID (0x1812) : HemiPad le publie sous sa forme
+> longue de 128 bits, la même valeur pour la machine. Le nom affiché après
+> l'appairage reste celui de l'appareil — l'application propose de le renommer
+> « HemiPad ». Le Bluetooth classique n'est pas ouvert aux applications, et
+> Switch, PS5 et Xbox n'acceptent en Bluetooth que leurs propres manettes :
+> HemiPad vise les ordinateurs (Windows, Linux) et Android. Aucune connexion
+> filaire n'est possible : iOS ne laisse aucune application changer ce que le
+> port USB annonce.
 
 ## Les règles d'accessibilité, en une page
 
@@ -168,13 +166,12 @@ ios/                   Application Swift
     Accessibility/     Profil hémiplégie, arcs d'atteinte, filtres, appuis
     HID/               Descripteurs et encodeurs de rapports
     Models/            Contrôles, consoles, solveur de disposition
-    Transport/         Bluetooth HID, pont réseau, mode démo
+    Transport/         Bluetooth HID, mode démo
     Views/             Écrans SwiftUI
   HemiPadTests/        58 tests unitaires
   tools/               Génération et vérification du projet Xcode
 web/                   Site vitrine React + TypeScript
 server/                Serveur Express de production
-bridge/                Pont USB de référence (Python) et ses tests
 docs/                  Déploiement depuis un téléphone
 ```
 

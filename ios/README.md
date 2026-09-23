@@ -26,7 +26,7 @@ Cible minimale : iOS 16. Aucune dépendance externe.
 | `Models/` | Contrôles, état de la manette, profils de consoles, solveur de disposition |
 | `Accessibility/` | Profil hémiplégie, arcs d'atteinte, filtre anti-tremblement, arbitrage des appuis, modificateurs collants, macros, visée par inclinaison |
 | `HID/` | Descripteurs et encodeurs de rapports manette et clavier |
-| `Transport/` | Bluetooth HID (*HID over GATT*), pont réseau, mode démo, coordination |
+| `Transport/` | Bluetooth HID (*HID over GATT*), file d'émission, mode démo, coordination |
 | `Views/` | Écrans SwiftUI : manette, clavier, connexion, réglages, calibration |
 | `Support/` | Thème, haptique, persistance, injection d'environnement |
 
@@ -40,8 +40,8 @@ suppression des doublons) → GamepadReportEncoder → transport → machine
 
 Chaque étage a une responsabilité unique : l'arbitre ne connaît pas le HID,
 l'encodeur ne connaît pas l'accessibilité, le transport ne connaît ni l'un ni
-l'autre. C'est ce qui permet d'ajouter un chemin de sortie — le pont USB — sans
-toucher à une seule règle d'accessibilité.
+l'autre. C'est ce qui permet de faire évoluer le chemin de sortie sans toucher
+à une seule règle d'accessibilité.
 
 ## Tests
 
@@ -86,6 +86,5 @@ détaillé, étape par étape et depuis un téléphone, dans
 | Clé `Info.plist` | Pourquoi |
 |---|---|
 | `NSBluetoothAlwaysUsageDescription` | S'annoncer comme manette et clavier |
-| `NSLocalNetworkUsageDescription` + `NSBonjourServices` | Trouver un pont HemiPad sur le réseau local |
 | `NSMotionUsageDescription` | Visée par inclinaison, en remplacement du stick droit |
 | `UIBackgroundModes: bluetooth-peripheral` | Rester connecté écran éteint |

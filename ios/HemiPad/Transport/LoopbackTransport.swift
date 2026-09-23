@@ -4,7 +4,7 @@ import OSLog
 /// Transport de démonstration : journalise les rapports au lieu de les émettre.
 ///
 /// Indispensable pour régler la géométrie d'accessibilité dans le train, et
-/// pour les aperçus SwiftUI qui n'ont ni Bluetooth ni pont.
+/// pour les aperçus SwiftUI qui n'ont pas de Bluetooth.
 final class LoopbackTransport: ControllerTransport {
     let kind: TransportKind = .loopback
 

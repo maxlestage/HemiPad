@@ -7,7 +7,7 @@ import type { Appareil } from '../lib/appareils.ts'
 import { shoulderIds, systemIds } from '../lib/consoles.ts'
 import { HERO_APPAREILS, avancementSurArc, heroLayout } from '../lib/heroLayout.ts'
 import { inclinaison } from '../lib/inclinaison.ts'
-import { pointOnArc, type Placement } from '../lib/reach.ts'
+import { pointOnArc, sweepSign, type Hand, type Placement } from '../lib/reach.ts'
 
 /**
  * L'arc de portée, en volume.
@@ -109,6 +109,12 @@ function mesures(appareil: Appareil) {
 }
 
 type Mesures = ReturnType<typeof mesures>
+
+/** Ce que la scène montre : un appareil, réglé pour une main. */
+interface Vue {
+  appareil: Appareil
+  main: Hand
+}
 
 /**
  * La tache d'ombre douce posée sous chaque commande.
@@ -253,11 +259,12 @@ function Île({ m }: { m: Mesures }) {
  * Ce sont les rayons réellement retenus par le solveur : ce que la scène
  * montre est ce que l'application calcule.
  */
-function Arcs({ m, rayons, pivot, span, palette }: {
+function Arcs({ m, rayons, pivot, span, main, palette }: {
   m: Mesures
   rayons: number[]
   pivot: { x: number; y: number }
   span: number
+  main: Hand
   palette: PaletteScène
 }) {
   const géométries = useMemo(
@@ -265,14 +272,14 @@ function Arcs({ m, rayons, pivot, span, palette }: {
       rayons.map((rayon) => {
         const points: THREE.Vector3[] = []
         for (let i = 0; i <= 48; i += 1) {
-          const angle = -Math.PI / 2 - (i / 48) * span
+          const angle = -Math.PI / 2 + sweepSign(main) * (i / 48) * span
           const point = pointOnArc(pivot, rayon, angle)
           const [x, y] = m.versScène(point.x, point.y)
           points.push(new THREE.Vector3(x, y, 0.004))
         }
         return new THREE.BufferGeometry().setFromPoints(points)
       }),
-    [m, rayons, pivot, span]
+    [m, rayons, pivot, span, main]
   )
 
   useEffect(() => () => géométries.forEach((g) => g.dispose()), [géométries])
@@ -303,11 +310,12 @@ function Arcs({ m, rayons, pivot, span, palette }: {
  * arc : la lueur balaie cet angle, et c'est la géométrie du pouce qui décide
  * de l'ordre.
  */
-function Commandes({ m, placements, pivot, span, palette }: {
+function Commandes({ m, placements, pivot, span, main, palette }: {
   m: Mesures
   placements: Placement[]
   pivot: { x: number; y: number }
   span: number
+  main: Hand
   palette: PaletteScène
 }) {
   const groupe = useRef<THREE.Group>(null)
@@ -320,7 +328,7 @@ function Commandes({ m, placements, pivot, span, palette }: {
         const [x, y] = m.versScène(placement.center.x, placement.center.y)
         const largeur = placement.size.width * m.unité
         const hauteur = placement.size.height * m.unité
-        const avancement = avancementSurArc(placement.center, pivot, span)
+        const avancement = avancementSurArc(placement.center, pivot, span, main)
         // Les touches système sont les seules en chaud : ce sont celles qu'on
         // presse rarement, et l'œil doit pouvoir les distinguer d'un coup.
         const systeme = systemIds.includes(placement.id)
@@ -345,7 +353,7 @@ function Commandes({ m, placements, pivot, span, palette }: {
           avancement
         }
       }),
-    [m, placements, pivot, span, palette]
+    [m, placements, pivot, span, main, palette]
   )
 
   const géométries = useMemo(
@@ -474,9 +482,9 @@ function Pivot({ m, pivot, palette }: {
 }
 
 /** L'appareil complet : coque, écran, et tout ce que l'écran affiche. */
-function Appareil3D({ appareil, palette }: { appareil: Appareil; palette: PaletteScène }) {
+function Appareil3D({ appareil, main, palette }: { appareil: Appareil; main: Hand; palette: PaletteScène }) {
   const m = useMemo(() => mesures(appareil), [appareil])
-  const disposition = useMemo(() => heroLayout(appareil), [appareil])
+  const disposition = useMemo(() => heroLayout(appareil, main), [appareil, main])
 
   return (
     <>
@@ -489,6 +497,7 @@ function Appareil3D({ appareil, palette }: { appareil: Appareil; palette: Palett
         rayons={disposition.radii}
         pivot={disposition.pivot}
         span={disposition.span}
+        main={main}
         palette={palette}
       />
       <Pivot m={m} pivot={disposition.pivot} palette={palette} />
@@ -497,6 +506,7 @@ function Appareil3D({ appareil, palette }: { appareil: Appareil; palette: Palett
         placements={disposition.placements}
         pivot={disposition.pivot}
         span={disposition.span}
+        main={main}
         palette={palette}
       />
     </>
@@ -512,14 +522,23 @@ function Appareil3D({ appareil, palette }: { appareil: Appareil; palette: Palett
  * presque rien, puis revient de face. Un simple remplacement ferait sauter
  * l'image ; un fondu montrerait deux appareils superposés.
  */
-export function MarkScene({ theme, appareil }: { theme: 'dark' | 'light'; appareil: Appareil }) {
+export function MarkScene({ theme, appareil, main }: { theme: 'dark' | 'light'; appareil: Appareil; main: Hand }) {
   const inclinaisonGroupe = useRef<THREE.Group>(null)
   const basculeGroupe = useRef<THREE.Group>(null)
   const viewport = useThree((état) => état.viewport)
   const palette = PALETTES[theme]
 
-  const [affiché, setAffiché] = useState<Appareil>(appareil)
-  const demandé = useRef(appareil)
+  /*
+   * Ce que la scène montre : un appareil, et la main pour laquelle il est
+   * réglé. Changer l'un ou l'autre fait pivoter l'appareil de la même façon —
+   * changer de main, c'est retourner toute la disposition, et on le voit
+   * mieux en le retournant qu'en faisant sauter les commandes d'un côté à
+   * l'autre.
+   */
+  // Un seul objet au départ : la bascule se déclenche quand la demande n'est
+  // plus *le même objet* que ce qui est affiché.
+  const demandé = useRef<Vue>({ appareil, main })
+  const [affiché, setAffiché] = useState<Vue>(() => demandé.current)
   const rendu = useRef(affiché)
   /*
    * La bascule avance par le temps écoulé entre deux images, pas par l'horloge
@@ -531,16 +550,20 @@ export function MarkScene({ theme, appareil }: { theme: 'dark' | 'light'; appare
    * le haut de page montrait toujours l'iPad.
    */
   const bascule = useRef<{ écoulé: number; phase: 'aller' | 'retour' } | null>(null)
-  demandé.current = appareil
+  if (demandé.current.appareil !== appareil || demandé.current.main !== main) {
+    demandé.current = { appareil, main }
+  }
   rendu.current = affiché
 
-  // Témoin pour les vérifications : l'appareil que la scène dessine vraiment,
-  // une fois la bascule faite — pas seulement celui qu'on a demandé.
+  // Témoins pour les vérifications : ce que la scène dessine vraiment, une
+  // fois la bascule faite — pas seulement ce qu'on a demandé.
   useEffect(() => {
-    document.querySelector('.hero-scene')?.setAttribute('data-appareil-rendu', affiché)
+    const scène = document.querySelector('.hero-scene')
+    scène?.setAttribute('data-appareil-rendu', affiché.appareil)
+    scène?.setAttribute('data-main-rendu', affiché.main)
   }, [affiché])
 
-  const m = mesures(affiché)
+  const m = mesures(affiché.appareil)
   const hauteurTotale = m.hauteurÉcran + m.gabarit.bordure * 2
   const largeurTotale = m.gabarit.largeurÉcran + m.gabarit.bordure * 2
   // L'appareil tient dans le cadre avec une marge franche : incliné, son bord
@@ -611,7 +634,7 @@ export function MarkScene({ theme, appareil }: { theme: 'dark' | 'light'; appare
 
       <group ref={inclinaisonGroupe} scale={échelle}>
         <group ref={basculeGroupe}>
-          <Appareil3D appareil={affiché} palette={palette} />
+          <Appareil3D appareil={affiché.appareil} main={affiché.main} palette={palette} />
         </group>
       </group>
     </>
