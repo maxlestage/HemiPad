@@ -50,7 +50,7 @@ struct SettingsScreen: View {
                         cgValue: $state.profile.controlSpacing,
                         range: 1.1...2
                     )
-                    caption("Écart minimal entre deux voisines, en proportion de leur taille. Plus il est grand, plus les commandes sont séparées — et plus elles rétrécissent quand l'écran est étroit.")
+                    caption("Écart minimal entre deux voisines, en proportion de leur taille. Quand l'écran est étroit, c'est l'écart qui cède en premier, pour garder les commandes grandes.")
 
                     if !state.profile.hiddenKeys.isEmpty {
                         Text("\(state.profile.hiddenKeys.count) commande(s) masquée(s)")
@@ -135,7 +135,7 @@ struct SettingsScreen: View {
                 }
 
                 group("Confort") {
-                    // Réglée en points, de 44 à 100 : c'est l'unité que la
+                    // Réglée en points, de 44 à 150 : c'est l'unité que la
                     // légende annonce, plutôt qu'un coefficient sans repère.
                     slider(
                         "Taille des cibles",
@@ -147,7 +147,7 @@ struct SettingsScreen: View {
                         unit: "pt",
                         decimals: 0
                     )
-                    caption("Si l'écran est trop petit pour toutes les commandes à cette taille, elles rétrécissent — jamais sous 44 points — plutôt qu'une ne disparaisse.")
+                    caption("Si l'écran est trop petit, l'écart entre les commandes se resserre d'abord ; elles ne rétrécissent qu'ensuite — jamais sous 44 points — plutôt qu'une ne disparaisse.")
                     Toggle("Retour haptique", isOn: $state.profile.hapticsEnabled)
                     Toggle("Animations réduites", isOn: $state.profile.reducedMotion)
                 }
