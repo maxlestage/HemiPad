@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # ios/
@@ -46,6 +47,9 @@ def uid(*parts: str) -> str:
     return digest[:24].upper()
 
 
+SAFE_PATH = re.compile(r"[A-Za-z0-9_+.\- /]+")
+
+
 def collect(directory: str, extension: str) -> list[str]:
     """Chemins relatifs à `ios/`, triés, des fichiers d'une extension donnée."""
     found = []
@@ -54,7 +58,13 @@ def collect(directory: str, extension: str) -> list[str]:
         for name in sorted(files):
             if name.endswith(extension):
                 full = os.path.join(base, name)
-                found.append(os.path.relpath(full, ROOT))
+                relative = os.path.relpath(full, ROOT)
+                # Un nom de fichier finit tel quel dans le .pbxproj, parfois
+                # dans un commentaire : `*/`, `;` ou `}` y injecteraient du
+                # contenu. On refuse tout ce qui sort d'un alphabet sûr.
+                if not SAFE_PATH.fullmatch(relative):
+                    raise SystemExit(f"nom de fichier refusé (caractères non sûrs) : {relative!r}")
+                found.append(relative)
     return sorted(found)
 
 
@@ -110,7 +120,7 @@ class Tree:
         lines.extend(children_ids + file_ids)
         lines.append("\t\t\t);")
         if self.path is not None:
-            lines.append(f"\t\t\tpath = {self.path};")
+            lines.append(f"\t\t\tpath = {quoted(self.path)};")
         else:
             lines.append(f"\t\t\tname = {self.name};")
         lines.append("\t\t\tsourceTree = \"<group>\";")

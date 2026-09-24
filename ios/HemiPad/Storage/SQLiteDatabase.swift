@@ -95,7 +95,9 @@ final class SQLiteDatabase {
             guard result == SQLITE_ROW else { throw Self.error(for: handle, code: result) }
             var row: Row = [:]
             for index in 0..<sqlite3_column_count(statement) {
-                let name = String(cString: sqlite3_column_name(statement, index))
+                // Nom absent (mémoire épuisée) : la colonne est sautée plutôt
+                // que de planter sur un pointeur nul.
+                guard let name = sqlite3_column_name(statement, index).map({ String(cString: $0) }) else { continue }
                 row[name] = Self.value(of: statement, at: index)
             }
             rows.append(row)
