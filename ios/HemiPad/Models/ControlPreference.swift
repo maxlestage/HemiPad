@@ -86,6 +86,19 @@ struct ControlPreference: Codable, Equatable, Sendable {
     var isDefault: Bool {
         isVisible && activation == nil && freePosition == nil && abs(sizeScale - 1) < 0.001 && !isLocked
     }
+
+    /// Réglage d'origine d'une commande : visible, sauf les commandes
+    /// masquées par défaut.
+    static func initial(for key: String) -> ControlPreference {
+        ControlPreference(isVisible: !ControlKey.hiddenByDefault.contains(key))
+    }
+
+    /// Comme `isDefault`, mais pour une commande précise : un stick caméra
+    /// masqué est dans son état d'origine, un stick caméra affiché ne l'est pas.
+    func isDefault(for key: String) -> Bool {
+        isVisible == !ControlKey.hiddenByDefault.contains(key)
+            && activation == nil && freePosition == nil && abs(sizeScale - 1) < 0.001 && !isLocked
+    }
 }
 
 /// Clés de préférences. Une chaîne stable, parce qu'elle est écrite sur le
@@ -95,6 +108,11 @@ enum ControlKey {
     /// les appareils.
     static let directional = "directional"
     static let dpad = "dpad"
+    static let cameraStick = "cameraStick"
+
+    /// Commandes masquées tant qu'on ne les a pas demandées : le stick caméra
+    /// double l'arc de vision, il ne sert qu'« en cas où ».
+    static let hiddenByDefault: Set<String> = [cameraStick]
 
     static func key(for control: ControlID) -> String {
         control.rawValue

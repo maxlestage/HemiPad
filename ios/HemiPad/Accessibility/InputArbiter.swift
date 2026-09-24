@@ -100,9 +100,10 @@ final class InputArbiter: ObservableObject {
     }
 
     private func mode(for control: ControlID) -> ActivationMode {
-        // La croix directionnelle reste toujours en appui direct : la verrouiller
-        // ferait tourner le personnage en rond, ce qui n'aide personne.
-        guard !control.isDirectionalPad else { return .direct }
+        // La croix et l'arc de vision restent toujours en appui direct : les
+        // verrouiller ferait tourner le personnage ou la caméra sans fin, ce
+        // qui n'aide personne.
+        guard !control.isHeldDirection else { return .direct }
         // Le réglage propre à la commande l'emporte sur le réglage général :
         // une gâchette gagne à rester enfoncée là où le bouton de saut doit
         // suivre le doigt.
@@ -111,7 +112,28 @@ final class InputArbiter: ObservableObject {
 
     private func apply(_ control: ControlID, pressed: Bool) {
         state.set(control, pressed: pressed)
+        if control.isCameraLook {
+            state.stick(.right, movedTo: lookVector())
+        }
         publish()
+    }
+
+    /// Le stick droit que donnent les boutons de vision tenus : une direction,
+    /// ou une diagonale si deux sont tenus, à la vitesse choisie.
+    private func lookVector() -> CGPoint {
+        let sum = ControlID.lookControls
+            .filter { state.isPressed($0) }
+            .reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.lookVector.x, y: $0.y + $1.lookVector.y) }
+        let length = sqrt(sum.x * sum.x + sum.y * sum.y)
+        guard length > 0 else { return .zero }
+        let speed = CGFloat(min(max(profile.cameraButtonSpeed, 0.1), 1))
+        return CGPoint(x: sum.x / length * speed, y: sum.y / length * speed)
+    }
+
+    /// Un bouton de vision est-il tenu ? L'inclinaison n'écrase pas alors
+    /// la caméra qu'il pilote.
+    private var isLooking: Bool {
+        ControlID.lookControls.contains { state.isPressed($0) }
     }
 
     // MARK: - Survol prolongé
@@ -167,7 +189,8 @@ final class InputArbiter: ObservableObject {
     // MARK: - Répétition automatique
 
     private func scheduleAutoRepeat(_ control: ControlID) {
-        guard profile.autoRepeat, !control.isAnalogTrigger else { return }
+        // Une direction tenue agit en continu : la répéter la ferait hoqueter.
+        guard profile.autoRepeat, !control.isAnalogTrigger, !control.isCameraLook else { return }
         cancelRepeat(control)
         let timer = Timer.scheduledTimer(withTimeInterval: profile.autoRepeatDelay, repeats: false) { [weak self] _ in
             guard let self else { return }
@@ -253,7 +276,7 @@ final class InputArbiter: ObservableObject {
 
     /// Alimenté par le gyroscope quand le second stick est remplacé par l'inclinaison.
     func applyTilt(_ vector: CGPoint) {
-        guard profile.tiltReplacesSecondStick else { return }
+        guard profile.tiltReplacesSecondStick, !isLooking else { return }
         let scaled = CGPoint(
             x: vector.x * CGFloat(profile.tiltSensitivity),
             y: vector.y * CGFloat(profile.tiltSensitivity)

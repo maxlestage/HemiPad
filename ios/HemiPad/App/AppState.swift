@@ -26,6 +26,9 @@ final class AppState: ObservableObject {
             guard consoleTarget != oldValue else { return }
             SettingsStore.save(consoleTarget)
             arbiter.releaseAll()
+            // Chaque console peut avoir sa propre disposition : le profil
+            // doit savoir laquelle lire.
+            profile.activeConsole = consoleTarget.rawValue
             // Choisi pendant qu'une machine est connectée, le profil devient
             // le sien : il sera repris à sa prochaine connexion.
             if let id = transport.connectedMachine {
@@ -59,9 +62,11 @@ final class AppState: ObservableObject {
     var accent: Color { Theme.color(hex: console.accentHex) }
 
     init(profile: HemiplegiaProfile? = nil, transportKind: TransportKind? = nil) {
-        let loadedProfile = profile ?? SettingsStore.loadProfile()
+        let loadedConsole = SettingsStore.loadConsole()
+        var loadedProfile = profile ?? SettingsStore.loadProfile()
+        loadedProfile.activeConsole = loadedConsole.rawValue
         self.profile = loadedProfile
-        consoleTarget = SettingsStore.loadConsole()
+        consoleTarget = loadedConsole
         arbiter = InputArbiter(profile: loadedProfile)
         transport = TransportCoordinator(kind: transportKind ?? SettingsStore.loadTransport())
         connections = try? ConnectionStore.standard()
@@ -169,7 +174,7 @@ final class AppState: ObservableObject {
     /// que toutes les commandes se comportent pareil.
     func press(_ control: ControlID) {
         arbiter.touchDown(control)
-        if profile.activation(for: control) == .latch && !control.isDirectionalPad {
+        if profile.activation(for: control) == .latch && !control.isHeldDirection {
             Haptics.shared.latch()
         } else {
             Haptics.shared.press()
@@ -178,7 +183,7 @@ final class AppState: ObservableObject {
 
     func release(_ control: ControlID) {
         arbiter.touchUp(control)
-        if profile.activation(for: control) == .direct || control.isDirectionalPad {
+        if profile.activation(for: control) == .direct || control.isHeldDirection {
             Haptics.shared.release()
         }
     }
@@ -285,10 +290,14 @@ final class AppState: ObservableObject {
     }
 
     func applyPreset(_ preset: HemiplegiaProfile) {
-        // La main et le pivot appartiennent à la personne, pas au préréglage.
+        // La main, le pivot et la disposition — commune ou propre à chaque
+        // console — appartiennent à la personne, pas au préréglage.
         var next = preset
         next.dominantHand = profile.dominantHand
         next.thumbPivot = profile.thumbPivot
+        next.controlPreferences = profile.controlPreferences
+        next.consolePreferences = profile.consolePreferences
+        next.activeConsole = profile.activeConsole
         profile = next
         Haptics.shared.success()
     }

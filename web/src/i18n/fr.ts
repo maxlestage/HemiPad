@@ -85,6 +85,11 @@ export const fr: Dictionary = {
       overlap: (count) => `${count} commandes se chevauchent : elles resteront difficiles à viser.`,
       resetPositions: 'Tout replacer'
     },
+    ownLayout: {
+      label: (console) => `Disposition propre à ${console}`,
+      on: "Cette console garde sa disposition : masquer, déplacer ou agrandir une commande ne touche qu'elle.",
+      off: 'Toutes les consoles partagent la même disposition. Activez pour que celle-ci garde la sienne.'
+    },
     device: {
       label: 'Appareil',
       ipad: 'iPad',
@@ -315,6 +320,11 @@ export const fr: Dictionary = {
   },
   controlNames: {
     directional: 'Stick',
+    cameraStick: 'Stick caméra',
+    lookLeft: 'Regarder à gauche',
+    lookUp: 'Regarder en haut',
+    lookDown: 'Regarder en bas',
+    lookRight: 'Regarder à droite',
     dpad: 'Croix directionnelle',
     dpadUp: 'Croix : haut',
     dpadDown: 'Croix : bas',
