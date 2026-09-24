@@ -34,6 +34,10 @@ final class AppState: ObservableObject {
             if let id = transport.connectedMachine {
                 setConsole(consoleTarget, forMachine: id)
             }
+            // Mieux vaut le savoir tout de suite que chercher en vain.
+            if !console.bluetoothReach.acceptsDirect {
+                banner = "\(console.displayName) : Bluetooth direct refusé par la console. L'onglet Connexion montre ce qui marche à la place."
+            }
         }
     }
 
