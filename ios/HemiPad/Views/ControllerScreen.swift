@@ -165,6 +165,19 @@ struct ControllerScreen: View {
                 onRelease: { arbiter.releaseStick(.left) },
                 onRecenter: { arbiter.centerStick(.left) }
             )
+        case .cameraStick:
+            // Le second stick, pour la caméra : « en cas où », quand les
+            // boutons de l'arc de vision sont trop grossiers pour viser.
+            ThumbstickView(
+                id: .right,
+                size: placement.size.width,
+                accent: state.accent,
+                value: arbiter.state.rightStick,
+                autoCenter: state.profile.stickAutoCenter,
+                onMove: { arbiter.moveStick(.right, to: $0) },
+                onRelease: { arbiter.releaseStick(.right) },
+                onRecenter: { arbiter.centerStick(.right) }
+            )
         case .dpad:
             // Le stick et la croix sont tous deux à l'écran, comme sur la
             // manette d'origine : passer de l'un à l'autre ne coûte plus un
@@ -289,6 +302,7 @@ struct ControllerScreen: View {
         switch element {
         case .directional: return "Stick"
         case .dpad: return "Croix directionnelle"
+        case .cameraStick: return "Stick caméra"
         case .button(let control), .pill(let control): return control.fallbackLabel
         }
     }

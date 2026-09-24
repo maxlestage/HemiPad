@@ -79,8 +79,24 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
     /// Placement automatique sur les arcs, ou libre.
     var layoutMode: LayoutMode = .arc
 
-    /// Réglages propres à chaque commande, par clé stable.
+    /// Réglages propres à chaque commande, par clé stable — ceux que
+    /// partagent toutes les consoles qui n'ont pas leur propre disposition.
     var controlPreferences: [String: ControlPreference] = [:]
+
+    /// Les consoles qui ont leur propre disposition, et leurs réglages.
+    ///
+    /// Par défaut, toutes les consoles partagent la même : on règle une fois.
+    /// Mais un jeu Switch et un jeu PC ne se jouent pas pareil — une console
+    /// peut donc garder la sienne ; masquer, déplacer ou agrandir une
+    /// commande ne touche alors qu'elle.
+    var consolePreferences: [String: [String: ControlPreference]] = [:]
+
+    /// La console en cours, qui décide quels réglages s'appliquent.
+    var activeConsole: String = ConsoleTarget.switch2.rawValue
+
+    /// Déviation du stick droit quand on tient un bouton de l'arc de vision :
+    /// en dessous de 1, la caméra tourne moins vite, plus facile à doser.
+    var cameraButtonSpeed: Double = 0.7
 
     /// Mode d'appui par défaut pour les boutons de face.
     var activationMode: ActivationMode = .direct
@@ -149,6 +165,9 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
         controlSpacing = value(.controlSpacing, defaults.controlSpacing)
         layoutMode = value(.layoutMode, defaults.layoutMode)
         controlPreferences = value(.controlPreferences, defaults.controlPreferences)
+        consolePreferences = value(.consolePreferences, defaults.consolePreferences)
+        activeConsole = value(.activeConsole, defaults.activeConsole)
+        cameraButtonSpeed = value(.cameraButtonSpeed, defaults.cameraButtonSpeed)
         activationMode = value(.activationMode, defaults.activationMode)
         dwellDuration = value(.dwellDuration, defaults.dwellDuration)
         debounceInterval = value(.debounceInterval, defaults.debounceInterval)
@@ -274,8 +293,37 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
 
     // MARK: - Réglages par commande
 
+    /// Les réglages qui s'appliquent maintenant : ceux de la console en
+    /// cours si elle a sa propre disposition, sinon les réglages partagés.
+    var preferences: [String: ControlPreference] {
+        get { consolePreferences[activeConsole] ?? controlPreferences }
+        set {
+            if consolePreferences[activeConsole] != nil {
+                consolePreferences[activeConsole] = newValue
+            } else {
+                controlPreferences = newValue
+            }
+        }
+    }
+
+    /// La console en cours a-t-elle sa propre disposition ?
+    var hasOwnLayout: Bool { consolePreferences[activeConsole] != nil }
+
+    /// Donne à la console en cours sa propre disposition — elle part de la
+    /// disposition partagée —, ou la lui retire : elle retrouve alors la
+    /// disposition commune.
+    mutating func setOwnLayout(_ own: Bool) {
+        if own {
+            if consolePreferences[activeConsole] == nil {
+                consolePreferences[activeConsole] = controlPreferences
+            }
+        } else {
+            consolePreferences.removeValue(forKey: activeConsole)
+        }
+    }
+
     func preference(_ key: String) -> ControlPreference {
-        controlPreferences[key] ?? .default
+        preferences[key] ?? .initial(for: key)
     }
 
     func preference(_ control: ControlID) -> ControlPreference {
@@ -322,16 +370,16 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
 
     /// Clés des commandes verrouillées.
     var lockedKeys: [String] {
-        controlPreferences.filter { $0.value.isLocked }.keys.sorted()
+        preferences.filter { $0.value.isLocked }.keys.sorted()
     }
 
     /// Écrit une préférence, et retire l'entrée quand elle redevient neutre :
     /// les réglages enregistrés ne gardent que ce qui a été choisi.
     mutating func setPreference(_ preference: ControlPreference, for key: String) {
-        if preference.isDefault {
-            controlPreferences.removeValue(forKey: key)
+        if preference.isDefault(for: key) {
+            preferences.removeValue(forKey: key)
         } else {
-            controlPreferences[key] = preference
+            preferences[key] = preference
         }
     }
 
@@ -346,18 +394,20 @@ struct HemiplegiaProfile: Codable, Equatable, Sendable {
         // Copie des clés : on modifie le dictionnaire pendant le parcours.
         // Une commande verrouillée garde sa place : « tout replacer » ne doit
         // pas défaire ce qui a été explicitement figé.
-        for key in Array(controlPreferences.keys) where !isLocked(key) {
+        for key in Array(preferences.keys) where !isLocked(key) {
             updatePreference(for: key) { $0.freePosition = nil }
         }
     }
 
     /// Remet chaque commande dans son état d'origine.
     mutating func resetControlPreferences() {
-        controlPreferences.removeAll()
+        preferences.removeAll()
     }
 
     /// Clés des commandes masquées, pour les réafficher depuis les réglages.
     var hiddenKeys: [String] {
-        controlPreferences.filter { !$0.value.isVisible }.keys.sorted()
+        // Les commandes masquées par choix : le stick caméra, masqué tant
+        // qu'on ne l'a pas demandé, n'en fait pas partie.
+        preferences.filter { !$0.value.isVisible }.keys.sorted()
     }
 }

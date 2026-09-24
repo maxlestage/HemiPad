@@ -14,7 +14,21 @@ export interface ConsoleProfile {
   omits?: string[]
 }
 
-const directions = { dpad: '✛' }
+/**
+ * La croix, et l'arc de vision : des flèches pointillées, pour ne pas les
+ * confondre avec la croix. Les mêmes sur toutes les consoles.
+ */
+const directions = {
+  dpad: '✛',
+  lookLeft: '⇠',
+  lookUp: '⇡',
+  lookDown: '⇣',
+  lookRight: '⇢',
+  cameraStick: '◎'
+}
+
+/** L'arc de vision : quatre boutons qui déplacent le champ de vision. */
+export const cameraIds = ['lookLeft', 'lookUp', 'lookDown', 'lookRight']
 
 export const consoles: ConsoleProfile[] = [
   {
@@ -101,7 +115,7 @@ export const consoles: ConsoleProfile[] = [
     id: 'retro',
     name: 'Rétro / Émulateur',
     accent: '#ffa33d',
-    omits: ['capture'],
+    omits: ['capture', ...cameraIds, 'cameraStick'],
     glyphs: {
       faceS: 'B',
       faceE: 'A',
@@ -121,7 +135,7 @@ export const consoles: ConsoleProfile[] = [
     id: 'desktop',
     name: 'Ordinateur',
     accent: '#00e5ff',
-    omits: ['capture'],
+    omits: ['capture', ...cameraIds, 'cameraStick'],
     glyphs: {
       faceS: '↵',
       faceE: 'esc',
@@ -142,3 +156,9 @@ export const consoles: ConsoleProfile[] = [
 export const faceIds = ['faceW', 'faceN', 'faceS', 'faceE']
 export const shoulderIds = ['L1', 'L2', 'R2', 'R1']
 export const systemIds = ['select', 'home', 'capture', 'start']
+
+/** La console a-t-elle une caméra à piloter ? Les jeux rétro et le clavier
+ *  d'ordinateur n'en ont pas : ni arc de vision, ni stick caméra. */
+export function hasCamera(profile: ConsoleProfile): boolean {
+  return !(profile.omits ?? []).includes('lookUp')
+}

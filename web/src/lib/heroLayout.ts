@@ -1,5 +1,5 @@
 import type { Appareil } from './appareils.ts'
-import { consoles, faceIds, shoulderIds, systemIds } from './consoles.ts'
+import { cameraIds, consoles, faceIds, shoulderIds, systemIds } from './consoles.ts'
 import { solveLayout, sweepSign, type Hand, type Layout, type Size } from './reach.ts'
 
 /**
@@ -52,6 +52,8 @@ export function heroLayout(appareil: Appareil = 'ipad', main: Hand = 'right'): L
     spacing: HERO_SPACING,
     rings: [
       { ids: faceIds, size: { width: target, height: target } },
+      // L'arc de vision, comme dans l'application.
+      { ids: cameraIds, size: { width: target * 0.82, height: target * 0.82 } },
       { ids: shoulderIds, size: { width: target * 0.82, height: target * 0.82 } },
       {
         ids: systemIds.filter((id) => !omis.has(id)),

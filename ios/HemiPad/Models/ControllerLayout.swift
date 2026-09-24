@@ -24,6 +24,10 @@ struct ControllerLayout {
         /// La croix directionnelle. Toutes les manettes en ont une, à côté du
         /// stick : l'une sert à se déplacer, l'autre à naviguer dans les menus.
         case dpad
+        /// Le second stick analogique, pour la caméra. Masqué par défaut :
+        /// l'arc de vision fait le même travail avec des boutons ; le stick
+        /// est là « en cas où », pour les mouvements fins.
+        case cameraStick
         /// Bouton rond.
         case button(ControlID)
         /// Bouton système en gélule.
@@ -31,7 +35,7 @@ struct ControllerLayout {
 
         var control: ControlID? {
             switch self {
-            case .directional, .dpad: return nil
+            case .directional, .dpad, .cameraStick: return nil
             case .button(let control), .pill(let control): return control
             }
         }
@@ -41,6 +45,7 @@ struct ControllerLayout {
             switch self {
             case .directional: return ControlKey.directional
             case .dpad: return ControlKey.dpad
+            case .cameraStick: return ControlKey.cameraStick
             case .button(let control), .pill(let control): return ControlKey.key(for: control)
             }
         }
@@ -120,6 +125,9 @@ struct ControllerLayout {
     static let minimumTargetSize: CGFloat = 44
 
     static let faceOrder: [ControlID] = [.faceWest, .faceNorth, .faceSouth, .faceEast]
+    /// L'arc de vision, juste après les boutons de façade : la caméra sert
+    /// presque autant qu'eux dans un jeu en trois dimensions.
+    static let cameraOrder: [ControlID] = [.lookLeft, .lookUp, .lookDown, .lookRight]
     static let shoulderOrder: [ControlID] = [.shoulderLeft, .triggerLeft, .triggerRight, .shoulderRight]
     static let systemOrder: [ControlID] = [.select, .home, .capture, .start]
     static let pillSize = CGSize(width: 78, height: 38)
@@ -128,7 +136,9 @@ struct ControllerLayout {
     /// la liste que l'écran de réglages parcourt.
     static func allElements(for console: ConsoleProfile) -> [Element] {
         var elements: [Element] = [.directional, .dpad]
+        if console.hasCamera { elements.append(.cameraStick) }
         elements.append(contentsOf: faceOrder.filter(console.has).map(Element.button))
+        elements.append(contentsOf: cameraOrder.filter(console.has).map(Element.button))
         elements.append(contentsOf: shoulderOrder.filter(console.has).map(Element.button))
         elements.append(contentsOf: systemOrder.filter(console.has).map(Element.pill))
         return elements
@@ -136,6 +146,9 @@ struct ControllerLayout {
 
     /// Résout la disposition pour une taille de vue donnée.
     static func solve(profile: HemiplegiaProfile, console: ConsoleProfile, size: CGSize) -> Solution {
+        // Chaque console lit sa propre disposition si elle en a une.
+        var profile = profile
+        profile.activeConsole = console.target.rawValue
         let arc = solveArc(profile: profile, console: console, size: size)
         guard profile.layoutMode == .free else { return arc }
         return applyFreePositions(to: arc, profile: profile, size: size)
@@ -253,6 +266,7 @@ struct ControllerLayout {
 
         return [
             build(faceOrder, scale: 1, makeElement: Element.button),
+            build(cameraOrder, scale: 0.82, makeElement: Element.button),
             build(shoulderOrder, scale: 0.82, makeElement: Element.button),
             buildPills(systemOrder)
         ].filter { !$0.elements.isEmpty }
@@ -277,16 +291,18 @@ struct ControllerLayout {
     ) -> Solution? {
         var rings = rings(target: target, profile: profile, console: console)
 
-        // Le stick et la croix, les deux commandes que le pouce utilise le
-        // plus, au plus près de lui. Visibles ensemble, ils forment le
-        // premier arc ; si l'un est masqué, l'autre prend seul la place du
-        // stick, sous le premier arc.
-        let inner = [Element.directional, .dpad].filter { profile.isVisible($0.key) }
+        // Le stick, la croix — et le stick caméra s'il est affiché —, les
+        // commandes que le pouce utilise le plus, au plus près de lui.
+        // Visibles à plusieurs, ils forment le premier arc ; s'il n'en reste
+        // qu'un, il prend seul la place du stick, sous le premier arc.
+        var innerCandidates: [Element] = [.directional, .dpad]
+        if console.hasCamera { innerCandidates.append(.cameraStick) }
+        let inner = innerCandidates.filter { profile.isVisible($0.key) }
         func innerSize(_ element: Element) -> CGSize {
             let side = target * 1.6 * profile.preference(element.key).sizeScale
             return CGSize(width: side, height: side)
         }
-        if inner.count == 2 {
+        if inner.count >= 2 {
             rings.insert(Ring(elements: inner, sizes: inner.map(innerSize)), at: 0)
         }
         let single = inner.count == 1 ? inner[0] : nil

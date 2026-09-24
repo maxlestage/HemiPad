@@ -357,3 +357,27 @@ test('masquer la croix ou le stick rend sa place aux autres commandes', () => {
   )
   assert.equal(aucun.placements.length, 12)
 })
+
+test('le stick caméra rejoint le stick et la croix au plus près du pouce', () => {
+  const layout = solveLayout(
+    base(56, { canvas: { width: 768, height: 1024 }, inner: ['directional', 'dpad', 'cameraStick'] })
+  )
+  const grosses = ['directional', 'dpad', 'cameraStick'].map((id) => layout.placements.find((p) => p.id === id)!)
+  assert.ok(grosses.every(Boolean), 'les trois sont posées')
+  assert.equal(layout.overlapping.length, 0)
+  const distance = (p: { center: { x: number; y: number } }) =>
+    Math.hypot(p.center.x - layout.pivot.x, p.center.y - layout.pivot.y)
+  const autres = layout.placements.filter((p) => !grosses.includes(p))
+  assert.ok(Math.max(...grosses.map(distance)) < Math.min(...autres.map(distance)))
+
+  // Masqué, il rend sa place.
+  const sans = solveLayout(
+    base(56, {
+      canvas: { width: 768, height: 1024 },
+      inner: ['directional', 'dpad', 'cameraStick'],
+      preferences: { cameraStick: { hidden: true } }
+    })
+  )
+  assert.ok(!sans.placements.some((p) => p.id === 'cameraStick'))
+  assert.equal(sans.placements.length, layout.placements.length - 1)
+})

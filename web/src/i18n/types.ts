@@ -96,6 +96,11 @@ export interface Dictionary {
       overlap: (count: number) => string
       resetPositions: string
     }
+    ownLayout: {
+      label: (console: string) => string
+      on: string
+      off: string
+    }
     device: {
       label: string
       ipad: string
