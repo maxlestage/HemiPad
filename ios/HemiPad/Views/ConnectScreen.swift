@@ -41,6 +41,7 @@ struct ConnectScreen: View {
                                     Text(profile.summary)
                                         .font(.caption)
                                         .foregroundStyle(Theme.secondaryText)
+                                    directBadge(profile.bluetoothReach)
                                 }
                                 Spacer()
                                 if state.consoleTarget == profile.target {
@@ -90,17 +91,9 @@ struct ConnectScreen: View {
                     }
                 }
 
-                if transport.kind == .bluetoothHID {
-                    section("Avec quoi ça marche") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Label("Ordinateurs Windows et Linux, appareils Android : l'appareil s'y appaire comme une manette Bluetooth, sans boîtier ni câble.", systemImage: "checkmark.circle.fill")
-                            Label("Switch, PS5 et Xbox n'acceptent en Bluetooth que leurs propres manettes : aucune manette d'une autre marque ne s'y connecte directement.", systemImage: "xmark.circle.fill")
-                        }
-                        .font(.caption)
-                        .foregroundStyle(Theme.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                    }
+                reachSection(state.console)
 
+                if transport.kind == .bluetoothHID {
                     section("Le nom que verra la machine") {
                         // HemiPad s'annonce sous son propre nom, mais une fois
                         // appairée, la machine lit le nom de l'appareil, que
@@ -224,6 +217,56 @@ struct ConnectScreen: View {
                 .fill(Theme.surface.opacity(isConnected ? 1 : 0.6))
         )
         .accessibilityElement(children: .contain)
+    }
+
+    /// Accepté ou refusé en Bluetooth direct, d'un coup d'œil.
+    private func directBadge(_ reach: BluetoothReach) -> some View {
+        Label(
+            reach.acceptsDirect ? "Bluetooth direct" : "Bluetooth direct refusé par la console",
+            systemImage: reach.acceptsDirect ? "checkmark.circle.fill" : "xmark.circle.fill"
+        )
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(reach.acceptsDirect ? Theme.secondaryText : Theme.danger)
+    }
+
+    /// Pour la console choisie : ce qu'elle accepte, et le chemin qui marche.
+    private func reachSection(_ console: ConsoleProfile) -> some View {
+        let reach = console.bluetoothReach
+        return section("Avec \(console.displayName)") {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(reach.verdict, systemImage: reach.acceptsDirect ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(reach.acceptsDirect ? Theme.primaryText : Theme.danger)
+
+                Text(reach.acceptsDirect ? "Appairer" : "Ce qui marche à la place")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Theme.secondaryText)
+                ForEach(Array(reach.steps.enumerated()), id: \.offset) { index, step in
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text("\(index + 1)")
+                            .font(.caption.weight(.bold).monospacedDigit())
+                            .frame(width: 22, height: 22)
+                            .background(Circle().fill(Theme.surfaceHigh))
+                        Text(step)
+                            .font(.caption)
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+
+                if let setting = reach.consoleSetting {
+                    Label(setting, systemImage: "hand.raised.fill")
+                        .font(.caption)
+                        .foregroundStyle(Theme.secondaryText)
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.cardRadius)
+                    .fill(reach.acceptsDirect ? Theme.surface : Theme.danger.opacity(0.12))
+            )
+        }
     }
 
     @ViewBuilder
