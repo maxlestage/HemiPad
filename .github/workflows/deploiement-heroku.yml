@@ -14,16 +14,24 @@ on:
     branches: [master, main]
   workflow_dispatch:
 
+# Droits minimaux : lire le code, rien d'autre. Chaque workflow déclare ce
+# dont il a besoin plutôt que d'hériter des droits par défaut du dépôt.
+permissions:
+  contents: read
+
 jobs:
   deployer:
     name: Pousser vers Heroku
     runs-on: ubuntu-latest
-    env:
-      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-      HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+    # Seul master part en production, même lancé à la main : une autre
+    # branche n'a pas été vérifiée ni fusionnée.
+    if: github.ref == 'refs/heads/master'
     steps:
       - name: Les secrets sont-ils présents ?
         id: secrets
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
         run: |
           if [ -n "$HEROKU_API_KEY" ] && [ -n "$HEROKU_APP_NAME" ]; then
             echo "pret=oui" >> "$GITHUB_OUTPUT"
@@ -32,13 +40,19 @@ jobs:
             echo "Secrets absents : déploiement ignoré (ce n'est pas une erreur)."
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: steps.secrets.outputs.pret == 'oui'
         with:
           fetch-depth: 0
+          # Le jeton GitHub ne reste pas dans .git/config après le checkout.
+          persist-credentials: false
 
       - name: Pousser la branche courante sur Heroku
         if: steps.secrets.outputs.pret == 'oui'
+        # La clé n'est visible que de cette étape.
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
         run: |
           git push --force \
             "https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git" \
