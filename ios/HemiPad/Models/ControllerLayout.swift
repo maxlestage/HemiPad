@@ -91,6 +91,9 @@ struct ControllerLayout {
         let wasTightened: Bool
         /// Mode ayant produit ce plan.
         let mode: LayoutMode
+        /// Vrai si l'arc de vision a dû être replié : l'écran est trop petit
+        /// pour toutes les commandes à 44 points, même au plus serré.
+        var cameraArcFolded = false
 
         func placement(for key: String) -> Placement? {
             placements.first { $0.id == key }
@@ -215,9 +218,25 @@ struct ControllerLayout {
             if let solution = tryLayout(target, minimumSpacing) { return solution }
         }
 
-        // Même au plancher, rien ne tient : on pose quand même tout, quitte à
-        // ce que des commandes se chevauchent. Un bouton caché est pire
-        // qu'un bouton serré.
+        // Même au plancher, rien ne tient. Avant de serrer les commandes les
+        // unes sur les autres, on replie l'arc de vision : c'est le seul
+        // arc qui double une autre commande — la visée par inclinaison, le
+        // stick caméra. Sur un écran aussi petit, le perdre coûte moins que
+        // de rendre toutes les autres cibles difficiles à viser.
+        let visibleVision = cameraOrder.filter { console.has($0) && profile.isVisible(ControlKey.key(for: $0)) }
+        if !visibleVision.isEmpty {
+            var folded = profile
+            for control in visibleVision {
+                folded.updatePreference(for: ControlKey.key(for: control)) { $0.isVisible = false }
+            }
+            var solution = solveArc(profile: folded, console: console, size: size)
+            solution.cameraArcFolded = true
+            return solution
+        }
+
+        // Toujours rien : on pose quand même tout, quitte à ce que des
+        // commandes se chevauchent. Un bouton caché est pire qu'un bouton
+        // serré.
         return tryLayout(minimumTargetSize, minimumSpacing, forced: true) ?? Solution(
             placements: [],
             envelope: baseEnvelope,
@@ -444,7 +463,8 @@ struct ControllerLayout {
             radii: arc.radii,
             wasDownscaled: arc.wasDownscaled,
             wasTightened: arc.wasTightened,
-            mode: .free
+            mode: .free,
+            cameraArcFolded: arc.cameraArcFolded
         )
     }
 

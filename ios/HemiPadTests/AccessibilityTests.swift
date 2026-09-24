@@ -441,7 +441,7 @@ final class ControllerLayoutTests: XCTestCase {
                     XCTAssertLessThanOrEqual(solution.targetSize, profile.baseTargetSize + 0.001)
                     XCTAssertGreaterThanOrEqual(solution.targetSize, ControllerLayout.minimumTargetSize)
                     XCTAssertLessThanOrEqual(solution.spacing, spacing + 0.001)
-                    XCTAssertEqual(solution.placements.count, 18, "aucune commande ne disparaît")
+                    XCTAssertEqual(solution.placements.count, solution.cameraArcFolded ? 14 : 18, "aucune commande ne disparaît, hors l'arc de vision replié")
                     XCTAssertTrue(solution.overlapping.isEmpty, "\(size) ×\(spacing) : \(points) pt")
                     previous = solution.targetSize
                 }
@@ -490,7 +490,7 @@ final class ControllerLayoutTests: XCTestCase {
             size: CGSize(width: 320, height: 480)
         )
         XCTAssertTrue(cramped.wasDownscaled)
-        XCTAssertEqual(cramped.placements.count, 18, "aucune commande ne disparaît")
+        XCTAssertEqual(cramped.placements.count, cramped.cameraArcFolded ? 14 : 18, "aucune commande ne disparaît, hors l'arc de vision replié")
     }
 
     /// Une vraie manette a un stick *et* une croix : toutes les consoles
@@ -562,7 +562,9 @@ final class ControllerLayoutTests: XCTestCase {
             (id: $0.id, distance: hypot($0.center.x - pivot.x, $0.center.y - pivot.y))
         }
         let closest = distances.min { $0.distance < $1.distance }
-        XCTAssertEqual(closest?.id, "directional")
+        // Le stick et la croix partagent le premier arc, à la même distance
+        // du pouce : l'un ou l'autre est le plus proche.
+        XCTAssertTrue(["directional", "dpad"].contains(closest?.id ?? ""), closest?.id ?? "aucune")
     }
 
     // MARK: - Arc de vision, stick caméra, disposition par console
@@ -597,6 +599,27 @@ final class ControllerLayoutTests: XCTestCase {
         let shoulders = ControllerLayout.shoulderOrder.map(distance).min()!
         XCTAssertGreaterThan(vision.min()!, face)
         XCTAssertLessThan(vision.max()!, shoulders)
+    }
+
+    /// Sur un très petit écran, dix-huit commandes ne tiennent pas à 44
+    /// points : l'arc de vision se replie plutôt que de laisser des boutons
+    /// sortir de l'écran ou se chevaucher.
+    func testTheVisionArcFoldsAwayOnATinyScreen() {
+        let tiny = CGSize(width: 320, height: 480)
+        let solution = ControllerLayout.solve(profile: .default, console: .switch2, size: tiny)
+        if solution.cameraArcFolded {
+            XCTAssertTrue(ControlID.lookControls.allSatisfy { solution.placement(for: ControlKey.key(for: $0)) == nil })
+        }
+        XCTAssertTrue(solution.overlapping.isEmpty)
+        for placement in solution.placements {
+            XCTAssertLessThanOrEqual(placement.frame.maxX, tiny.width + 1, placement.id)
+            XCTAssertGreaterThanOrEqual(placement.frame.minX, -1, placement.id)
+        }
+        XCTAssertGreaterThanOrEqual(solution.targetSize, ControllerLayout.minimumTargetSize)
+
+        // Sur un écran où tout tient, rien n'est replié.
+        let roomy = ControllerLayout.solve(profile: .default, console: .switch2, size: CGSize(width: 768, height: 1024))
+        XCTAssertFalse(roomy.cameraArcFolded)
     }
 
     func testTheCameraStickIsHiddenUntilAskedFor() {

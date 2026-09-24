@@ -63,6 +63,14 @@ struct ControllerScreen: View {
                     if let banner = state.banner {
                         bannerView(banner)
                     }
+                    if layout.cameraArcFolded {
+                        // Dit pourquoi l'arc de vision manque, et ce qui reste
+                        // pour viser.
+                        Text("Écran trop petit : l'arc de vision est replié. La visée par inclinaison et le stick caméra restent disponibles.")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     if state.isEditingLayout {
                         editingBar(layout: layout)
                     } else {
