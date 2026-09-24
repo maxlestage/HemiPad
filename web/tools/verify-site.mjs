@@ -36,6 +36,32 @@ function check(condition, label, detail = '') {
   }
 }
 
+// Les commandes glissent vers leur nouvelle place (420 ms). Mesurer au bout
+// d'un délai fixe, c'était parfois mesurer en plein trajet, et le contrôle
+// échouait de loin en loin, sur une machine chargée. On attend qu'elles soient
+// réellement immobiles : dix images d'affilée sans que la moindre ne bouge.
+function attendreImmobiles(page) {
+  return page.evaluate(
+    () =>
+      new Promise((résoudre) => {
+        const relevé = () =>
+          [...document.querySelectorAll('.control:not(.is-hidden-control)')]
+            .map((n) => getComputedStyle(n).transform)
+            .join('|')
+        let dernier = ''
+        let stable = 0
+        const regarder = () => {
+          const actuel = relevé()
+          stable = actuel === dernier ? stable + 1 : 0
+          dernier = actuel
+          if (stable >= 10) résoudre()
+          else requestAnimationFrame(regarder)
+        }
+        requestAnimationFrame(regarder)
+      })
+  )
+}
+
 const browser = await chromium.launch(
   optionsDeLancement({
     // Sans carte graphique, Chromium refuse WebGL et la scène 3D basculerait
@@ -385,7 +411,10 @@ for (const scheme of ['dark', 'light']) {
     'les deux commandes sont verrouillées d’un seul geste'
   )
 
-  // Une commande verrouillée ne se déplace plus.
+  // Une commande verrouillée ne se déplace plus. Réafficher une commande a
+  // recalculé la disposition : on attend la fin du glissement avant de
+  // mesurer, sinon la position « avant » est prise en plein trajet.
+  await attendreImmobiles(page)
   const verrouillee = page.locator('[data-control="L2"]')
   const avantVerrou = await verrouillee.boundingBox()
   await page.mouse.move(avantVerrou.x + avantVerrou.width / 2, avantVerrou.y + avantVerrou.height / 2)
@@ -393,6 +422,7 @@ for (const scheme of ['dark', 'light']) {
   await page.mouse.move(avantVerrou.x + avantVerrou.width / 2 - 100, avantVerrou.y + avantVerrou.height / 2, { steps: 10 })
   await page.mouse.up()
   await page.waitForTimeout(200)
+  await attendreImmobiles(page)
   const apresVerrou = await verrouillee.boundingBox()
   check(
     Math.hypot(apresVerrou.x - avantVerrou.x, apresVerrou.y - avantVerrou.y) < 2,
@@ -456,31 +486,7 @@ for (const scheme of ['dark', 'light']) {
       return plusPetit
     })
 
-  // Les commandes glissent vers leur nouvelle place. Mesurer au bout d'un
-  // délai fixe, c'était parfois mesurer en plein trajet — deux commandes qui se
-  // croisent se chevauchent — et le contrôle échouait de loin en loin, sur une
-  // machine chargée. On attend qu'elles soient réellement immobiles : dix
-  // images d'affilée sans que la moindre ne bouge.
-  const immobiles = () =>
-    page.evaluate(
-      () =>
-        new Promise((résoudre) => {
-          const relevé = () =>
-            [...document.querySelectorAll('.control:not(.is-hidden-control)')]
-              .map((n) => getComputedStyle(n).transform)
-              .join('|')
-          let dernier = ''
-          let stable = 0
-          const regarder = () => {
-            const actuel = relevé()
-            stable = actuel === dernier ? stable + 1 : 0
-            dernier = actuel
-            if (stable >= 10) résoudre()
-            else requestAnimationFrame(regarder)
-          }
-          requestAnimationFrame(regarder)
-        })
-    )
+  const immobiles = () => attendreImmobiles(page)
 
   const curseur = page
     .locator('.demo-controls')

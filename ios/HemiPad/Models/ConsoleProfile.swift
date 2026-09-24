@@ -175,3 +175,90 @@ struct ConsoleProfile: Identifiable, Equatable, Sendable {
         all.first { $0.target == target } ?? .steam
     }
 }
+
+// MARK: - Bluetooth direct
+
+/// Ce que la console accepte en Bluetooth, et le chemin qui marche.
+///
+/// Dit franchement : certaines consoles n'acceptent que leurs propres
+/// manettes, et aucune application ne peut les convaincre du contraire. Plutôt
+/// que de laisser chercher en vain, HemiPad le dit, et montre le chemin qui
+/// marche sans rien acheter quand il en existe un.
+struct BluetoothReach: Equatable, Sendable {
+    /// La console reçoit-elle HemiPad directement en Bluetooth ?
+    let acceptsDirect: Bool
+    /// Une phrase : accepté ou refusé, et pourquoi.
+    let verdict: String
+    /// Le chemin qui marche, étape par étape.
+    let steps: [String]
+    /// Un réglage de la console elle-même qui aide à jouer d'une main.
+    let consoleSetting: String?
+}
+
+extension ConsoleProfile {
+    var bluetoothReach: BluetoothReach {
+        switch target {
+        case .switch2:
+            return BluetoothReach(
+                acceptsDirect: false,
+                verdict: "Bluetooth direct refusé par la console : la Switch n'accepte que les manettes Nintendo et celles qu'elle a certifiées. Aucune application iPhone ou iPad ne peut s'y connecter.",
+                steps: [
+                    "La Switch n'a ni lecture à distance ni application pour ordinateur : il n'existe pas de chemin sans matériel.",
+                    "Si le jeu existe aussi sur ordinateur ou sur Android, jouez-y avec HemiPad en Bluetooth direct."
+                ],
+                consoleSetting: "Sur la console : Paramètres de la console › Manettes et capteurs › Changer l'assignation des boutons, pour rassembler les commandes utiles sous une main."
+            )
+        case .playstation:
+            return BluetoothReach(
+                acceptsDirect: false,
+                verdict: "Bluetooth direct refusé par la console : la PS5 n'accepte que les manettes PlayStation et quelques manettes sous licence.",
+                steps: [
+                    "Sur la PS5 : Paramètres › Système › Lecture à distance › Activer la lecture à distance.",
+                    "Sur un ordinateur Windows ou Linux, installez chiaki-ng, gratuit et libre : il affiche la PS5 et lui relaie la manette.",
+                    "Appairez HemiPad à l'ordinateur en Bluetooth direct, puis ouvrez la PS5 dans chiaki-ng : chaque appui part vers la console, avec le léger délai de la lecture à distance."
+                ],
+                consoleSetting: "Sur la console : Paramètres › Accessibilité › Manettes › Attributions personnalisées des touches."
+            )
+        case .xbox:
+            return BluetoothReach(
+                acceptsDirect: false,
+                verdict: "Bluetooth direct refusé par la console : la Xbox n'appaire aucune manette en Bluetooth, elle ne parle que son propre protocole sans fil.",
+                steps: [
+                    "Sur la Xbox : Paramètres › Appareils et connexions › Fonctionnalités à distance › Activer les fonctionnalités à distance.",
+                    "Sur un PC Windows, ouvrez l'application Xbox (gratuite), choisissez la console, puis Lecture à distance.",
+                    "Appairez HemiPad au PC en Bluetooth direct. Si l'application ne réagit pas, lancez-la depuis Steam (gratuit) : Steam présente toute manette comme une manette Xbox."
+                ],
+                consoleSetting: nil
+            )
+        case .steam:
+            return BluetoothReach(
+                acceptsDirect: true,
+                verdict: "Bluetooth direct accepté : Windows, Linux et le Steam Deck appairent HemiPad comme une manette.",
+                steps: [
+                    "Sur la machine : réglages Bluetooth › ajouter un appareil › HemiPad.",
+                    "Dans Steam, la manette apparaît dans Paramètres › Manette : attribuez les touches une fois, Steam s'en souvient."
+                ],
+                consoleSetting: nil
+            )
+        case .retro:
+            return BluetoothReach(
+                acceptsDirect: true,
+                verdict: "Bluetooth direct accepté : les émulateurs sur ordinateur (Windows, Linux) et sur Android reçoivent HemiPad comme une manette.",
+                steps: [
+                    "Sur la machine : réglages Bluetooth › ajouter un appareil › HemiPad.",
+                    "Dans l'émulateur, attribuez les touches une fois : il s'en souvient."
+                ],
+                consoleSetting: nil
+            )
+        case .desktop:
+            return BluetoothReach(
+                acceptsDirect: true,
+                verdict: "Bluetooth direct accepté : Windows, Linux et Android reçoivent HemiPad comme un clavier.",
+                steps: [
+                    "Sur la machine : réglages Bluetooth › ajouter un appareil › HemiPad."
+                ],
+                consoleSetting: nil
+            )
+        }
+    }
+}
