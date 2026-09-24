@@ -19,6 +19,15 @@ Ce qui protège le projet, et ce qui reste à régler à la main dans GitHub.
   frappes. Le registre des machines (SQLite) est exclu des sauvegardes ; ses
   requêtes sont toutes paramétrées.
 
+### Lecture à distance Xbox (dans l'application)
+
+- La page ne peut naviguer qu'en HTTPS, vers les domaines de la Xbox et du
+  compte Microsoft ; tout autre lien s'ouvre dans Safari, hors de HemiPad.
+- La manette virtuelle n'est injectée que sur xbox.com, et ne reçoit que des
+  nombres (boutons, axes) ; la page ne peut rien demander à l'application.
+- Des tests vérifient la liste des domaines, le script injecté (exécuté dans
+  JavaScriptCore) et que WebKit voit bien les garde-fous de navigation.
+
 ## Site
 
 - **Politique de sécurité (CSP) stricte** : scripts, styles, polices et images

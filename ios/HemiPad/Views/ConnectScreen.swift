@@ -7,6 +7,7 @@ struct ConnectScreen: View {
     /// La machine qu'on est en train de renommer, et le nom en cours de saisie.
     @State private var renaming: RememberedMachine?
     @State private var draftName = ""
+    @State private var showsRemotePlay = false
 
     var body: some View {
         ScrollView {
@@ -139,6 +140,10 @@ struct ConnectScreen: View {
             .padding(14)
         }
         .background(AuroraBackground(reducedMotion: state.profile.reducedMotion))
+        .fullScreenCover(isPresented: $showsRemotePlay) {
+            RemotePlayScreen()
+                .hemipadEnvironment(state)
+        }
         .alert("Nommer la machine", isPresented: Binding(
             get: { renaming != nil },
             set: { if !$0 { renaming = nil } }
@@ -219,6 +224,26 @@ struct ConnectScreen: View {
         .accessibilityElement(children: .contain)
     }
 
+    /// Sans PC : la lecture à distance de la Xbox, dans HemiPad.
+    private var remotePlayButton: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                showsRemotePlay = true
+            } label: {
+                Label("Jouer à la Xbox dans HemiPad", systemImage: "play.tv.fill")
+                    .font(.callout.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(state.accent))
+                    .foregroundStyle(Theme.background)
+            }
+            .buttonStyle(.plain)
+            Text("Ou sans PC : la lecture à distance de Microsoft, ouverte dans HemiPad. Connectez-vous à votre compte, choisissez la console, puis passez en mode Manette : le jeu s'affiche sur cet écran, les commandes HemiPad par-dessus. Sur la Xbox, les fonctionnalités à distance doivent être activées (étape 1).")
+                .font(.caption)
+                .foregroundStyle(Theme.secondaryText)
+        }
+    }
+
     /// Accepté ou refusé en Bluetooth direct, d'un coup d'œil.
     private func directBadge(_ reach: BluetoothReach) -> some View {
         Label(
@@ -251,6 +276,10 @@ struct ConnectScreen: View {
                             .font(.caption)
                     }
                     .accessibilityElement(children: .combine)
+                }
+
+                if console.target == .xbox {
+                    remotePlayButton
                 }
 
                 if let setting = reach.consoleSetting {
