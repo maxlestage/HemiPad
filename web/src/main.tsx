@@ -8,6 +8,14 @@ import { MainValideProvider } from './lib/mainValide.tsx'
 import { MotionProvider } from './lib/motion.tsx'
 import { registerServiceWorker } from './lib/pwa.ts'
 import { ThemeProvider } from './lib/theme.tsx'
+// Polices servies par le site lui-même : aucune requête vers un tiers, rien
+// qui transmette l'adresse des visiteurs, et une politique de sécurité (CSP)
+// qui peut se limiter à « ce site seulement ».
+import '@fontsource/space-grotesk/latin-400.css'
+import '@fontsource/space-grotesk/latin-500.css'
+import '@fontsource/space-grotesk/latin-700.css'
+import '@fontsource/jetbrains-mono/latin-400.css'
+import '@fontsource/jetbrains-mono/latin-600.css'
 import './styles/global.css'
 
 const container = document.getElementById('root')

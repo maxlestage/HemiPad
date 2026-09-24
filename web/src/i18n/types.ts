@@ -19,6 +19,15 @@ export interface PathCopy {
   note: string
 }
 
+/** Une console qui refuse les manettes d'autres marques, et ce qui marche. */
+export interface ConsoleRouteCopy {
+  name: string
+  verdict: string
+  /** Vide quand il n'existe aucun chemin sans matériel. */
+  steps: string[]
+  note: string
+}
+
 export interface Dictionary {
   /** Nom de la langue dans sa propre langue, pour le sélecteur. */
   localeName: string
@@ -161,6 +170,7 @@ export interface Dictionary {
     title: string
     lede: string
     paths: PathCopy[]
+    routes: { title: string; lede: string; items: ConsoleRouteCopy[] }
     specs: { label: string; value: string }[]
   }
   share: {

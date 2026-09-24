@@ -52,6 +52,13 @@ final class ConnectionStore {
             create: true
         ).appendingPathComponent("HemiPad", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        // Hors des sauvegardes : les identifiants Bluetooth ne valent que pour
+        // cet appareil (un nouvel iPhone doit de toute façon être réappairé),
+        // et le journal des connexions n'a rien à faire dans un nuage.
+        var excluded = folder
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? excluded.setResourceValues(values)
         return try ConnectionStore(path: folder.appendingPathComponent("connexions.sqlite").path)
     }
 
