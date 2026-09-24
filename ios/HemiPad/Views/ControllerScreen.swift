@@ -15,6 +15,12 @@ struct ControllerScreen: View {
     @EnvironmentObject private var state: AppState
     @EnvironmentObject private var arbiter: InputArbiter
     @EnvironmentObject private var tilt: TiltStick
+    /// Posée sur la lecture à distance, la manette laisse voir le jeu.
+    private let overlaysGame: Bool
+
+    init(overlaysGame: Bool = false) {
+        self.overlaysGame = overlaysGame
+    }
 
     /// Plusieurs commandes peuvent être sélectionnées : verrouiller les deux
     /// gâchettes ou masquer les quatre boutons système se fait alors d'un
@@ -38,7 +44,7 @@ struct ControllerScreen: View {
             let overlapping = state.isEditingLayout ? layout.overlapping : []
 
             ZStack(alignment: .topLeading) {
-                if state.profile.layoutMode == .arc {
+                if state.profile.layoutMode == .arc && !overlaysGame {
                     reachGuide(layout: layout)
                 }
 
@@ -92,7 +98,11 @@ struct ControllerScreen: View {
                 editor(for: orderedSelection)
             }
         }
-        .background(AuroraBackground(reducedMotion: state.profile.reducedMotion))
+        .background {
+            if !overlaysGame {
+                AuroraBackground(reducedMotion: state.profile.reducedMotion)
+            }
+        }
     }
 
     /// Sélection dans l'ordre d'affichage : une liste stable se lit mieux

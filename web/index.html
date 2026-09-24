@@ -52,33 +52,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
-
-    <script>
-      // Thème et langue appliqués avant le premier rendu : sans cela, une
-      // personne en mode clair verrait une page noire pendant un instant.
-      ;(function () {
-        try {
-          var theme = localStorage.getItem('hemipad.theme') || 'auto'
-          document.documentElement.dataset.theme = theme
-          var locale = localStorage.getItem('hemipad.locale')
-          if (locale) document.documentElement.lang = locale
-          var prefersLight =
-            window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
-          var dark = theme === 'dark' || (theme === 'auto' && !prefersLight)
-          document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
-          var meta = document.querySelector('meta[name="theme-color"]')
-          if (meta) meta.setAttribute('content', dark ? '#05060d' : '#f4f6fc')
-        } catch (error) {
-          // Stockage inaccessible : le thème automatique s'applique quand même.
-        }
-      })()
-    </script>
+    <!-- Thème et langue appliqués avant le premier rendu. Fichier séparé, et
+         non script en ligne : la politique de sécurité (CSP) n'autorise que
+         les scripts servis par le site. -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

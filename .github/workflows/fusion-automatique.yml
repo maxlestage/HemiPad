@@ -11,6 +11,13 @@ name: Fusion automatique
 #    qu'un humain l'ait lue.
 # 2. **L'étiquette `pas-de-fusion-auto` suspend la fusion** d'une pull request
 #    précise, le temps d'y réfléchir.
+# 3. **La branche doit venir de ce dépôt**, pas d'une copie (fork).
+# 4. **Les vérifications essentielles doivent être là, par leur nom.** Une pull
+#    request qui supprimerait une vérification ne passerait pas « faute de
+#    vérification en échec » : son absence bloque la fusion.
+# 5. **Toucher à `.github/` demande un humain.** Une pull request qui modifie
+#    les workflows — y compris celui-ci — pourrait retirer les garde-fous
+#    qu'elle doit franchir : elle n'est jamais fusionnée automatiquement.
 #
 # La fusion n'a lieu que si *toutes* les vérifications présentes sont terminées
 # et réussies, qu'il en existe au moins une, et que la pull request est
@@ -34,9 +41,11 @@ on:
         required: false
         type: string
 
+# Fusionner demande `contents: write` ; lire les pull requests et leurs
+# vérifications, de simples lectures.
 permissions:
   contents: write
-  pull-requests: write
+  pull-requests: read
   checks: read
 
 concurrency:
@@ -49,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Examiner les pull requests prêtes
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const owner = context.repo.owner
@@ -59,6 +68,12 @@ jobs:
             // Les vérifications produites par ce workflow lui-même ne doivent
             // pas être attendues : il serait son propre blocage.
             const IGNORE = ['Fusionner ce qui est prêt']
+            // Vérifications exigées par leur nom, sur toute pull request.
+            const REQUISES = ['Site vitrine', 'Vérifications dans un navigateur', 'Projet Xcode régénérable']
+            // Exigée en plus dès qu'un fichier de l'application iOS change.
+            const REQUISE_IOS = 'Compilation et tests'
+            // Fichiers qu'aucune fusion automatique ne doit toucher.
+            const SENSIBLE = /^\.github\//
 
             const numero = context.payload.inputs?.pull_request
             const shaEvenement =
@@ -88,6 +103,10 @@ jobs:
 
               if (resume.user.login !== owner) {
                 core.info(`${prefixe} : ouverte par ${resume.user.login}, pas par ${owner} — ignorée.`)
+                continue
+              }
+              if (resume.head.repo?.full_name !== `${owner}/${repo}`) {
+                core.info(`${prefixe} : branche venue d'un autre dépôt — ignorée.`)
                 continue
               }
               if (resume.draft) {
@@ -120,6 +139,35 @@ jobs:
                   `${prefixe} : ${enCours.length} vérification(s) en cours (${enCours
                     .map((run) => run.name)
                     .join(', ')}) — on attend.`
+                )
+                continue
+              }
+
+              const fichiers = await github.paginate(github.rest.pulls.listFiles, {
+                owner,
+                repo,
+                pull_number: resume.number,
+                per_page: 100
+              })
+              const sensibles = fichiers.filter(
+                (f) => SENSIBLE.test(f.filename) || SENSIBLE.test(f.previous_filename ?? '')
+              )
+              if (sensibles.length > 0) {
+                core.warning(
+                  `${prefixe} : modifie ${sensibles.map((f) => f.filename).join(', ')} — relecture humaine, pas de fusion automatique.`
+                )
+                continue
+              }
+
+              const requises = fichiers.some((f) => f.filename.startsWith('ios/'))
+                ? [...REQUISES, REQUISE_IOS]
+                : REQUISES
+              const absentes = requises.filter(
+                (nom) => !pertinentes.some((run) => run.name === nom && run.conclusion === 'success')
+              )
+              if (absentes.length > 0) {
+                core.info(
+                  `${prefixe} : vérification(s) exigée(s) absente(s) ou en échec : ${absentes.join(', ')} — pas de fusion.`
                 )
                 continue
               }
