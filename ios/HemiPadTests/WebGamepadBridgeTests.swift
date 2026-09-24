@@ -29,7 +29,7 @@ final class WebGamepadBridgeTests: XCTestCase {
 
     func testOutOfRangeValuesAreClamped() {
         var state = GamepadState()
-        state.leftStick = CGPoint(x: 4, y: .nan)
+        state.leftStick = CGPoint(x: CGFloat(4), y: CGFloat.nan)
         state.leftTrigger = 9
         XCTAssertEqual(WebGamepadBridge.axes(for: state)[0], 1)
         XCTAssertEqual(WebGamepadBridge.axes(for: state)[1], 0)
