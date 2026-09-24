@@ -485,6 +485,9 @@ for (const scheme of ['dark', 'light']) {
   const curseur = page
     .locator('.demo-controls')
     .getByLabel(/^(Espacement|Spacing|Separación)$/)
+  // Des cibles assez petites pour que l'écart demandé tienne : à 100 points,
+  // c'est l'écart qui cède d'abord, et la mesure ne verrait plus rien bouger.
+  await page.locator('.demo-controls').getByLabel(/^(Taille des cibles|Target size|Tamaño de los objetivos)$/).fill('60')
   await curseur.fill('1.1')
   await page.waitForTimeout(50)
   await immobiles()
@@ -582,7 +585,7 @@ for (const scheme of ['dark', 'light']) {
     v.cible.texte
   )
   check(Math.abs(d.faceS - 100) < 2, "et dessinés à 100 points de l'iPad", `${d.faceS.toFixed(1)} pt`)
-  check(d.nombre === 14 && d.chevauchements === 0 && d.dehors === 0, "à 100 points, toutes les commandes tiennent sur l'iPad sans se chevaucher", JSON.stringify(d))
+  check(d.nombre === 18 && d.chevauchements === 0 && d.dehors === 0, "à 100 points, toutes les commandes tiennent sur l'iPad sans se chevaucher", JSON.stringify(d))
 
   await curseur.fill('2')
   await page.waitForTimeout(50)
@@ -595,7 +598,7 @@ for (const scheme of ['dark', 'light']) {
     "à ×2, l'iPad garde ses 100 points et resserre l'écart",
     `${v.cible.texte} · ${v.espacement.texte}`
   )
-  check(d.nombre === 14 && d.chevauchements === 0 && d.dehors === 0, 'à ×2 et 100 points, rien ne se chevauche ni ne sort', JSON.stringify(d))
+  check(d.nombre === 18 && d.chevauchements === 0 && d.dehors === 0, 'à ×2 et 100 points, rien ne se chevauche ni ne sort', JSON.stringify(d))
 
   await appareil('iPhone')
   await page.waitForTimeout(50)
@@ -603,17 +606,17 @@ for (const scheme of ['dark', 'light']) {
   v = await valeurs()
   d = await disposition()
   check(
-    // 65 points avec la croix et le stick côte à côte ; 44 quand les
+    // 57 points avec la croix, le stick et l'arc de vision ; 44 quand les
     // cibles cédaient avant l'écart.
-    v.cible.tenue < 100 && v.cible.tenue >= 62 && v.cible.texte.includes(`100 → ${v.cible.tenue}`),
-    "sur l'iPhone, le curseur dit ce qui est demandé et ce que l'écran tient — plus de 60 points",
+    v.cible.tenue < 100 && v.cible.tenue >= 55 && v.cible.texte.includes(`100 → ${v.cible.tenue}`),
+    "sur l'iPhone, le curseur dit ce qui est demandé et ce que l'écran tient — plus de 55 points",
     v.cible.texte
   )
   check(
     (await page.locator('.control-block:has([data-valeur="cible"]) .hint').count()) === 1,
     "et explique pourquoi l'écran réduit"
   )
-  check(d.nombre === 14 && d.chevauchements === 0 && d.dehors === 0, "à 100 points et ×2, l'iPhone garde toutes ses commandes, sans chevauchement", JSON.stringify(d))
+  check(d.nombre === 18 && d.chevauchements === 0 && d.dehors === 0, "à 100 points et ×2, l'iPhone garde toutes ses commandes, sans chevauchement", JSON.stringify(d))
 
   await appareil('iPad')
   await taille.fill('150')
@@ -622,8 +625,8 @@ for (const scheme of ['dark', 'light']) {
   await immobiles()
   v = await valeurs()
   d = await disposition()
-  check(v.cible.tenue >= 125, "au bout du curseur, l'iPad pose ses quatorze commandes à plus de 125 points", v.cible.texte)
-  check(d.nombre === 14 && d.chevauchements === 0 && d.dehors === 0, 'à 150 points demandés, rien ne se chevauche ni ne sort', JSON.stringify(d))
+  check(v.cible.tenue >= 110, "au bout du curseur, l'iPad pose ses dix-huit commandes à plus de 110 points", v.cible.texte)
+  check(d.nombre === 18 && d.chevauchements === 0 && d.dehors === 0, 'à 150 points demandés, rien ne se chevauche ni ne sort', JSON.stringify(d))
   await context.close()
 }
 
@@ -667,8 +670,10 @@ for (const scheme of ['dark', 'light']) {
     'appuyer à droite sur la croix n’allume que la branche droite',
     JSON.stringify(await branches())
   )
-  // Verrouillant par défaut : un second appui relâche la branche.
-  await croix.click({ position: { x: boite.width * 0.88, y: boite.height / 2 } })
+  // Même en mode verrouillant, la croix reste en appui direct, comme dans
+  // l'application : verrouillée, elle ferait tourner le personnage sans fin.
+  await page.waitForTimeout(500)
+  check((await branches()).length === 0, 'la croix se relâche seule, même en mode verrouillant', JSON.stringify(await branches()))
   await croix.focus()
   await page.keyboard.press('ArrowDown')
   await page.waitForTimeout(120)
@@ -678,7 +683,7 @@ for (const scheme of ['dark', 'light']) {
     'au clavier, les flèches actionnent la croix',
     JSON.stringify(await branches())
   )
-  await page.keyboard.press('ArrowDown')
+  await page.waitForTimeout(500)
 
   // La croix se masque comme les autres commandes, et rend sa place.
   await page.locator('.demo-controls').getByRole('button', { name: /^(Modifier|Edit|Editar)$/ }).click()
@@ -688,6 +693,60 @@ for (const scheme of ['dark', 'light']) {
   check(
     (await croix.count()) === 0 && (await page.locator('[data-hidden-control="dpad"]').count()) === 1,
     'la croix se masque, et reste récupérable'
+  )
+  await context.close()
+}
+
+// --- L'arc de vision, et une disposition par console ----------------------
+//
+// Un arc de quatre boutons déplace le champ de vision, comme le stick droit.
+// Il n'existe que sur les consoles qui ont une caméra à piloter ; le stick
+// caméra, lui, attend d'être demandé. Et chaque console peut garder sa
+// propre disposition.
+{
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.locator('#demo').scrollIntoViewIfNeeded()
+  const consoleBouton = (nom) => page.locator('.demo-controls').getByRole('button', { name: nom }).first()
+  const vision = () => page.locator('.control[data-control^="look"]').count()
+
+  check((await vision()) === 4, "la Switch a son arc de vision : quatre boutons", String(await vision()))
+  check(
+    (await page.locator('.control[data-control="cameraStick"]').count()) === 0,
+    'le stick caméra est masqué tant qu’on ne l’a pas demandé'
+  )
+  await consoleBouton(/^(Rétro|Retro)/).click()
+  await page.waitForTimeout(80)
+  check((await vision()) === 0, 'les jeux rétro n’ont pas d’arc de vision : pas de caméra à piloter', String(await vision()))
+  await consoleBouton('Nintendo Switch').click()
+
+  // Tenir un bouton de vision : il s'allume, puis s'éteint seul — appui
+  // direct, jamais verrouillé.
+  await page.waitForTimeout(600)
+  await page.locator('.control[data-control="lookLeft"]').click()
+  await page.waitForTimeout(80)
+  const allume = await page.locator('.control[data-control="lookLeft"]').getAttribute('aria-pressed')
+  await page.waitForTimeout(500)
+  const eteint = await page.locator('.control[data-control="lookLeft"]').getAttribute('aria-pressed')
+  check(allume === 'true' && eteint === 'false', 'un bouton de vision agit tant qu’on le tient, sans se verrouiller', `${allume} → ${eteint}`)
+
+  // Une disposition propre à la Switch : masquer un bouton ne touche qu'elle.
+  const propre = page.locator('.demo-controls').getByRole('button', { name: /^(Disposition propre à|Own layout for|Disposición propia para) Nintendo Switch$/ })
+  await propre.click()
+  check((await propre.getAttribute('aria-pressed')) === 'true', 'la Switch peut garder sa propre disposition')
+  await page.locator('.demo-controls').getByRole('button', { name: /^(Modifier|Edit|Editar)$/ }).click()
+  await page.locator('[data-control="faceS"]').click()
+  await page.locator('.control-panel').getByRole('button', { name: /^(Masquer|Hide|Ocultar)$/ }).click()
+  await page.waitForTimeout(100)
+  const surSwitch = await page.locator('[data-control="faceS"]').count()
+  await consoleBouton('PlayStation').click()
+  await page.waitForTimeout(100)
+  const surPlayStation = await page.locator('[data-control="faceS"]').count()
+  check(
+    surSwitch === 0 && surPlayStation === 1,
+    'masqué sur la Switch, un bouton reste sur la PlayStation',
+    `Switch ${surSwitch}, PlayStation ${surPlayStation}`
   )
   await context.close()
 }

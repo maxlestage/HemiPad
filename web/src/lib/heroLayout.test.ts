@@ -18,10 +18,10 @@ for (const appareil of appareils) {
 
   test(`${nom} : toutes les commandes sont posées`, () => {
     const layout = heroLayout(appareil)
-    // Quatre boutons de façade, quatre gâchettes, quatre touches système — et
-    // le stick et la croix directionnelle, que le solveur pose lui-même au
-    // plus près du pouce.
-    assert.equal(layout.placements.length, 14)
+    // Quatre boutons de façade, quatre de vision, quatre gâchettes, quatre
+    // touches système — et le stick et la croix directionnelle, que le
+    // solveur pose lui-même au plus près du pouce.
+    assert.equal(layout.placements.length, 18)
     assert.ok(layout.placements.some((placement) => placement.id === 'directional'))
     assert.ok(layout.placements.some((placement) => placement.id === 'dpad'))
   })

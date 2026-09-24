@@ -66,6 +66,11 @@ export interface LayoutOptions {
   mode?: LayoutMode
   /** Réglages par commande. */
   preferences?: Preferences
+  /**
+   * Les grosses commandes posées au plus près du pouce, avant tout arc :
+   * le stick et la croix, et le stick caméra sur les consoles qui en ont un.
+   */
+  inner?: string[]
 }
 
 export interface Placement {
@@ -113,6 +118,9 @@ export const MAX_SPACING = 2
 
 /** Le stick (`directional`) et la croix (`dpad`), posés par le solveur lui-même. */
 export const INNER_IDS = ['directional', 'dpad']
+
+/** Le second stick, pour la caméra : masqué tant qu'on ne l'a pas demandé. */
+export const CAMERA_STICK = 'cameraStick'
 
 export function halfExtent(size: Size): number {
   return Math.abs(size.width - size.height) < 0.5
@@ -267,9 +275,9 @@ function tryLayout(
   // utilise le plus, au plus près de lui. Toutes les manettes ont les deux.
   // Visibles ensemble, ils forment le premier arc ; si l'un est masqué,
   // l'autre prend seul la place du stick, sous le premier arc.
-  const inner = INNER_IDS.filter((id) => !preferenceOf(options, id).hidden)
+  const inner = (options.inner ?? INNER_IDS).filter((id) => !preferenceOf(options, id).hidden)
   const innerSize = (id: string) => target * 1.6 * (preferenceOf(options, id).sizeScale ?? 1)
-  if (inner.length === 2) {
+  if (inner.length >= 2) {
     scaled.unshift({
       ids: inner,
       sizes: inner.map((id) => ({ width: innerSize(id), height: innerSize(id) }))

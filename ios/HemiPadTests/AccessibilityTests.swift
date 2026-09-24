@@ -131,7 +131,7 @@ final class FreeLayoutTests: XCTestCase {
             $0.freePosition = CGPoint(x: 0.5, y: 0.5)
         }
         let solution = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
-        XCTAssertEqual(solution.placements.count, 14, "aucune commande n'est retirée")
+        XCTAssertEqual(solution.placements.count, 18, "aucune commande n'est retirée")
         XCTAssertTrue(solution.overlapping.contains(ControlKey.key(for: .faceSouth)))
         XCTAssertTrue(solution.overlapping.contains(ControlKey.key(for: .faceEast)))
     }
@@ -353,8 +353,8 @@ final class ControllerLayoutTests: XCTestCase {
             console: .switch2,
             size: CGSize(width: 393, height: 740)
         )
-        XCTAssertGreaterThan(solution.targetSize, 55)
-        XCTAssertEqual(solution.placements.count, 14)
+        XCTAssertGreaterThan(solution.targetSize, 50)
+        XCTAssertEqual(solution.placements.count, 18)
         XCTAssertTrue(solution.overlapping.isEmpty)
     }
 
@@ -441,7 +441,7 @@ final class ControllerLayoutTests: XCTestCase {
                     XCTAssertLessThanOrEqual(solution.targetSize, profile.baseTargetSize + 0.001)
                     XCTAssertGreaterThanOrEqual(solution.targetSize, ControllerLayout.minimumTargetSize)
                     XCTAssertLessThanOrEqual(solution.spacing, spacing + 0.001)
-                    XCTAssertEqual(solution.placements.count, 14, "aucune commande ne disparaît")
+                    XCTAssertEqual(solution.placements.count, solution.cameraArcFolded ? 14 : 18, "aucune commande ne disparaît, hors l'arc de vision replié")
                     XCTAssertTrue(solution.overlapping.isEmpty, "\(size) ×\(spacing) : \(points) pt")
                     previous = solution.targetSize
                 }
@@ -490,7 +490,7 @@ final class ControllerLayoutTests: XCTestCase {
             size: CGSize(width: 320, height: 480)
         )
         XCTAssertTrue(cramped.wasDownscaled)
-        XCTAssertEqual(cramped.placements.count, 14, "aucune commande ne disparaît")
+        XCTAssertEqual(cramped.placements.count, cramped.cameraArcFolded ? 14 : 18, "aucune commande ne disparaît, hors l'arc de vision replié")
     }
 
     /// Une vraie manette a un stick *et* une croix : toutes les consoles
@@ -562,7 +562,127 @@ final class ControllerLayoutTests: XCTestCase {
             (id: $0.id, distance: hypot($0.center.x - pivot.x, $0.center.y - pivot.y))
         }
         let closest = distances.min { $0.distance < $1.distance }
-        XCTAssertEqual(closest?.id, "directional")
+        // Le stick et la croix partagent le premier arc, à la même distance
+        // du pouce : l'un ou l'autre est le plus proche.
+        XCTAssertTrue(["directional", "dpad"].contains(closest?.id ?? ""), closest?.id ?? "aucune")
+    }
+
+    // MARK: - Arc de vision, stick caméra, disposition par console
+
+    func testTheVisionArcIsThereOnlyForConsolesWithACamera() {
+        let size = CGSize(width: 768, height: 1024)
+        for console in ConsoleProfile.all {
+            let solution = ControllerLayout.solve(profile: .default, console: console, size: size)
+            let looks = ControlID.lookControls.compactMap { solution.placement(for: ControlKey.key(for: $0)) }
+            XCTAssertEqual(looks.count, console.hasCamera ? 4 : 0, console.displayName)
+        }
+        XCTAssertFalse(ConsoleProfile.retro.hasCamera, "les jeux 2D n'ont pas de caméra")
+        XCTAssertFalse(ConsoleProfile.desktop.hasCamera)
+        XCTAssertTrue(ConsoleProfile.switch2.hasCamera)
+    }
+
+    /// L'arc de vision vient juste après les boutons de façade, avant les
+    /// gâchettes.
+    func testTheVisionArcSitsBetweenFaceButtonsAndShoulders() {
+        let solution = ControllerLayout.solve(
+            profile: .default,
+            console: .switch2,
+            size: CGSize(width: 768, height: 1024)
+        )
+        let pivot = solution.envelope.pivot
+        func distance(_ control: ControlID) -> CGFloat {
+            let placement = solution.placement(for: ControlKey.key(for: control))!
+            return hypot(placement.center.x - pivot.x, placement.center.y - pivot.y)
+        }
+        let face = ControllerLayout.faceOrder.map(distance).max()!
+        let vision = ControllerLayout.cameraOrder.map(distance)
+        let shoulders = ControllerLayout.shoulderOrder.map(distance).min()!
+        XCTAssertGreaterThan(vision.min()!, face)
+        XCTAssertLessThan(vision.max()!, shoulders)
+    }
+
+    /// Sur un très petit écran, dix-huit commandes ne tiennent pas à 44
+    /// points : l'arc de vision se replie plutôt que de laisser des boutons
+    /// sortir de l'écran ou se chevaucher.
+    func testTheVisionArcFoldsAwayOnATinyScreen() {
+        let tiny = CGSize(width: 320, height: 480)
+        let solution = ControllerLayout.solve(profile: .default, console: .switch2, size: tiny)
+        if solution.cameraArcFolded {
+            XCTAssertTrue(ControlID.lookControls.allSatisfy { solution.placement(for: ControlKey.key(for: $0)) == nil })
+        }
+        XCTAssertTrue(solution.overlapping.isEmpty)
+        for placement in solution.placements {
+            XCTAssertLessThanOrEqual(placement.frame.maxX, tiny.width + 1, placement.id)
+            XCTAssertGreaterThanOrEqual(placement.frame.minX, -1, placement.id)
+        }
+        XCTAssertGreaterThanOrEqual(solution.targetSize, ControllerLayout.minimumTargetSize)
+
+        // Sur un écran où tout tient, rien n'est replié.
+        let roomy = ControllerLayout.solve(profile: .default, console: .switch2, size: CGSize(width: 768, height: 1024))
+        XCTAssertFalse(roomy.cameraArcFolded)
+    }
+
+    func testTheCameraStickIsHiddenUntilAskedFor() {
+        let size = CGSize(width: 768, height: 1024)
+        var profile = HemiplegiaProfile.default
+        XCTAssertFalse(profile.isVisible(ControlKey.cameraStick))
+        XCTAssertNil(ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+            .placement(for: ControlKey.cameraStick))
+        XCTAssertTrue(profile.hiddenKeys.isEmpty, "masqué d'origine, il n'est pas compté comme masqué par choix")
+
+        profile.updatePreference(for: ControlKey.cameraStick) { $0.isVisible = true }
+        let shown = ControllerLayout.solve(profile: profile, console: .switch2, size: size)
+        let camera = shown.placement(for: ControlKey.cameraStick)
+        XCTAssertNotNil(camera)
+        XCTAssertEqual(camera?.size.width ?? 0, shown.placement(for: ControlKey.directional)?.size.width ?? -1, accuracy: 0.001)
+        XCTAssertTrue(shown.overlapping.isEmpty)
+
+        // Le remasquer le ramène à son état d'origine : rien n'est stocké.
+        profile.updatePreference(for: ControlKey.cameraStick) { $0.isVisible = false }
+        XCTAssertTrue(profile.controlPreferences.isEmpty)
+
+        // Une console sans caméra ne le montre jamais.
+        profile.updatePreference(for: ControlKey.cameraStick) { $0.isVisible = true }
+        XCTAssertNil(ControllerLayout.solve(profile: profile, console: .retro, size: size)
+            .placement(for: ControlKey.cameraStick))
+    }
+
+    func testEachConsoleCanKeepItsOwnLayout() {
+        let size = CGSize(width: 768, height: 1024)
+        let jump = ControlKey.key(for: .faceSouth)
+        var profile = HemiplegiaProfile.default
+        profile.activeConsole = ConsoleTarget.switch2.rawValue
+        XCTAssertFalse(profile.hasOwnLayout)
+
+        profile.setOwnLayout(true)
+        profile.updatePreference(for: jump) { $0.isVisible = false }
+        XCTAssertNil(ControllerLayout.solve(profile: profile, console: .switch2, size: size).placement(for: jump))
+        XCTAssertNotNil(
+            ControllerLayout.solve(profile: profile, console: .playstation, size: size).placement(for: jump),
+            "les autres consoles gardent la disposition commune"
+        )
+        XCTAssertTrue(profile.controlPreferences.isEmpty, "la disposition commune n'a pas bougé")
+
+        // Sans disposition propre, un réglage vaut pour toutes les consoles.
+        profile.setOwnLayout(false)
+        XCTAssertNotNil(ControllerLayout.solve(profile: profile, console: .switch2, size: size).placement(for: jump))
+        profile.activeConsole = ConsoleTarget.xbox.rawValue
+        profile.updatePreference(for: jump) { $0.isVisible = false }
+        XCTAssertNil(ControllerLayout.solve(profile: profile, console: .switch2, size: size).placement(for: jump))
+        XCTAssertNil(ControllerLayout.solve(profile: profile, console: .xbox, size: size).placement(for: jump))
+    }
+
+    func testOwnLayoutsSurviveSavingAndLoading() throws {
+        var profile = HemiplegiaProfile.default
+        profile.activeConsole = ConsoleTarget.steam.rawValue
+        profile.setOwnLayout(true)
+        profile.updatePreference(for: ControlKey.key(for: .faceNorth)) { $0.sizeScale = 1.3 }
+        profile.cameraButtonSpeed = 0.4
+        let data = try JSONEncoder().encode(profile)
+        let reloaded = try JSONDecoder().decode(HemiplegiaProfile.self, from: data)
+        XCTAssertEqual(reloaded, profile)
+        XCTAssertTrue(reloaded.hasOwnLayout)
+        XCTAssertEqual(reloaded.preference(.faceNorth).sizeScale, 1.3, accuracy: 0.001)
     }
 }
 
@@ -618,6 +738,52 @@ final class InputArbiterTests: XCTestCase {
         arbiter.touchDown(.faceSouth)
         arbiter.touchUp(.faceSouth)
         XCTAssertFalse(arbiter.state.isPressed(.faceSouth), "le second appui libère")
+    }
+
+    func testVisionButtonsPushTheRightStick() {
+        var profile = HemiplegiaProfile.default
+        profile.cameraButtonSpeed = 0.5
+        profile.debounceInterval = 0
+        let arbiter = InputArbiter(profile: profile)
+
+        arbiter.touchDown(.lookLeft)
+        XCTAssertEqual(arbiter.state.rightStick.x, -0.5, accuracy: 0.001)
+        XCTAssertEqual(arbiter.state.rightStick.y, 0, accuracy: 0.001)
+
+        // Deux tenus : une diagonale, à la même vitesse.
+        arbiter.touchDown(.lookUp)
+        XCTAssertEqual(hypot(arbiter.state.rightStick.x, arbiter.state.rightStick.y), 0.5, accuracy: 0.001)
+        XCTAssertLessThan(arbiter.state.rightStick.x, 0)
+        XCTAssertGreaterThan(arbiter.state.rightStick.y, 0)
+
+        arbiter.touchUp(.lookLeft)
+        arbiter.touchUp(.lookUp)
+        XCTAssertEqual(arbiter.state.rightStick, .zero, "relâchés, la caméra s'arrête")
+
+        // Ce ne sont pas des boutons HID : rien dans le masque.
+        XCTAssertEqual(GamepadReportEncoder.buttonMask(for: arbiter.state), 0)
+    }
+
+    func testVisionButtonsNeverLatch() {
+        var profile = HemiplegiaProfile.default
+        profile.activationMode = .latch
+        profile.debounceInterval = 0
+        let arbiter = InputArbiter(profile: profile)
+        arbiter.touchDown(.lookRight)
+        arbiter.touchUp(.lookRight)
+        XCTAssertFalse(arbiter.state.isPressed(.lookRight), "une caméra verrouillée tournerait sans fin")
+        XCTAssertEqual(arbiter.state.rightStick, .zero)
+    }
+
+    func testTiltDoesNotFightTheVisionButtons() {
+        var profile = HemiplegiaProfile.default
+        profile.tiltReplacesSecondStick = true
+        profile.cameraButtonSpeed = 1
+        profile.debounceInterval = 0
+        let arbiter = InputArbiter(profile: profile)
+        arbiter.touchDown(.lookDown)
+        arbiter.applyTilt(CGPoint(x: 0.3, y: 0.3))
+        XCTAssertEqual(arbiter.state.rightStick.y, -1, accuracy: 0.001)
     }
 
     func testDebounceIgnoresImmediateRepress() {
