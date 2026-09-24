@@ -26,6 +26,11 @@ on:
         type: choice
         options: [sombre, clair]
 
+# Droits minimaux : lire le code, rien d'autre. Chaque workflow déclare ce
+# dont il a besoin plutôt que d'hériter des droits par défaut du dépôt.
+permissions:
+  contents: read
+
 concurrency:
   group: apercu-${{ github.ref }}
   cancel-in-progress: true
@@ -36,7 +41,7 @@ jobs:
     runs-on: macos-14
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Xcode disponible
         run: xcodebuild -version
@@ -102,8 +107,10 @@ jobs:
           xcrun simctl bootstatus "${{ steps.appareil.outputs.udid }}" -b
 
       - name: Appliquer le thème demandé
+        env:
+          MODE_SOMBRE: ${{ inputs.mode_sombre }}
         run: |
-          theme=$([ "${{ inputs.mode_sombre }}" = "clair" ] && echo light || echo dark)
+          theme=$([ "$MODE_SOMBRE" = "clair" ] && echo light || echo dark)
           xcrun simctl ui booted appearance "$theme"
 
       - name: Installer et lancer HemiPad
@@ -148,7 +155,7 @@ jobs:
 
       - name: Conserver les captures et l'application
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: apercu-${{ steps.appareil.outputs.nom }}
           path: |

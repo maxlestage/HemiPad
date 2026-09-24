@@ -34,6 +34,11 @@ on:
   push:
     tags: ['v*']
 
+# Droits minimaux : lire le code, rien d'autre. Chaque workflow déclare ce
+# dont il a besoin plutôt que d'hériter des droits par défaut du dépôt.
+permissions:
+  contents: read
+
 concurrency:
   group: testflight
   cancel-in-progress: false
@@ -43,8 +48,11 @@ jobs:
     name: Archiver et livrer
     runs-on: macos-14
     timeout-minutes: 45
+    # Seul ce qui est sur master (ou une étiquette de version) est signé et
+    # livré : une branche non fusionnée n'a pas à recevoir les clés d'Apple.
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Vérifier que les secrets sont en place
         env:
@@ -176,13 +184,10 @@ jobs:
             --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
           echo "::notice::Build ${{ github.run_number }} envoyé. Il apparaît dans TestFlight après le traitement par Apple (5 à 30 minutes)."
 
-      - name: Conserver l'IPA et les symboles
+      # Le dépôt est public : un artefact s'y télécharge par n'importe quel
+      # compte GitHub. L'IPA et ses réglages d'export (identifiant d'équipe) ne
+      # sont donc plus conservés ; la build est dans TestFlight.
+
+      - name: Effacer la clé d'API
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: hemipad-ipa-${{ github.run_number }}
-          path: |
-            build/ipa/*.ipa
-            build/ipa/*.plist
-          if-no-files-found: warn
-          retention-days: 30
+        run: rm -rf ~/.appstoreconnect
