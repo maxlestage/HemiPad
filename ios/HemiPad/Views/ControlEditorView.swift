@@ -35,6 +35,10 @@ struct StaticControlView: View {
                 Circle()
                     .fill(accent.opacity(isHidden ? 0.25 : 0.7))
                     .frame(width: size.width * 0.34, height: size.width * 0.34)
+            } else if case .cameraStick = element {
+                Image(systemName: "eye.fill")
+                    .font(.system(size: size.width * 0.3))
+                    .foregroundStyle(accent.opacity(isHidden ? 0.25 : 0.7))
             } else if case .dpad = element {
                 Image(systemName: "dpad.fill")
                     .font(.system(size: size.width * 0.5))

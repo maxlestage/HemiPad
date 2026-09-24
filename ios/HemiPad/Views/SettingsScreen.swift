@@ -45,6 +45,22 @@ struct SettingsScreen: View {
                     .pickerStyle(.segmented)
                     caption(state.profile.layoutMode.explanation)
 
+                    // Une disposition par console, seulement si on le veut.
+                    Toggle("Disposition propre à \(state.console.displayName)", isOn: Binding(
+                        get: { state.profile.hasOwnLayout },
+                        set: { state.profile.setOwnLayout($0) }
+                    ))
+                    caption(state.profile.hasOwnLayout
+                        ? "Cette console garde sa disposition : masquer, déplacer ou agrandir une commande ne touche qu'elle. Désactiver lui rend la disposition commune."
+                        : "Toutes les consoles partagent la même disposition. Activez pour que celle-ci garde la sienne, en partant de la disposition commune.")
+
+                    if state.console.hasCamera {
+                        Toggle("Arc de vision", isOn: visibilityBinding(for: ControlID.lookControls.map(ControlKey.key(for:))))
+                        caption("Quatre boutons qui déplacent le champ de vision, comme le stick droit : tenir pour tourner la caméra.")
+                        Toggle("Stick caméra", isOn: visibilityBinding(for: [ControlKey.cameraStick]))
+                        caption("Un second stick, pour les mouvements fins de la caméra. Masqué par défaut : l'arc de vision fait le même travail avec des boutons.")
+                    }
+
                     slider(
                         "Espacement des commandes",
                         cgValue: $state.profile.controlSpacing,
@@ -126,6 +142,10 @@ struct SettingsScreen: View {
                     if state.profile.tiltReplacesSecondStick {
                         slider("Sensibilité", value: $state.profile.tiltSensitivity, range: 0.4...3)
                     }
+                    if state.console.hasCamera {
+                        slider("Vitesse de l'arc de vision", value: $state.profile.cameraButtonSpeed, range: 0.2...1)
+                        caption("À quelle vitesse la caméra tourne quand on tient un bouton de vision. Plus lente, elle se dose mieux.")
+                    }
                 }
 
                 group("Clavier") {
@@ -160,6 +180,19 @@ struct SettingsScreen: View {
             CalibrationView()
                 .hemipadEnvironment(state)
         }
+    }
+
+    /// Affiche ou masque d'un geste plusieurs commandes (l'arc de vision, le
+    /// stick caméra), dans la disposition de la console en cours.
+    private func visibilityBinding(for keys: [String]) -> Binding<Bool> {
+        Binding(
+            get: { keys.contains { state.profile.isVisible($0) } },
+            set: { visible in
+                for key in keys {
+                    state.profile.updatePreference(for: key) { $0.isVisible = visible }
+                }
+            }
+        )
     }
 
     private var layoutModeBinding: Binding<LayoutMode> {

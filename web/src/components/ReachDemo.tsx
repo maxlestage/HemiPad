@@ -3,10 +3,20 @@ import { useMemo, useRef, useState, type CSSProperties, type PointerEvent } from
 import { useI18n } from '../i18n/index.tsx'
 import { useAppareil, type Appareil } from '../lib/appareil.tsx'
 import { useMainValide } from '../lib/mainValide.tsx'
-import { consoles, faceIds, shoulderIds, systemIds, type ConsoleProfile } from '../lib/consoles.ts'
+import {
+  cameraIds,
+  consoles,
+  faceIds,
+  hasCamera,
+  shoulderIds,
+  systemIds,
+  type ConsoleProfile
+} from '../lib/consoles.ts'
 import {
   arcPath,
+  CAMERA_STICK,
   clampCenter,
+  INNER_IDS,
   MAX_SPACING,
   MAX_TARGET,
   MIN_TARGET,
@@ -49,6 +59,9 @@ function ringsFor(profile: ConsoleProfile, target: number): RingSpec[] {
   const omitted = new Set(profile.omits ?? [])
   return [
     { ids: faceIds, size: { width: target, height: target } },
+    // L'arc de vision, juste après les boutons de façade : la caméra sert
+    // presque autant qu'eux dans un jeu en trois dimensions.
+    ...(hasCamera(profile) ? [{ ids: cameraIds, size: { width: target * 0.82, height: target * 0.82 } }] : []),
     { ids: shoulderIds, size: { width: target * 0.82, height: target * 0.82 } },
     {
       ids: systemIds.filter((id) => !omitted.has(id)),
@@ -76,7 +89,10 @@ export function ReachDemo() {
   const [spacing, setSpacing] = useState(1.35)
   const [mode, setMode] = useState<ActivationMode>('latch')
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('arc')
-  const [preferences, setPreferences] = useState<Preferences>({})
+  // Les réglages communs à toutes les consoles, et ceux des consoles qui ont
+  // leur propre disposition — comme dans l'application.
+  const [shared, setShared] = useState<Preferences>({})
+  const [own, setOwn] = useState<Record<string, Preferences>>({})
   // Le choix d'appareil est partagé avec le haut de page : les deux
   // sélecteurs pilotent la même valeur.
   const { appareil: device, setAppareil: setDevice } = useAppareil()
@@ -89,6 +105,25 @@ export function ReachDemo() {
 
   const svgRef = useRef<SVGSVGElement | null>(null)
   const profile = consoles[consoleIndex] ?? consoles[0]!
+  const withCamera = hasCamera(profile)
+  const hasOwnLayout = own[profile.id] !== undefined
+  const stored = own[profile.id] ?? shared
+  // Le stick caméra est masqué tant qu'on ne l'a pas demandé.
+  const preferences = useMemo<Preferences>(
+    () => (withCamera && stored[CAMERA_STICK] === undefined ? { ...stored, [CAMERA_STICK]: { hidden: true } } : stored),
+    [stored, withCamera]
+  )
+  const setPreferences = (change: (current: Preferences) => Preferences) => {
+    if (hasOwnLayout) setOwn((current) => ({ ...current, [profile.id]: change(current[profile.id] ?? {}) }))
+    else setShared(change)
+  }
+  const toggleOwnLayout = () =>
+    setOwn((current) => {
+      const next = { ...current }
+      if (next[profile.id] !== undefined) delete next[profile.id]
+      else next[profile.id] = { ...shared }
+      return next
+    })
   const { canvas: CANVAS, topBand: TOP_BAND, chrome: K } = DEVICES[device]
 
   const layout = useMemo(
@@ -102,9 +137,10 @@ export function ReachDemo() {
         spacing,
         mode: layoutMode,
         preferences,
+        inner: withCamera ? [...INNER_IDS, CAMERA_STICK] : INNER_IDS,
         rings: ringsFor(profile, target)
       }),
-    [hand, target, spacing, layoutMode, preferences, profile, CANVAS, TOP_BAND]
+    [hand, target, spacing, layoutMode, preferences, profile, withCamera, CANVAS, TOP_BAND]
   )
 
   // Ce que l'écran tient réellement. En disposition libre, rien n'est
@@ -117,21 +153,25 @@ export function ReachDemo() {
       [
         'directional',
         'dpad',
+        ...(withCamera ? [CAMERA_STICK] : []),
         ...faceIds,
+        ...(withCamera ? cameraIds : []),
         ...shoulderIds,
         ...systemIds.filter((id) => !(profile.omits ?? []).includes(id))
       ].filter((id) => preferences[id]?.hidden),
-    [preferences, profile]
+    [preferences, profile, withCamera]
   )
 
   const updatePreference = (id: string, change: (current: Preferences[string]) => Preferences[string]) => {
+    // Le stick caméra est masqué d'origine : c'est son état neutre.
+    const hiddenByDefault = id === CAMERA_STICK
     setPreferences((current) => {
       const next = { ...current }
-      const updated = change(current[id] ?? {})
+      const updated = change(current[id] ?? (hiddenByDefault ? { hidden: true } : {}))
       // Le verrou fait partie de l'état : l'oublier ici effacerait la
       // préférence au moment même où on la pose.
       const isNeutral =
-        !updated.hidden &&
+        Boolean(updated.hidden) === hiddenByDefault &&
         !updated.locked &&
         updated.freePosition === undefined &&
         updated.activation === undefined &&
@@ -158,8 +198,10 @@ export function ReachDemo() {
   }
 
   const press = (id: string) => {
-    // Les quatre branches de la croix partagent les réglages de la croix.
-    const activation = preferences[id.startsWith('dpad') ? 'dpad' : id]?.activation ?? mode
+    // La croix et l'arc de vision restent en appui direct, comme dans
+    // l'application : verrouillés, ils tourneraient sans fin.
+    const heldDirection = id.startsWith('dpad') || id.startsWith('look')
+    const activation = heldDirection ? 'direct' : (preferences[id]?.activation ?? mode)
     if (activation === 'latch') {
       setActive((current) => {
         const next = new Set(current)
@@ -501,6 +543,21 @@ export function ReachDemo() {
                 </button>
               )}
             </div>
+            {/*
+              Une disposition par console, seulement si on le veut : par
+              défaut, on règle une fois pour toutes les consoles.
+            */}
+            <div className="edit-row">
+              <button
+                type="button"
+                className={`chip ${hasOwnLayout ? 'is-active' : ''}`}
+                aria-pressed={hasOwnLayout}
+                onClick={toggleOwnLayout}
+              >
+                {t.demo.ownLayout.label(profile.name)}
+              </button>
+            </div>
+            <p className="hint">{hasOwnLayout ? t.demo.ownLayout.on : t.demo.ownLayout.off}</p>
             {isEditing && (
               <p className={`hint ${layout.overlapping.length > 0 ? 'is-warning' : ''}`}>
                 {layout.overlapping.length > 0
@@ -696,7 +753,8 @@ function ControlShape({
 }: ControlShapeProps) {
   const { center, size, id } = placement
   const isPill = Math.abs(size.width - size.height) > 0.5
-  const isDirectional = id === 'directional'
+  // Le stick caméra se dessine comme le stick : un disque et son bouton.
+  const isDirectional = id === 'directional' || id === CAMERA_STICK
   const isDpad = id === 'dpad'
   const pressed = isDpad ? activeArms.length > 0 : isActive
 
@@ -782,7 +840,7 @@ function ControlShape({
           className="control-glyph"
           textAnchor="middle"
           dominantBaseline="central"
-          style={{ fontSize: isPill ? size.height * 0.5 : size.width * 0.34 }}
+          style={{ fontSize: isPill ? size.height * 0.5 : size.width * (id.startsWith('look') ? 0.5 : 0.34) }}
         >
           {glyph}
         </text>

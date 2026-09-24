@@ -85,6 +85,11 @@ export const en: Dictionary = {
       overlap: (count) => `${count} controls overlap: they will stay hard to aim at.`,
       resetPositions: 'Reset positions'
     },
+    ownLayout: {
+      label: (console) => `Own layout for ${console}`,
+      on: 'This console keeps its own layout: hiding, moving or enlarging a control only affects it.',
+      off: 'Every console shares the same layout. Turn this on so this one keeps its own.'
+    },
     device: {
       label: 'Device',
       ipad: 'iPad',
@@ -313,6 +318,11 @@ export const en: Dictionary = {
   },
   controlNames: {
     directional: 'Stick',
+    cameraStick: 'Camera stick',
+    lookLeft: 'Look left',
+    lookUp: 'Look up',
+    lookDown: 'Look down',
+    lookRight: 'Look right',
     dpad: 'D-pad',
     dpadUp: 'D-pad up',
     dpadDown: 'D-pad down',

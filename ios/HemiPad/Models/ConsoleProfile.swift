@@ -36,15 +36,30 @@ struct ConsoleProfile: Identifiable, Equatable, Sendable {
     var id: String { target.rawValue }
 
     func glyph(for control: ControlID) -> String {
-        glyphs[control] ?? control.fallbackLabel
+        glyphs[control] ?? Self.lookGlyphs[control] ?? control.fallbackLabel
     }
+
+    /// L'arc de vision a les mêmes flèches sur toutes les consoles : des
+    /// flèches pointillées, pour ne pas les confondre avec la croix.
+    static let lookGlyphs: [ControlID: String] = [
+        .lookLeft: "⇠", .lookUp: "⇡", .lookDown: "⇣", .lookRight: "⇢"
+    ]
+
+    /// La console a-t-elle une caméra à piloter (un stick droit) ? Les jeux
+    /// rétro et le clavier d'ordinateur n'en ont pas : ni arc de vision, ni
+    /// stick caméra.
+    var hasCamera: Bool { has(.lookUp) }
 
     func has(_ control: ControlID) -> Bool {
         availableControls.contains(control)
     }
 
     static let allControls = Set(ControlID.allCases)
-    static let withoutCapture = Set(ControlID.allCases).subtracting([.capture])
+    static let cameraControls: Set<ControlID> = [.lookLeft, .lookUp, .lookDown, .lookRight]
+    /// Jeux rétro et clavier d'ordinateur : ni capture, ni caméra.
+    static let withoutCaptureOrCamera = Set(ControlID.allCases)
+        .subtracting([.capture])
+        .subtracting(cameraControls)
 
     static let switch2 = ConsoleProfile(
         target: .switch2,
@@ -131,7 +146,7 @@ struct ConsoleProfile: Identifiable, Equatable, Sendable {
             .dpadUp: "▲", .dpadDown: "▼", .dpadLeft: "◀", .dpadRight: "▶"
         ],
         accentHex: "#FF8A00",
-        availableControls: withoutCapture,
+        availableControls: withoutCaptureOrCamera,
         recommendedTransports: [.bluetoothHID],
         supportsKeyboard: true
     )
@@ -149,7 +164,7 @@ struct ConsoleProfile: Identifiable, Equatable, Sendable {
             .dpadUp: "↑", .dpadDown: "↓", .dpadLeft: "←", .dpadRight: "→"
         ],
         accentHex: "#00E5FF",
-        availableControls: withoutCapture,
+        availableControls: withoutCaptureOrCamera,
         recommendedTransports: [.bluetoothHID],
         supportsKeyboard: true
     )

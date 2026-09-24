@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// Identifiant abstrait d'un contrôle, indépendant de la console ciblée.
@@ -17,6 +18,14 @@ enum ControlID: String, Codable, CaseIterable, Identifiable, Sendable {
     case dpadDown
     case dpadLeft
     case dpadRight
+
+    // Arc de vision : déplacer le champ de vision (stick droit) avec des
+    // boutons plutôt qu'avec un second stick, que le pouce ne peut pas tenir
+    // en même temps que le premier.
+    case lookLeft
+    case lookUp
+    case lookDown
+    case lookRight
 
     // Tranches
     case shoulderLeft
@@ -55,6 +64,7 @@ enum ControlID: String, Codable, CaseIterable, Identifiable, Sendable {
         case .home: return 13
         case .capture: return 14
         case .dpadUp, .dpadDown, .dpadLeft, .dpadRight: return nil
+        case .lookLeft, .lookUp, .lookDown, .lookRight: return nil
         }
     }
 
@@ -70,6 +80,34 @@ enum ControlID: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Bouton de l'arc de vision : il pousse le stick droit, il n'est pas un
+    /// bouton HID.
+    var isCameraLook: Bool {
+        switch self {
+        case .lookLeft, .lookUp, .lookDown, .lookRight: return true
+        default: return false
+        }
+    }
+
+    /// Les quatre boutons de l'arc de vision.
+    static let lookControls: [ControlID] = [.lookLeft, .lookUp, .lookDown, .lookRight]
+
+    /// Une direction qu'on tient : croix ou arc de vision. Toujours en appui
+    /// direct — verrouillée, elle ferait tourner le personnage ou la caméra
+    /// sans fin.
+    var isHeldDirection: Bool { isDirectionalPad || isCameraLook }
+
+    /// Contribution d'un bouton de vision au stick droit (Y vers le haut).
+    var lookVector: CGPoint {
+        switch self {
+        case .lookLeft: return CGPoint(x: -1, y: 0)
+        case .lookRight: return CGPoint(x: 1, y: 0)
+        case .lookUp: return CGPoint(x: 0, y: 1)
+        case .lookDown: return CGPoint(x: 0, y: -1)
+        default: return .zero
+        }
+    }
+
     /// Libellé lu par VoiceOver quand aucun profil n'est chargé.
     var fallbackLabel: String {
         switch self {
@@ -81,6 +119,10 @@ enum ControlID: String, Codable, CaseIterable, Identifiable, Sendable {
         case .dpadDown: return "Croix bas"
         case .dpadLeft: return "Croix gauche"
         case .dpadRight: return "Croix droite"
+        case .lookLeft: return "Regarder à gauche"
+        case .lookUp: return "Regarder en haut"
+        case .lookDown: return "Regarder en bas"
+        case .lookRight: return "Regarder à droite"
         case .shoulderLeft: return "Tranche gauche"
         case .shoulderRight: return "Tranche droite"
         case .triggerLeft: return "Gâchette gauche"

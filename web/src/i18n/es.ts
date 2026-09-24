@@ -86,6 +86,11 @@ export const es: Dictionary = {
       overlap: (count) => `${count} controles se superponen: seguirán siendo difíciles de acertar.`,
       resetPositions: 'Recolocar todo'
     },
+    ownLayout: {
+      label: (console) => `Disposición propia para ${console}`,
+      on: 'Esta consola conserva su disposición: ocultar, mover o agrandar un control solo la afecta a ella.',
+      off: 'Todas las consolas comparten la misma disposición. Actívalo para que esta tenga la suya.'
+    },
     device: {
       label: 'Dispositivo',
       ipad: 'iPad',
@@ -315,6 +320,11 @@ export const es: Dictionary = {
   },
   controlNames: {
     directional: 'Joystick',
+    cameraStick: 'Joystick de cámara',
+    lookLeft: 'Mirar a la izquierda',
+    lookUp: 'Mirar arriba',
+    lookDown: 'Mirar abajo',
+    lookRight: 'Mirar a la derecha',
     dpad: 'Cruceta',
     dpadUp: 'Cruceta: arriba',
     dpadDown: 'Cruceta: abajo',
