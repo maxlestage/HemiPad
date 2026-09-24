@@ -78,6 +78,10 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
     private var keyboardReport: CBMutableCharacteristic?
     /// Machines abonnées, et à quelles caractéristiques.
     private var subscriptions: [UUID: (central: CBCentral, characteristics: Set<ObjectIdentifier>)] = [:]
+    /// Ordre d'abonnement, la plus récente en dernier. Deux machines appairées
+    /// et connectées en même temps ne reçoivent pas toutes deux ce qui est
+    /// tapé : seule la dernière abonnée le reçoit.
+    private var subscriptionOrder: [UUID] = []
     /// Rapports refusés par une radio saturée, en attente du prochain « prêt ».
     private var queue = HIDSendQueue()
     /// Dernier rapport de chaque sorte : c'est l'état courant, renvoyé à toute
@@ -215,15 +219,29 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
             // Caractéristique absente (services en cours de publication) : le
             // rapport n'a nulle part où aller, on le laisse tomber.
             guard let target = self.characteristic(for: entry.reportID) else { return true }
+            // Aucune machine abonnée à cette caractéristique : rien à envoyer.
+            guard let recipient = self.activeCentral(for: target) else { return true }
             var accepted = false
             let sent = self.guarded("envoi d'un rapport") {
-                // `nil` : toutes les machines abonnées à *cette* caractéristique.
-                accepted = manager.updateValue(Data(entry.payload), for: target, onSubscribedCentrals: nil)
+                accepted = manager.updateValue(Data(entry.payload), for: target, onSubscribedCentrals: [recipient])
             }
             // Refusé par une exception, ce rapport ne partira jamais : on ne
             // le garde pas, sinon il bloquerait tous les suivants.
             return sent ? accepted : true
         }
+    }
+
+    /// La machine qui reçoit ce rapport : la plus récemment abonnée à cette
+    /// caractéristique. Jamais `nil` pour « toutes » : ce qui est tapé ne part
+    /// que vers une seule machine.
+    private func activeCentral(for characteristic: CBCharacteristic) -> CBCentral? {
+        let key = ObjectIdentifier(characteristic)
+        for id in subscriptionOrder.reversed() {
+            if let entry = subscriptions[id], entry.characteristics.contains(key) {
+                return entry.central
+            }
+        }
+        return nil
     }
 
     /// Valeur d'un rapport pour une lecture : le dernier envoyé, sinon l'état
@@ -234,6 +252,12 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
         case .gamepad: return GamepadReportEncoder().encode(GamepadState())
         case .keyboard: return KeyboardReportEncoder().releaseAll()
         }
+    }
+
+    /// Oublie la dernière frappe : elle ne doit être relue ni renvoyée à
+    /// personne d'autre que la machine à qui elle était destinée.
+    private func forgetKeyboardState() {
+        lastPayloads[.keyboard] = nil
     }
 
     private func batteryPercent() -> UInt8 {
@@ -265,32 +289,37 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
             type: UUIDs.hidInformation,
             properties: [.read],
             value: Data([0x11, 0x01, 0x00, 0x03]),
-            permissions: [.readable]
+            permissions: [.readEncryptionRequired]
         )
 
         let controlPoint = CBMutableCharacteristic(
             type: UUIDs.hidControlPoint,
             properties: [.writeWithoutResponse],
             value: nil,
-            permissions: [.writeable]
+            permissions: [.writeEncryptionRequired]
         )
 
         let protocolMode = CBMutableCharacteristic(
             type: UUIDs.protocolMode,
             properties: [.read, .writeWithoutResponse],
             value: nil,
-            permissions: [.readable, .writeable]
+            permissions: [.readEncryptionRequired, .writeEncryptionRequired]
         )
 
+        // Sécurité : `.readEncryptionRequired` ne protège que les lectures.
+        // S'abonner est un autre geste, protégé par
+        // `.notifyEncryptionRequired` : sans lui, un appareil voisin non
+        // appairé pourrait s'abonner au clavier et recevoir chaque frappe.
+        // Avec lui, il faut d'abord un appairage, que la personne accepte.
         let gamepad = CBMutableCharacteristic(
             type: UUIDs.report,
-            properties: [.read, .notify],
+            properties: [.read, .notifyEncryptionRequired],
             value: nil,
             permissions: [.readEncryptionRequired]
         )
         let keyboard = CBMutableCharacteristic(
             type: UUIDs.report,
-            properties: [.read, .notify],
+            properties: [.read, .notifyEncryptionRequired],
             value: nil,
             permissions: [.readEncryptionRequired]
         )
@@ -422,6 +451,8 @@ final class BLEHIDPeripheralTransport: NSObject, ControllerTransport {
     private func forgetAllSubscriptions() {
         let departed = Array(subscriptions.keys)
         subscriptions.removeAll()
+        subscriptionOrder.removeAll()
+        forgetKeyboardState()
         for id in departed {
             onMachineEvent?(.disconnected(id))
         }
@@ -511,6 +542,8 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
         var entry = subscriptions[central.identifier] ?? (central: central, characteristics: [])
         entry.characteristics.insert(ObjectIdentifier(characteristic))
         subscriptions[central.identifier] = entry
+        subscriptionOrder.removeAll { $0 == central.identifier }
+        subscriptionOrder.append(central.identifier)
         if isNewMachine {
             onMachineEvent?(.connected(central.identifier))
         }
@@ -524,6 +557,9 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
         if characteristic === gamepadReport {
             queue.enqueue(.gamepad, payload: currentValue(for: .gamepad))
         } else if characteristic === keyboardReport {
+            // Le clavier, lui, repart toujours de zéro : une machine qui arrive
+            // ne reçoit jamais la dernière frappe destinée à une autre.
+            forgetKeyboardState()
             queue.enqueue(.keyboard, payload: currentValue(for: .keyboard))
         }
         flushQueue()
@@ -539,10 +575,12 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
         entry.characteristics.remove(ObjectIdentifier(characteristic))
         subscriptions[central.identifier] = entry.characteristics.isEmpty ? nil : entry
         if entry.characteristics.isEmpty {
+            subscriptionOrder.removeAll { $0 == central.identifier }
             onMachineEvent?(.disconnected(central.identifier))
         }
         if subscriptions.isEmpty {
             queue.removeAll()
+            forgetKeyboardState()
         }
         updateConnectionState()
     }
@@ -561,9 +599,14 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
             // 0x01 : mode « rapport », le seul que HemiPad parle.
             value = [0x01]
         case UUIDs.report:
-            value = request.characteristic === keyboardReport
-                ? currentValue(for: .keyboard)
-                : currentValue(for: .gamepad)
+            if request.characteristic === keyboardReport {
+                // Seule la machine qui reçoit les frappes peut les relire ;
+                // toute autre lit un clavier au repos.
+                let isRecipient = keyboardReport.flatMap { self.activeCentral(for: $0) }?.identifier == request.central.identifier
+                value = isRecipient ? currentValue(for: .keyboard) : KeyboardReportEncoder().releaseAll()
+            } else {
+                value = currentValue(for: .gamepad)
+            }
         default:
             value = nil
         }
@@ -605,6 +648,12 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
         // Les rapports sont publiés dans l'ordre manette, clavier : c'est le
         // même ordre qui revient.
         guard reports.count == 2 else { return }
+        // Services publiés par une version antérieure, sans chiffrement exigé
+        // à l'abonnement : on ne les reprend pas, tout sera republié protégé.
+        guard reports.allSatisfy({ $0.properties.contains(.notifyEncryptionRequired) }) else {
+            logger.notice("restauration : services sans chiffrement exigé, republication")
+            return
+        }
         gamepadReport = reports[0]
         keyboardReport = reports[1]
         for report in reports {
@@ -612,6 +661,9 @@ extension BLEHIDPeripheralTransport: CBPeripheralManagerDelegate {
                 var entry = subscriptions[central.identifier] ?? (central: central, characteristics: [])
                 entry.characteristics.insert(ObjectIdentifier(report))
                 subscriptions[central.identifier] = entry
+                if !subscriptionOrder.contains(central.identifier) {
+                    subscriptionOrder.append(central.identifier)
+                }
             }
         }
         restoredServices = true

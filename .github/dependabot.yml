@@ -1,0 +1,23 @@
+# Mises à jour de sécurité proposées automatiquement.
+#
+# Dependabot ouvre une pull request quand une dépendance (npm) ou une action
+# GitHub utilisée par les workflows reçoit un correctif. Ces pull requests ne
+# sont pas fusionnées automatiquement : elles viennent d'un robot, pas du
+# propriétaire du dépôt, et restent à relire.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dependances:
+        patterns: ['*']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

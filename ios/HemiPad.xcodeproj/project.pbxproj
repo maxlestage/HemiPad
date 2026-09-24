@@ -38,12 +38,14 @@
 		F2618A889BBE7E4492EC5CC1 /* HIDSendQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 735D00335B5AD406A0D45141 /* HIDSendQueue.swift */; };
 		52F1F51463F7143D5022D810 /* LoopbackTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */; };
 		4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */; };
+		782438EDF9C6F1790175A84F /* WebGamepadBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD342804203E3993841D6802 /* WebGamepadBridge.swift */; };
 		DF529476E6552026367555CA /* CalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */; };
 		E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C35973498C6132B703FF4AB /* ConnectScreen.swift */; };
 		D1815133DD2CA24546BF12AE /* ControlEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3028267CDB8EE7C7D6BFA2 /* ControlEditorView.swift */; };
 		D781A304F7B42A5ABCB13E28 /* ControllerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */; };
 		4A012A90A5153FC679B78E41 /* KeyboardScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B5B932433AD55C695654D5 /* KeyboardScreen.swift */; };
 		7ACCA459423F2BE08BDE732C /* PadButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */; };
+		1D41526A35B15C8F755C9174 /* RemotePlayScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFD5181BA3185A2FB798B994 /* RemotePlayScreen.swift */; };
 		AF21049D695385DD82B95BD5 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46C9B80F0EB803C47383289 /* RootView.swift */; };
 		C35731ABCE27DF5B979215D8 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BFDF7EDBAC8B720FC0456C2 /* SettingsScreen.swift */; };
 		A4DB31F399504837D4F0A7B3 /* StatusBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20EAE7E8860C68D522FB17D /* StatusBarView.swift */; };
@@ -53,6 +55,7 @@
 		B03615EFDFD07D16D45BD758 /* ConnectionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61F93AEA3F74629753CAFFA6 /* ConnectionStoreTests.swift */; };
 		D7560EDA67799A7B259B68EF /* HIDEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */; };
 		50942359A60ACD478718775B /* HIDSendQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */; };
+		ABDED81782D160B1CACE0F00 /* WebGamepadBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD608145BCD9F6F747C84E51 /* WebGamepadBridgeTests.swift */; };
 		E9456B9D0BC68D4B5AC276D6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A272734AF51988E48B135C0E /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -98,12 +101,14 @@
 		735D00335B5AD406A0D45141 /* HIDSendQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDSendQueue.swift; sourceTree = "<group>"; };
 		6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopbackTransport.swift; sourceTree = "<group>"; };
 		9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportCoordinator.swift; sourceTree = "<group>"; };
+		AD342804203E3993841D6802 /* WebGamepadBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebGamepadBridge.swift; sourceTree = "<group>"; };
 		B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationView.swift; sourceTree = "<group>"; };
 		3C35973498C6132B703FF4AB /* ConnectScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectScreen.swift; sourceTree = "<group>"; };
 		1B3028267CDB8EE7C7D6BFA2 /* ControlEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlEditorView.swift; sourceTree = "<group>"; };
 		76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerScreen.swift; sourceTree = "<group>"; };
 		52B5B932433AD55C695654D5 /* KeyboardScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardScreen.swift; sourceTree = "<group>"; };
 		8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadButtonView.swift; sourceTree = "<group>"; };
+		DFD5181BA3185A2FB798B994 /* RemotePlayScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePlayScreen.swift; sourceTree = "<group>"; };
 		D46C9B80F0EB803C47383289 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		0BFDF7EDBAC8B720FC0456C2 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		E20EAE7E8860C68D522FB17D /* StatusBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarView.swift; sourceTree = "<group>"; };
@@ -115,6 +120,7 @@
 		61F93AEA3F74629753CAFFA6 /* ConnectionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStoreTests.swift; sourceTree = "<group>"; };
 		984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDEncodingTests.swift; sourceTree = "<group>"; };
 		746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDSendQueueTests.swift; sourceTree = "<group>"; };
+		BD608145BCD9F6F747C84E51 /* WebGamepadBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebGamepadBridgeTests.swift; sourceTree = "<group>"; };
 		A272734AF51988E48B135C0E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A74B09C24ECBD2C0D11C6212 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6CB7409450D58760321454B4 /* HemiPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HemiPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -244,6 +250,7 @@
 				735D00335B5AD406A0D45141 /* HIDSendQueue.swift */,
 				6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */,
 				9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */,
+				AD342804203E3993841D6802 /* WebGamepadBridge.swift */,
 			);
 			path = Transport;
 			sourceTree = "<group>";
@@ -257,6 +264,7 @@
 				76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */,
 				52B5B932433AD55C695654D5 /* KeyboardScreen.swift */,
 				8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */,
+				DFD5181BA3185A2FB798B994 /* RemotePlayScreen.swift */,
 				D46C9B80F0EB803C47383289 /* RootView.swift */,
 				0BFDF7EDBAC8B720FC0456C2 /* SettingsScreen.swift */,
 				E20EAE7E8860C68D522FB17D /* StatusBarView.swift */,
@@ -289,6 +297,7 @@
 				61F93AEA3F74629753CAFFA6 /* ConnectionStoreTests.swift */,
 				984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */,
 				746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */,
+				BD608145BCD9F6F747C84E51 /* WebGamepadBridgeTests.swift */,
 			);
 			path = HemiPadTests;
 			sourceTree = "<group>";
@@ -415,12 +424,14 @@
 				F2618A889BBE7E4492EC5CC1 /* HIDSendQueue.swift in Sources */,
 				52F1F51463F7143D5022D810 /* LoopbackTransport.swift in Sources */,
 				4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */,
+				782438EDF9C6F1790175A84F /* WebGamepadBridge.swift in Sources */,
 				DF529476E6552026367555CA /* CalibrationView.swift in Sources */,
 				E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */,
 				D1815133DD2CA24546BF12AE /* ControlEditorView.swift in Sources */,
 				D781A304F7B42A5ABCB13E28 /* ControllerScreen.swift in Sources */,
 				4A012A90A5153FC679B78E41 /* KeyboardScreen.swift in Sources */,
 				7ACCA459423F2BE08BDE732C /* PadButtonView.swift in Sources */,
+				1D41526A35B15C8F755C9174 /* RemotePlayScreen.swift in Sources */,
 				AF21049D695385DD82B95BD5 /* RootView.swift in Sources */,
 				C35731ABCE27DF5B979215D8 /* SettingsScreen.swift in Sources */,
 				A4DB31F399504837D4F0A7B3 /* StatusBarView.swift in Sources */,
@@ -437,6 +448,7 @@
 				B03615EFDFD07D16D45BD758 /* ConnectionStoreTests.swift in Sources */,
 				D7560EDA67799A7B259B68EF /* HIDEncodingTests.swift in Sources */,
 				50942359A60ACD478718775B /* HIDSendQueueTests.swift in Sources */,
+				ABDED81782D160B1CACE0F00 /* WebGamepadBridgeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

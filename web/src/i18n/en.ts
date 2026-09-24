@@ -254,9 +254,18 @@ export const en: Dictionary = {
         kind: 'list',
         steps: ['Windows', 'Linux', 'Android'],
         note:
-          'Switch, PS5 and Xbox only accept their own controllers over Bluetooth: no third-party controller connects to them directly. And no wired connection is possible: iOS lets no app change what its USB port announces.'
+          'Switch, PS5 and Xbox only accept their own controllers over Bluetooth, and iOS lets no app pose as a USB controller. For PS5 and Xbox, a computer can relay: see below.'
       }
     ],
+    routes: {
+      title: "PS5, Xbox, Switch: what works",
+      lede: "No third-party controller connects to them directly, and no app can change that. A computer can relay instead, without buying anything.",
+      items: [
+        { name: "PS5", verdict: "Through a Windows or Linux computer, for free", steps: ["On the PS5: Settings › System › Remote Play › Enable.", "On the computer: install chiaki-ng, free and open source.", "Pair HemiPad with the computer over Bluetooth, then open the PS5 in chiaki-ng."], note: "The game shows on the computer, with the slight delay of Remote Play." },
+        { name: "Xbox", verdict: "Through a Windows PC, for free", steps: ["On the Xbox: Settings › Devices & connections › Remote features › Enable.", "On the PC: Xbox app, pick the console, then Remote play.", "Pair HemiPad with the PC over Bluetooth. If the app does not see it, launch it from Steam, which presents any controller as an Xbox controller."], note: "The game shows on the PC, with the slight delay of remote play." },
+        { name: "Switch", verdict: "No path without extra hardware", steps: [], note: "The Switch has neither remote play nor a computer app. What helps: System Settings › Controllers and Sensors › Change Button Mapping, to gather the controls under one hand." }
+      ]
+    },
     specs: [
       { label: 'Report rate', value: '125 Hz, duplicates dropped' },
       { label: 'Controller payload', value: '9 bytes · 4 axes, 2 triggers, hat, 16 buttons' },

@@ -71,6 +71,71 @@ const browser = await chromium.launch(
   })
 )
 
+// Toute ressource refusée par la politique de sécurité (CSP), sur toutes les
+// pages de toutes les vérifications. Chromium les signale dans la console.
+const violationsCSP = []
+const nouveauContexte = browser.newContext.bind(browser)
+browser.newContext = async (...options) => {
+  const context = await nouveauContexte(...options)
+  context.on('page', (page) => {
+    page.on('console', (message) => {
+      if (/Content Security Policy/i.test(message.text())) violationsCSP.push(message.text())
+    })
+  })
+  return context
+}
+
+// --- En-têtes de sécurité -------------------------------------------------
+
+{
+  const reponse = await fetch(base)
+  const entete = (nom) => reponse.headers.get(nom) ?? ''
+  const csp = entete('content-security-policy')
+  check(/default-src 'self'/.test(csp) && /script-src 'self'(;|$)/.test(csp), 'la politique de sécurité (CSP) n’autorise que le site lui-même', csp)
+  check(!/unsafe-inline|unsafe-eval/.test(csp), 'aucun script ni style en ligne autorisé sur le site', csp)
+  check(/frame-ancestors 'none'/.test(csp) && entete('x-frame-options') === 'DENY', 'le site refuse d’être affiché dans un cadre (clickjacking)')
+  check(entete('x-content-type-options') === 'nosniff', 'X-Content-Type-Options: nosniff')
+  check(entete('referrer-policy') === 'strict-origin-when-cross-origin', 'Referrer-Policy stricte')
+  check(entete('cross-origin-opener-policy') === 'same-origin', 'Cross-Origin-Opener-Policy: same-origin')
+  check(/camera=\(\)/.test(entete('permissions-policy')) && /gyroscope=\(self\)/.test(entete('permissions-policy')), 'Permissions-Policy : caméra coupée, gyroscope gardé pour l’inclinaison')
+  check(!reponse.headers.has('x-powered-by'), 'le serveur ne dit pas ce qu’il est')
+
+  const index = await reponse.text()
+  check(!/<script>(?!\s*<\/script>)/.test(index) && !/<script(?![^>]*\bsrc=)[^>]*>\s*\S/.test(index), 'aucun script en ligne dans la page')
+  check(!/fonts\.(googleapis|gstatic)\.com/.test(index), 'aucune police chargée depuis Google')
+
+  const redirection = await fetch(`${base}/demo?x=1`, { redirect: 'manual', headers: { 'x-forwarded-proto': 'http' } })
+  check(
+    redirection.status === 301 && (redirection.headers.get('location') ?? '').startsWith('https://') && (redirection.headers.get('location') ?? '').endsWith('/demo?x=1'),
+    'une visite en clair est renvoyée vers HTTPS',
+    `${redirection.status} ${redirection.headers.get('location')}`
+  )
+  const chiffree = await fetch(base, { headers: { 'x-forwarded-proto': 'https' } })
+  check(/max-age=\d{8}/.test(chiffree.headers.get('strict-transport-security') ?? ''), 'HSTS envoyé en HTTPS')
+
+  const manquant = await fetch(`${base}/assets/nexiste-pas.js`)
+  check(manquant.status === 404, 'un fichier versionné absent renvoie 404, pas la page', String(manquant.status))
+  const texteManquant = await manquant.text()
+  check(!/Error|at |\/app\/|node_modules/.test(texteManquant), 'une erreur ne dévoile rien du serveur', texteManquant.slice(0, 80))
+}
+
+// --- Consoles qui refusent : ce qui marche --------------------------------
+
+{
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'fr-FR' })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  const cartes = page.locator('.route-card')
+  check((await cartes.count()) === 3, 'PS5, Xbox et Switch ont chacune leur carte « ce qui marche »')
+  const etapes = await cartes.evaluateAll((noeuds) => noeuds.map((n) => n.querySelectorAll('.route-steps li').length))
+  check(
+    etapes[0] === 3 && etapes[1] === 3 && etapes[2] === 0,
+    'PS5 et Xbox : trois étapes ; Switch : aucune, dit franchement',
+    etapes.join(', ')
+  )
+  await context.close()
+}
+
 // --- Langues ---------------------------------------------------------------
 
 {
@@ -411,22 +476,25 @@ for (const scheme of ['dark', 'light']) {
     'les deux commandes sont verrouillées d’un seul geste'
   )
 
-  // Une commande verrouillée ne se déplace plus. Réafficher une commande a
-  // recalculé la disposition : on attend la fin du glissement avant de
-  // mesurer, sinon la position « avant » est prise en plein trajet.
+  // Une commande verrouillée ne se déplace plus. On compare sa position
+  // logique — l'attribut `transform` que la démo pose elle-même — et non sa
+  // boîte à l'écran : celle-ci bouge aussi quand la page défile ou pendant
+  // le glissement animé, et le contrôle échouait de loin en loin en CI sans
+  // que la commande ait bougé.
   await attendreImmobiles(page)
   const verrouillee = page.locator('[data-control="L2"]')
-  const avantVerrou = await verrouillee.boundingBox()
-  await page.mouse.move(avantVerrou.x + avantVerrou.width / 2, avantVerrou.y + avantVerrou.height / 2)
+  const positionAvant = await verrouillee.getAttribute('transform')
+  const boite = await verrouillee.boundingBox()
+  await page.mouse.move(boite.x + boite.width / 2, boite.y + boite.height / 2)
   await page.mouse.down()
-  await page.mouse.move(avantVerrou.x + avantVerrou.width / 2 - 100, avantVerrou.y + avantVerrou.height / 2, { steps: 10 })
+  await page.mouse.move(boite.x + boite.width / 2 - 100, boite.y + boite.height / 2, { steps: 10 })
   await page.mouse.up()
   await page.waitForTimeout(200)
-  await attendreImmobiles(page)
-  const apresVerrou = await verrouillee.boundingBox()
+  const positionApres = await verrouillee.getAttribute('transform')
   check(
-    Math.hypot(apresVerrou.x - avantVerrou.x, apresVerrou.y - avantVerrou.y) < 2,
-    'une commande verrouillée refuse de bouger'
+    positionAvant !== null && positionAvant === positionApres,
+    'une commande verrouillée refuse de bouger',
+    `${positionAvant} → ${positionApres}`
   )
 
   // Mode d'appui propre à une commande : verrouillant alors que le réglage
@@ -1621,6 +1689,8 @@ for (const [name, viewport] of [
   await context.close()
   notes.push(`  ✓ capture ${name}.png (${viewport.width}×${viewport.height})`)
 }
+
+check(violationsCSP.length === 0, 'aucune ressource refusée par la politique de sécurité (CSP)', violationsCSP.slice(0, 3).join(' | '))
 
 await browser.close()
 

@@ -17,6 +17,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: true
+    // Serveur de développement sur cette machine seulement : l'exposer au
+    // réseau local donnerait accès aux sources à tout voisin de Wi-Fi.
+    host: 'localhost'
   }
 })

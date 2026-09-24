@@ -27,6 +27,10 @@ final class TransportCoordinator: ObservableObject {
     /// Le nom sous lequel afficher une machine connue, tiré du registre des
     /// connexions. Sans lui, la barre d'état montre un identifiant.
     var machineName: ((UUID) -> String?)?
+    /// Reçoit chaque nouvel état de manette, en plus du transport : c'est par
+    /// là que la lecture à distance de la Xbox, dans HemiPad, reçoit les
+    /// commandes.
+    var gamepadMirror: (@MainActor (GamepadState) -> Void)?
 
     private var transport: ControllerTransport?
     private let gamepadEncoder = GamepadReportEncoder()
@@ -166,6 +170,7 @@ final class TransportCoordinator: ObservableObject {
         let payload = gamepadEncoder.encode(pending)
         guard payload != lastGamepadPayload else { return }
         lastGamepadPayload = payload
+        gamepadMirror?(pending)
         transport?.send(reportID: .gamepad, payload: payload)
         sentReports += 1
     }

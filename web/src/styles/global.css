@@ -1193,6 +1193,77 @@ input[type='range'] {
   color: var(--text-dim);
 }
 
+/* PS5, Xbox, Switch : le chemin qui marche, étapes numérotées. */
+.route-block {
+  display: grid;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.route-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  margin-top: 8px;
+}
+
+.route-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.route-card h4 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.route-card > * {
+  margin: 0;
+}
+
+.route-verdict {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.route-verdict.is-none {
+  color: var(--text-dim);
+}
+
+.route-steps {
+  display: grid;
+  gap: 10px;
+  counter-reset: etape;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.route-steps li {
+  counter-increment: etape;
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 0.85rem;
+}
+
+.route-steps li::before {
+  content: counter(etape);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent);
+}
+
 .spec-list {
   display: grid;
   gap: 14px;

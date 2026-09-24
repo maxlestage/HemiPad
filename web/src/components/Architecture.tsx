@@ -34,6 +34,29 @@ export function Architecture() {
         ))}
       </div>
 
+      <div className="route-block">
+        <h3>{t.architecture.routes.title}</h3>
+        <p className="path-note">{t.architecture.routes.lede}</p>
+        <div className="route-grid">
+          {t.architecture.routes.items.map((route) => (
+            <article key={route.name} className="path-card route-card">
+              <h4>{route.name}</h4>
+              <p className={route.steps.length > 0 ? 'route-verdict' : 'route-verdict is-none'}>
+                {route.verdict}
+              </p>
+              {route.steps.length > 0 && (
+                <ol className="route-steps">
+                  {route.steps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+              )}
+              <p className="path-note">{route.note}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+
       <dl className="spec-list">
         {t.architecture.specs.map((specification) => (
           <div key={specification.label}>

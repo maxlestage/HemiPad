@@ -12,6 +12,11 @@ on:
       - '.github/workflows/ios.yml'
   workflow_dispatch:
 
+# Droits minimaux : lire le code, rien d'autre. Chaque workflow déclare ce
+# dont il a besoin plutôt que d'hériter des droits par défaut du dépôt.
+permissions:
+  contents: read
+
 concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true
@@ -24,7 +29,7 @@ jobs:
     name: Compilation et tests
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Xcode disponible
         run: xcodebuild -version
@@ -53,7 +58,7 @@ jobs:
 
       - name: Conserver le rapport de tests
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: resultats-xcode
           path: resultats.xcresult
