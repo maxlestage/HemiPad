@@ -8,20 +8,24 @@
  * 2. Les navigations passent par le réseau d'abord, avec repli sur la page
  *    mise en cache. Une mise en ligne est donc visible tout de suite, et le
  *    site reste consultable dans le métro.
- * 3. Tout le reste (icônes, manifeste, polices) est servi depuis le cache tout
+ * 3. Tout le reste du site (icônes, manifeste) est servi depuis le cache tout
  *    en étant rafraîchi en arrière-plan.
+ *
+ * Rien d'un autre site n'est mis en cache : les polices sont servies par le
+ * site lui-même, et une réponse opaque d'un tiers ne peut pas être vérifiée.
  *
  * Changer VERSION invalide l'ancien cache : c'est le seul geste à faire quand
  * la coquille de l'application change.
  */
 
-const VERSION = 'hemipad-v1'
+const VERSION = 'hemipad-v2'
 const SHELL_CACHE = `${VERSION}-shell`
 const ASSET_CACHE = `${VERSION}-assets`
 
 /** Ce qui doit être disponible hors connexion dès la première visite. */
 const SHELL = [
   '/',
+  '/theme-init.js',
   '/manifest.webmanifest',
   '/hemipad-mark.svg',
   '/icons/icon-192.png',
@@ -78,7 +82,7 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  if (url.origin === self.location.origin || url.hostname.endsWith('gstatic.com') || url.hostname.endsWith('googleapis.com')) {
+  if (url.origin === self.location.origin) {
     event.respondWith(staleWhileRevalidate(request, SHELL_CACHE))
   }
 })
@@ -87,7 +91,10 @@ async function networkFirst(request) {
   const cache = await caches.open(SHELL_CACHE)
   try {
     const response = await fetch(request)
-    if (response && response.ok) {
+    // Seule une vraie page HTML devient la page hors connexion : jamais une
+    // réponse JSON ou texte qui passerait par là.
+    const type = response && response.headers.get('content-type')
+    if (response && response.ok && type && type.includes('text/html')) {
       cache.put('/', response.clone())
     }
     return response
@@ -112,7 +119,7 @@ async function staleWhileRevalidate(request, cacheName) {
   const cached = await cache.match(request)
   const network = fetch(request)
     .then((response) => {
-      if (response && (response.ok || response.type === 'opaque')) {
+      if (response && response.ok && response.type === 'basic') {
         cache.put(request, response.clone())
       }
       return response
