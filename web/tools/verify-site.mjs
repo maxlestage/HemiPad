@@ -476,22 +476,25 @@ for (const scheme of ['dark', 'light']) {
     'les deux commandes sont verrouillées d’un seul geste'
   )
 
-  // Une commande verrouillée ne se déplace plus. Réafficher une commande a
-  // recalculé la disposition : on attend la fin du glissement avant de
-  // mesurer, sinon la position « avant » est prise en plein trajet.
+  // Une commande verrouillée ne se déplace plus. On compare sa position
+  // logique — l'attribut `transform` que la démo pose elle-même — et non sa
+  // boîte à l'écran : celle-ci bouge aussi quand la page défile ou pendant
+  // le glissement animé, et le contrôle échouait de loin en loin en CI sans
+  // que la commande ait bougé.
   await attendreImmobiles(page)
   const verrouillee = page.locator('[data-control="L2"]')
-  const avantVerrou = await verrouillee.boundingBox()
-  await page.mouse.move(avantVerrou.x + avantVerrou.width / 2, avantVerrou.y + avantVerrou.height / 2)
+  const positionAvant = await verrouillee.getAttribute('transform')
+  const boite = await verrouillee.boundingBox()
+  await page.mouse.move(boite.x + boite.width / 2, boite.y + boite.height / 2)
   await page.mouse.down()
-  await page.mouse.move(avantVerrou.x + avantVerrou.width / 2 - 100, avantVerrou.y + avantVerrou.height / 2, { steps: 10 })
+  await page.mouse.move(boite.x + boite.width / 2 - 100, boite.y + boite.height / 2, { steps: 10 })
   await page.mouse.up()
   await page.waitForTimeout(200)
-  await attendreImmobiles(page)
-  const apresVerrou = await verrouillee.boundingBox()
+  const positionApres = await verrouillee.getAttribute('transform')
   check(
-    Math.hypot(apresVerrou.x - avantVerrou.x, apresVerrou.y - avantVerrou.y) < 2,
-    'une commande verrouillée refuse de bouger'
+    positionAvant !== null && positionAvant === positionApres,
+    'une commande verrouillée refuse de bouger',
+    `${positionAvant} → ${positionApres}`
   )
 
   // Mode d'appui propre à une commande : verrouillant alors que le réglage
