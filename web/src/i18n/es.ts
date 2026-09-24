@@ -255,9 +255,18 @@ export const es: Dictionary = {
         kind: 'list',
         steps: ['Windows', 'Linux', 'Android'],
         note:
-          'Switch, PS5 y Xbox solo aceptan sus propios mandos por Bluetooth: ningún mando de otra marca se conecta a ellas directamente. Y no es posible una conexión por cable: iOS no deja que ninguna aplicación cambie lo que anuncia su puerto USB.'
+          'Switch, PS5 y Xbox solo aceptan sus propios mandos por Bluetooth, e iOS no deja que ninguna aplicación se haga pasar por un mando USB. Para PS5 y Xbox, un ordenador puede hacer de relevo: ver abajo.'
       }
     ],
+    routes: {
+      title: "PS5, Xbox, Switch: lo que funciona",
+      lede: "Ningún mando de otra marca se conecta a ellas directamente, y ninguna aplicación puede cambiarlo. Un ordenador puede hacer de relevo, sin comprar nada.",
+      items: [
+        { name: "PS5", verdict: "Con un ordenador Windows o Linux, gratis", steps: ["En la PS5: Ajustes › Sistema › Juego remoto › Activar.", "En el ordenador: instalar chiaki-ng, gratuito y libre.", "Emparejar HemiPad con el ordenador por Bluetooth y abrir la PS5 en chiaki-ng."], note: "El juego se ve en el ordenador, con el ligero retraso del juego remoto." },
+        { name: "Xbox", verdict: "Con un PC Windows, gratis", steps: ["En la Xbox: Configuración › Dispositivos y conexiones › Funciones remotas › Activar.", "En el PC: aplicación Xbox, elegir la consola y luego Juego remoto.", "Emparejar HemiPad con el PC por Bluetooth. Si la aplicación no lo ve, abrirla desde Steam, que presenta cualquier mando como un mando Xbox."], note: "El juego se ve en el PC, con el ligero retraso del juego remoto." },
+        { name: "Switch", verdict: "Ningún camino sin hardware adicional", steps: [], note: "La Switch no tiene juego remoto ni aplicación para ordenador. Lo que ayuda: Configuración de la consola › Mandos y sensores › Cambiar la asignación de botones, para reunir los controles bajo una mano." }
+      ]
+    },
     specs: [
       { label: 'Frecuencia de informes', value: '125 Hz, duplicados descartados' },
       { label: 'Carga del mando', value: '9 bytes · 4 ejes, 2 gatillos, hat, 16 botones' },

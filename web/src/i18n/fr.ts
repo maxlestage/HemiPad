@@ -254,9 +254,18 @@ export const fr: Dictionary = {
         kind: 'list',
         steps: ['Windows', 'Linux', 'Android'],
         note:
-          "Switch, PS5 et Xbox n'acceptent en Bluetooth que leurs propres manettes : aucune manette d'une autre marque ne s'y connecte directement. Et aucune connexion filaire n'est possible : iOS ne laisse aucune application changer ce que le port USB annonce."
+          "Switch, PS5 et Xbox n'acceptent en Bluetooth que leurs propres manettes, et iOS ne laisse aucune application se faire passer pour une manette USB. Pour la PS5 et la Xbox, un ordinateur fait le relais : voir ci-dessous."
       }
     ],
+    routes: {
+      title: "PS5, Xbox, Switch : ce qui marche",
+      lede: "Aucune manette d'une autre marque ne s'y connecte directement, et aucune application ne peut y changer quoi que ce soit. Un ordinateur peut en revanche faire le relais, sans rien acheter.",
+      items: [
+        { name: "PS5", verdict: "Par un ordinateur Windows ou Linux, gratuitement", steps: ["Sur la PS5 : Paramètres › Système › Lecture à distance › Activer.", "Sur l'ordinateur : installer chiaki-ng, gratuit et libre.", "Appairer HemiPad à l'ordinateur en Bluetooth, puis ouvrir la PS5 dans chiaki-ng."], note: "Le jeu s'affiche sur l'ordinateur, avec le léger délai de la lecture à distance." },
+        { name: "Xbox", verdict: "Par un PC Windows, gratuitement", steps: ["Sur la Xbox : Paramètres › Appareils et connexions › Fonctionnalités à distance › Activer.", "Sur le PC : application Xbox, choisir la console, puis Lecture à distance.", "Appairer HemiPad au PC en Bluetooth. Si l'application ne la voit pas, la lancer depuis Steam, qui présente toute manette comme une manette Xbox."], note: "Le jeu s'affiche sur le PC, avec le léger délai de la lecture à distance." },
+        { name: "Switch", verdict: "Aucun chemin sans matériel", steps: [], note: "La Switch n'a ni lecture à distance ni application pour ordinateur. Ce qui aide : Paramètres de la console › Manettes et capteurs › Changer l'assignation des boutons, pour rassembler les commandes sous une main." }
+      ]
+    },
     specs: [
       { label: 'Cadence des rapports', value: '125 Hz, doublons supprimés' },
       { label: 'Charge utile manette', value: '9 octets · 4 axes, 2 gâchettes, hat, 16 boutons' },

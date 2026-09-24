@@ -119,6 +119,23 @@ browser.newContext = async (...options) => {
   check(!/Error|at |\/app\/|node_modules/.test(texteManquant), 'une erreur ne dévoile rien du serveur', texteManquant.slice(0, 80))
 }
 
+// --- Consoles qui refusent : ce qui marche --------------------------------
+
+{
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'fr-FR' })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  const cartes = page.locator('.route-card')
+  check((await cartes.count()) === 3, 'PS5, Xbox et Switch ont chacune leur carte « ce qui marche »')
+  const etapes = await cartes.evaluateAll((noeuds) => noeuds.map((n) => n.querySelectorAll('.route-steps li').length))
+  check(
+    etapes[0] === 3 && etapes[1] === 3 && etapes[2] === 0,
+    'PS5 et Xbox : trois étapes ; Switch : aucune, dit franchement',
+    etapes.join(', ')
+  )
+  await context.close()
+}
+
 // --- Langues ---------------------------------------------------------------
 
 {
