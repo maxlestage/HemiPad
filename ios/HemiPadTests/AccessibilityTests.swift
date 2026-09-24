@@ -914,6 +914,36 @@ final class StickyModifierTests: XCTestCase {
 }
 
 final class ConsoleProfileTests: XCTestCase {
+    func testConsolesThatRefuseDirectBluetoothSayItAndShowAPath() {
+        let refused = ConsoleProfile.all.filter { !$0.bluetoothReach.acceptsDirect }.map(\.target)
+        XCTAssertEqual(Set(refused), [.switch2, .playstation, .xbox])
+        for console in ConsoleProfile.all {
+            let reach = console.bluetoothReach
+            XCTAssertFalse(reach.steps.isEmpty, "\(console.displayName) : aucune étape")
+            XCTAssertTrue(reach.steps.allSatisfy { !$0.isEmpty })
+            XCTAssertEqual(
+                reach.verdict.hasPrefix("Bluetooth direct refusé par la console"),
+                !reach.acceptsDirect,
+                "\(console.displayName) : le verdict doit dire franchement accepté ou refusé"
+            )
+        }
+    }
+
+    @MainActor
+    func testChoosingARefusingConsoleExplainsWhy() {
+        let state = AppState(profile: .default, transportKind: .loopback)
+        // Le choix de console est enregistré : on rend celui d'avant.
+        let original = state.consoleTarget
+        defer { state.consoleTarget = original }
+        state.consoleTarget = .steam
+        state.banner = nil
+        state.consoleTarget = .playstation
+        XCTAssertTrue(state.banner?.contains("Bluetooth direct refusé") == true)
+        state.banner = nil
+        state.consoleTarget = .steam
+        XCTAssertNil(state.banner)
+    }
+
     func testEveryProfileLabelsEveryAvailableControl() {
         for profile in ConsoleProfile.all {
             for control in profile.availableControls {
