@@ -46,7 +46,17 @@ app.use((request, response, next) => {
   // HTTPS obligatoire : une visite en clair est renvoyée vers la même adresse
   // chiffrée. En local (pas d'en-tête du routeur), rien ne change.
   if (request.get('x-forwarded-proto') === 'http') {
-    response.redirect(301, `https://${request.hostname}${request.originalUrl}`)
+    // L'adresse de destination vient de l'en-tête Host, celui sur lequel le
+    // routeur de Heroku aiguille (il ne mène donc qu'à nos propres domaines),
+    // et non de X-Forwarded-Host, que n'importe quel client peut écrire :
+    // sinon une redirection vers un autre site pourrait se glisser dans un
+    // cache placé devant le site.
+    const hote = request.get('host') ?? ''
+    if (!/^[a-z0-9.-]+(:\d+)?$/i.test(hote)) {
+      response.status(400).type('text/plain').send('Requête refusée')
+      return
+    }
+    response.redirect(301, `https://${hote}${request.originalUrl}`)
     return
   }
   const chiffre = request.secure
@@ -130,7 +140,8 @@ app.use((error, _request, response, _next) => {
   // aucun.
   const statut = Number.isInteger(error.status) && error.status >= 400 && error.status < 600 ? error.status : 500
   if (statut >= 500) console.error(error)
-  response.status(statut).type('text/plain').send(statut === 404 ? 'Introuvable' : 'Erreur interne')
+  const message = statut === 404 ? 'Introuvable' : statut < 500 ? 'Requête refusée' : 'Erreur interne'
+  response.status(statut).type('text/plain').send(message)
 })
 
 app.listen(port, () => {
