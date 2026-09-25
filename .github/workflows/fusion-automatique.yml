@@ -69,7 +69,12 @@ jobs:
             // pas être attendues : il serait son propre blocage.
             const IGNORE = ['Fusionner ce qui est prêt']
             // Vérifications exigées par leur nom, sur toute pull request.
-            const REQUISES = ['Site vitrine', 'Vérifications dans un navigateur', 'Projet Xcode régénérable']
+            const REQUISES = [
+              'Site vitrine',
+              'Vérifications dans un navigateur',
+              'Projet Xcode régénérable',
+              'Pont USB (Rust)'
+            ]
             // Exigée en plus dès qu'un fichier de l'application iOS change.
             const REQUISE_IOS = 'Compilation et tests'
             // Fichiers qu'aucune fusion automatique ne doit toucher.

@@ -1,0 +1,10 @@
+# La même version de Rust partout : sur la machine de développement comme en
+# intégration continue.
+#
+# Sans ce fichier, la CI prend « stable », qui avance tout seul : une alerte
+# de clippy apparue entre-temps fait échouer une vérification qui passait en
+# local. On change de version quand on le décide, pas quand elle sort.
+[toolchain]
+channel = "1.98.0"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

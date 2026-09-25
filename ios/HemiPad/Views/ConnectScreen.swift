@@ -61,35 +61,12 @@ struct ConnectScreen: View {
                     }
                 }
 
-                section("Chemin de connexion") {
-                    ForEach(TransportKind.allCases) { kind in
-                        Button {
-                            transport.kind = kind
-                            transport.connect()
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text(kind.label).font(.body.weight(.semibold))
-                                    Spacer()
-                                    if transport.kind == kind {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(state.accent)
-                                    }
-                                }
-                                Text(kind.detail)
-                                    .font(.caption)
-                                    .foregroundStyle(Theme.secondaryText)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                RoundedRectangle(cornerRadius: Theme.cardRadius)
-                                    .fill(Theme.surface.opacity(transport.kind == kind ? 1 : 0.6))
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
+                section("Par où ça passe") {
+                    pathRow
+                }
+
+                section("Le boîtier") {
+                    bridgeRows
                 }
 
                 reachSection(state.console)
@@ -222,6 +199,89 @@ struct ConnectScreen: View {
                 .fill(Theme.surface.opacity(isConnected ? 1 : 0.6))
         )
         .accessibilityElement(children: .contain)
+    }
+
+    /// Ce qui sert en ce moment. Aucun réglage : la règle est dans la
+    /// bibliothèque Rust, qui bascule d'elle-même quand un chemin tombe.
+    private var pathRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Image(systemName: symbol(for: transport.path))
+                    .font(.title3)
+                    .foregroundStyle(transport.path == .none ? Theme.secondaryText : state.accent)
+                    .frame(width: 26)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(transport.path.label)
+                        .font(.body.weight(.semibold))
+                    Text(transport.state.label)
+                        .font(.caption)
+                        .foregroundStyle(Theme.secondaryText)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Theme.cardRadius).fill(Theme.surface))
+
+            Text("Le chemin se choisit tout seul : le Bluetooth direct quand il tient, le boîtier sinon. Si l'un tombe en pleine partie, l'autre prend la suite sans rien demander.")
+                .font(.caption)
+                .foregroundStyle(Theme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func symbol(for path: ConnectionPath) -> String {
+        switch path {
+        case .none: return "antenna.radiowaves.left.and.right.slash"
+        case .direct: return "dot.radiowaves.left.and.right"
+        case .bridge: return "shippingbox.fill"
+        }
+    }
+
+    /// L'appairage du boîtier : son adresse et son secret, recopiés une fois.
+    @ViewBuilder
+    private var bridgeRows: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            labelledField(
+                "Adresse du boîtier",
+                placeholder: "hemipad.local",
+                text: Binding(
+                    get: { transport.bridgeSettings.host },
+                    set: { transport.bridgeSettings.host = $0 }
+                )
+            )
+            labelledField(
+                "Secret partagé",
+                placeholder: "64 caractères",
+                text: Binding(
+                    get: { transport.bridgeSettings.keyHex },
+                    set: { transport.bridgeSettings.keyHex = $0 }
+                )
+            )
+            Text(transport.bridgeSettings.isComplete
+                 ? "Le boîtier est appairé. Il sert dès que le Bluetooth direct ne suffit pas — c'est lui qui atteint la Switch."
+                 : "Le boîtier est un petit appareil branché près de la console. Son installation affiche ces deux valeurs : recopiez-les ici. Sans lui, seul le Bluetooth direct est utilisé.")
+                .font(.caption)
+                .foregroundStyle(Theme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: Theme.cardRadius).fill(Theme.surface.opacity(0.6)))
+    }
+
+    private func labelledField(_ title: String, placeholder: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.secondaryText)
+            TextField(placeholder, text: text)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.callout.monospaced())
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surfaceHigh))
+        }
     }
 
     /// Sans PC : la lecture à distance de la Xbox, dans HemiPad.

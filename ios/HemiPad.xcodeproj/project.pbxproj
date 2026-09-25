@@ -34,11 +34,13 @@
 		EB79075BB20705C1C8DEB86F /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE98764A66BFA8D65C191D4 /* Theme.swift */; };
 		CB1AE04E11AD43098D148374 /* BLEHIDPeripheralTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */; };
 		32AF47F40E1B2EE9B3795746 /* BLEPublicationSentinel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38D2F3C19F4A562FA2476184 /* BLEPublicationSentinel.swift */; };
+		5C522A1E0BB1314B59F92CCF /* BridgeTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D44B473887330AEF7AF37FA /* BridgeTransport.swift */; };
 		188DD51375A807069D17F206 /* ControllerTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */; };
 		F2618A889BBE7E4492EC5CC1 /* HIDSendQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 735D00335B5AD406A0D45141 /* HIDSendQueue.swift */; };
 		52F1F51463F7143D5022D810 /* LoopbackTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */; };
 		4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */; };
 		782438EDF9C6F1790175A84F /* WebGamepadBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD342804203E3993841D6802 /* WebGamepadBridge.swift */; };
+		0FC6888586C8201B7BA8B53B /* Wire.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90D76284DF97252BB27BD48 /* Wire.swift */; };
 		DF529476E6552026367555CA /* CalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */; };
 		E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C35973498C6132B703FF4AB /* ConnectScreen.swift */; };
 		D1815133DD2CA24546BF12AE /* ControlEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3028267CDB8EE7C7D6BFA2 /* ControlEditorView.swift */; };
@@ -56,6 +58,7 @@
 		D7560EDA67799A7B259B68EF /* HIDEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */; };
 		50942359A60ACD478718775B /* HIDSendQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */; };
 		ABDED81782D160B1CACE0F00 /* WebGamepadBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD608145BCD9F6F747C84E51 /* WebGamepadBridgeTests.swift */; };
+		113CAB4197828B6C8ED30536 /* WireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CE56E0AB9BA445A143ACC84 /* WireTests.swift */; };
 		E9456B9D0BC68D4B5AC276D6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A272734AF51988E48B135C0E /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -97,11 +100,13 @@
 		1DE98764A66BFA8D65C191D4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEHIDPeripheralTransport.swift; sourceTree = "<group>"; };
 		38D2F3C19F4A562FA2476184 /* BLEPublicationSentinel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEPublicationSentinel.swift; sourceTree = "<group>"; };
+		6D44B473887330AEF7AF37FA /* BridgeTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeTransport.swift; sourceTree = "<group>"; };
 		025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerTransport.swift; sourceTree = "<group>"; };
 		735D00335B5AD406A0D45141 /* HIDSendQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDSendQueue.swift; sourceTree = "<group>"; };
 		6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopbackTransport.swift; sourceTree = "<group>"; };
 		9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportCoordinator.swift; sourceTree = "<group>"; };
 		AD342804203E3993841D6802 /* WebGamepadBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebGamepadBridge.swift; sourceTree = "<group>"; };
+		E90D76284DF97252BB27BD48 /* Wire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Wire.swift; sourceTree = "<group>"; };
 		B18788E72A17F4F1AC8E19F8 /* CalibrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationView.swift; sourceTree = "<group>"; };
 		3C35973498C6132B703FF4AB /* ConnectScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectScreen.swift; sourceTree = "<group>"; };
 		1B3028267CDB8EE7C7D6BFA2 /* ControlEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlEditorView.swift; sourceTree = "<group>"; };
@@ -121,6 +126,7 @@
 		984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDEncodingTests.swift; sourceTree = "<group>"; };
 		746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDSendQueueTests.swift; sourceTree = "<group>"; };
 		BD608145BCD9F6F747C84E51 /* WebGamepadBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebGamepadBridgeTests.swift; sourceTree = "<group>"; };
+		3CE56E0AB9BA445A143ACC84 /* WireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WireTests.swift; sourceTree = "<group>"; };
 		A272734AF51988E48B135C0E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A74B09C24ECBD2C0D11C6212 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6CB7409450D58760321454B4 /* HemiPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HemiPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -246,11 +252,13 @@
 			children = (
 				4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */,
 				38D2F3C19F4A562FA2476184 /* BLEPublicationSentinel.swift */,
+				6D44B473887330AEF7AF37FA /* BridgeTransport.swift */,
 				025F4BE21F5DABCD186F61C2 /* ControllerTransport.swift */,
 				735D00335B5AD406A0D45141 /* HIDSendQueue.swift */,
 				6A75B38F09CDBC1DB7854D32 /* LoopbackTransport.swift */,
 				9BE24C73991CEE005F0656CF /* TransportCoordinator.swift */,
 				AD342804203E3993841D6802 /* WebGamepadBridge.swift */,
+				E90D76284DF97252BB27BD48 /* Wire.swift */,
 			);
 			path = Transport;
 			sourceTree = "<group>";
@@ -298,17 +306,39 @@
 				984E7812CF4857ECEC4ECA88 /* HIDEncodingTests.swift */,
 				746D5D59E5F67869169021EC /* HIDSendQueueTests.swift */,
 				BD608145BCD9F6F747C84E51 /* WebGamepadBridgeTests.swift */,
+				3CE56E0AB9BA445A143ACC84 /* WireTests.swift */,
 			);
 			path = HemiPadTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		CDB0ACA66356E168A95E6323 /* Bibliothèque Rust */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../bridge/wire/src",
+				"$(SRCROOT)/../bridge/wire/Cargo.toml",
+			);
+			name = "Bibliothèque Rust";
+			outputPaths = (
+				"$(SRCROOT)/../bridge/target/xcode/$(CONFIGURATION)-$(PLATFORM_NAME)/libhemipad_wire.a",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "sh \"$SRCROOT/../bridge/scripts/compiler-pour-xcode.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXNativeTarget section */
 		28C67CAE7CCF435F59284777 /* HemiPad */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 271404B05277C74906EC99B8 /* Build configuration list for PBXNativeTarget "HemiPad" */;
 			buildPhases = (
+				CDB0ACA66356E168A95E6323 /* Bibliothèque Rust */,
 				9F715A1E481090FF98F56B32 /* Sources */,
 				B835678095CB2D1E8B01E73E /* Frameworks */,
 				053DE3356CA1518F6AD10C1C /* Resources */,
@@ -420,11 +450,13 @@
 				EB79075BB20705C1C8DEB86F /* Theme.swift in Sources */,
 				CB1AE04E11AD43098D148374 /* BLEHIDPeripheralTransport.swift in Sources */,
 				32AF47F40E1B2EE9B3795746 /* BLEPublicationSentinel.swift in Sources */,
+				5C522A1E0BB1314B59F92CCF /* BridgeTransport.swift in Sources */,
 				188DD51375A807069D17F206 /* ControllerTransport.swift in Sources */,
 				F2618A889BBE7E4492EC5CC1 /* HIDSendQueue.swift in Sources */,
 				52F1F51463F7143D5022D810 /* LoopbackTransport.swift in Sources */,
 				4EEFEDC44FAB9AFED22D26C0 /* TransportCoordinator.swift in Sources */,
 				782438EDF9C6F1790175A84F /* WebGamepadBridge.swift in Sources */,
+				0FC6888586C8201B7BA8B53B /* Wire.swift in Sources */,
 				DF529476E6552026367555CA /* CalibrationView.swift in Sources */,
 				E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */,
 				D1815133DD2CA24546BF12AE /* ControlEditorView.swift in Sources */,
@@ -449,6 +481,7 @@
 				D7560EDA67799A7B259B68EF /* HIDEncodingTests.swift in Sources */,
 				50942359A60ACD478718775B /* HIDSendQueueTests.swift in Sources */,
 				ABDED81782D160B1CACE0F00 /* WebGamepadBridgeTests.swift in Sources */,
+				113CAB4197828B6C8ED30536 /* WireTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -552,6 +585,18 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../bridge/wire/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../bridge/target/xcode/$(CONFIGURATION)-$(PLATFORM_NAME)",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lhemipad_wire",
+				);
 				SWIFT_OBJC_BRIDGING_HEADER = "HemiPad/Support/HemiPad-Bridging-Header.h";
 			};
 			name = Debug;
@@ -578,6 +623,18 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../bridge/wire/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../bridge/target/xcode/$(CONFIGURATION)-$(PLATFORM_NAME)",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lhemipad_wire",
+				);
 				SWIFT_OBJC_BRIDGING_HEADER = "HemiPad/Support/HemiPad-Bridging-Header.h";
 			};
 			name = Release;
@@ -585,6 +642,10 @@
 		D78277A0F8492835CF13D273 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../bridge/wire/include",
+				);
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -604,6 +665,10 @@
 		DC3D6AF18B82C514A9FE1857 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../bridge/wire/include",
+				);
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
