@@ -1,0 +1,16 @@
+[package]
+name = "hemipad-wire"
+description = "Trames HemiPad authentifiées, avec une ABI C."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "hemipad_wire"
+# `staticlib` : ce que Xcode lie dans l'application.
+# `rlib`      : ce que le programme du boîtier utilise.
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
