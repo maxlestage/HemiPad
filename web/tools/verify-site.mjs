@@ -110,6 +110,15 @@ browser.newContext = async (...options) => {
     'une visite en clair est renvoyée vers HTTPS',
     `${redirection.status} ${redirection.headers.get('location')}`
   )
+  const detournee = await fetch(`${base}/demo`, {
+    redirect: 'manual',
+    headers: { 'x-forwarded-proto': 'http', 'x-forwarded-host': 'ailleurs.example' }
+  })
+  check(
+    detournee.status === 301 && !(detournee.headers.get('location') ?? '').includes('ailleurs.example'),
+    'la redirection HTTPS ne suit pas un hôte écrit par le visiteur',
+    `${detournee.status} ${detournee.headers.get('location')}`
+  )
   const chiffree = await fetch(base, { headers: { 'x-forwarded-proto': 'https' } })
   check(/max-age=\d{8}/.test(chiffree.headers.get('strict-transport-security') ?? ''), 'HSTS envoyé en HTTPS')
 

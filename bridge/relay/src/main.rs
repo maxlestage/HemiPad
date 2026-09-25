@@ -302,6 +302,7 @@ fn explain(reason: FrameError) -> &'static str {
         FrameError::KeyLength => "secret de mauvaise taille",
         FrameError::Signature => "signature fausse",
         FrameError::Replay => "trame rejouée",
+        FrameError::Direction => "trame renvoyée dans le mauvais sens",
         FrameError::OutputTooSmall => "tampon trop petit",
     }
 }
@@ -309,7 +310,7 @@ fn explain(reason: FrameError) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hemipad_wire::{seal, Output, ReportKind, KEY_LEN};
+    use hemipad_wire::{seal, Direction, Output, ReportKind, KEY_LEN};
 
     /// Un faux port USB, pour regarder ce qui y serait écrit.
     #[derive(Default)]
@@ -337,6 +338,7 @@ mod tests {
         let mut good = [0u8; FRAME_LEN];
         seal(
             &key,
+            Direction::ToBridge,
             ReportKind::Gamepad,
             &[1, 2, 3, 4, 5, 6, 8, 0, 0],
             1,
@@ -371,6 +373,7 @@ mod tests {
             FrameError::KeyLength,
             FrameError::Signature,
             FrameError::Replay,
+            FrameError::Direction,
             FrameError::OutputTooSmall,
         ] {
             assert!(!explain(reason).is_empty());
