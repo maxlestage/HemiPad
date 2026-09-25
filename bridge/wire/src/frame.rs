@@ -51,6 +51,10 @@ const SIGNED_LEN: usize = FRAME_LEN - TAG_LEN;
 pub enum ReportKind {
     Gamepad,
     Keyboard,
+    /// Ni manette ni clavier : « es-tu là ? ». Le boîtier renvoie la même
+    /// trame, signée. C'est ce qui permet à l'application de savoir qu'il
+    /// répond, et donc de choisir le chemin toute seule.
+    Heartbeat,
 }
 
 impl ReportKind {
@@ -59,7 +63,13 @@ impl ReportKind {
         match self {
             ReportKind::Gamepad => 1,
             ReportKind::Keyboard => 2,
+            ReportKind::Heartbeat => 3,
         }
+    }
+
+    /// Ce rapport va-t-il à la console, ou ne concerne-t-il que le pont ?
+    pub const fn reaches_console(self) -> bool {
+        !matches!(self, ReportKind::Heartbeat)
     }
 
     /// La longueur exacte attendue. Une trame qui annonce autre chose est
@@ -69,6 +79,7 @@ impl ReportKind {
         match self {
             ReportKind::Gamepad => 9,
             ReportKind::Keyboard => 8,
+            ReportKind::Heartbeat => 0,
         }
     }
 
@@ -76,6 +87,7 @@ impl ReportKind {
         match id {
             1 => Some(ReportKind::Gamepad),
             2 => Some(ReportKind::Keyboard),
+            3 => Some(ReportKind::Heartbeat),
             _ => None,
         }
     }
@@ -303,6 +315,33 @@ mod tests {
         let tag = crate::sha256::hmac_sha256(&KEY, &frame[..SIGNED_LEN]);
         frame[SIGNED_LEN..].copy_from_slice(&tag[..TAG_LEN]);
         assert_eq!(open(&KEY, &frame, 0), Err(FrameError::UnknownReport));
+    }
+
+    #[test]
+    fn a_heartbeat_carries_nothing_and_comes_back() {
+        let mut frame = [0u8; FRAME_LEN];
+        seal(&KEY, ReportKind::Heartbeat, &[], 12, &mut frame).unwrap();
+        let opened = open(&KEY, &frame, 11).unwrap();
+        assert_eq!(opened.kind, ReportKind::Heartbeat);
+        assert_eq!(opened.counter, 12);
+        assert!(opened.payload().is_empty());
+        assert!(!opened.kind.reaches_console(), "ne va pas à la console");
+        assert!(ReportKind::Gamepad.reaches_console());
+        assert!(ReportKind::Keyboard.reaches_console());
+    }
+
+    /// Un battement signé mais qui prétendrait porter des octets serait une
+    /// façon d'envoyer n'importe quoi à la console : refusé.
+    #[test]
+    fn a_heartbeat_that_claims_a_payload_is_refused() {
+        let mut frame = [0u8; FRAME_LEN];
+        frame[0..4].copy_from_slice(&MAGIC);
+        frame[4] = 3;
+        frame[5] = 9;
+        frame[8..16].copy_from_slice(&1u64.to_be_bytes());
+        let tag = crate::sha256::hmac_sha256(&KEY, &frame[..SIGNED_LEN]);
+        frame[SIGNED_LEN..].copy_from_slice(&tag[..TAG_LEN]);
+        assert_eq!(open(&KEY, &frame, 0), Err(FrameError::PayloadLength));
     }
 
     #[test]

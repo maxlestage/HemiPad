@@ -15,6 +15,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -122,6 +123,63 @@ int32_t hemipad_wire_wrap_output(uint8_t output,
                                  size_t payload_len,
                                  uint8_t *out,
                                  size_t out_len);
+
+/* ------------------------------------------------------- choix du chemin */
+
+/** Par où partent les commandes. */
+#define HEMIPAD_WIRE_PATH_NONE 0
+/** L'appareil s'annonce lui-même comme manette Bluetooth. */
+#define HEMIPAD_WIRE_PATH_DIRECT 1
+/** Par le boîtier, joint en Wi-Fi. */
+#define HEMIPAD_WIRE_PATH_BRIDGE 2
+
+/**
+ * Place à réserver pour l'état du choix.
+ *
+ * La structure reste opaque : l'appelant lui réserve de la place, la
+ * bibliothèque seule sait ce qu'il y a dedans. Un champ ajouté plus tard ne
+ * casse donc rien, tant que la taille tient — ce que hemipad_wire_chooser_size()
+ * permet de vérifier au démarrage.
+ */
+#define HEMIPAD_WIRE_CHOOSER_CAPACITY 64
+
+typedef struct {
+    /* Des entiers de 64 bits plutôt que des octets : l'alignement vient tout
+       seul, sans _Alignas, et Swift importe la structure sans hésiter. */
+    uint64_t opaque[HEMIPAD_WIRE_CHOOSER_CAPACITY / 8];
+} HemipadChooser;
+
+/** Taille réellement occupée. Doit tenir dans HEMIPAD_WIRE_CHOOSER_CAPACITY. */
+size_t hemipad_wire_chooser_size(void);
+
+/** Prépare un choix de chemin neuf. */
+void hemipad_wire_chooser_init(HemipadChooser *chooser);
+
+/**
+ * Règle les deux délais, en millisecondes : combien de temps le chemin direct
+ * doit tenir avant de reprendre la main, et le silence du boîtier toléré.
+ *
+ * Remet aussi l'état à neuf.
+ */
+void hemipad_wire_chooser_set_timings(HemipadChooser *chooser,
+                                      uint64_t settle_ms,
+                                      uint64_t bridge_timeout_ms);
+
+/** Une machine s'est abonnée, ou détachée, en Bluetooth direct. */
+void hemipad_wire_chooser_set_direct(HemipadChooser *chooser,
+                                     bool connected,
+                                     uint64_t now_ms);
+
+/** Le boîtier vient de répondre. */
+void hemipad_wire_chooser_bridge_seen(HemipadChooser *chooser, uint64_t now_ms);
+
+/**
+ * Le chemin à prendre maintenant : HEMIPAD_WIRE_PATH_*.
+ *
+ * La décision ne dépend que de l'état et de l'heure, jamais de l'ordre des
+ * appels : on peut l'appeler à chaque envoi sans rien fausser.
+ */
+uint8_t hemipad_wire_chooser_path(HemipadChooser *chooser, uint64_t now_ms);
 
 #ifdef __cplusplus
 }

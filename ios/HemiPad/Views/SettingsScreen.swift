@@ -154,6 +154,14 @@ struct SettingsScreen: View {
                     slider("Expiration", value: $state.profile.stickyTimeout, range: 2...20, unit: "s")
                 }
 
+                group("Essais") {
+                    Toggle("Mode démo", isOn: Binding(
+                        get: { state.transport.kind == .loopback },
+                        set: { state.transport.kind = $0 ? .loopback : .bluetoothHID }
+                    ))
+                    caption("Rien n'est émis : pour régler la manette sans machine sous la main. En temps normal, laissez ce réglage éteint — le chemin vers la console se choisit tout seul.")
+                }
+
                 group("Confort") {
                     // Réglée en points, de 44 à 150 : c'est l'unité que la
                     // légende annonce, plutôt qu'un coefficient sans repère.
