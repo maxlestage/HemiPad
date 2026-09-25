@@ -130,6 +130,25 @@ pub fn load_key(path: &Path) -> io::Result<[u8; KEY_LEN]> {
             ),
         ));
     }
+    // Le dossier ne doit pas être ouvert en écriture à d'autres : sinon on
+    // pourrait y remplacer le fichier du secret. Défense en profondeur —
+    // l'installation crée déjà /etc/hemipad en 700.
+    if let Some(parent) = path.parent() {
+        if let Ok(dir) = fs::metadata(parent) {
+            if dir.permissions().mode() & 0o022 != 0 {
+                return Err(io::Error::new(
+                    io::ErrorKind::PermissionDenied,
+                    format!(
+                        "{} est ouvert en écriture à d'autres ({:o}) : \
+                         corrigez avec « chmod 700 {} »",
+                        parent.display(),
+                        dir.permissions().mode() & 0o777,
+                        parent.display()
+                    ),
+                ));
+            }
+        }
+    }
     let text = fs::read_to_string(path)?;
     parse_key(text.trim()).ok_or_else(|| {
         io::Error::new(

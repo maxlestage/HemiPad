@@ -266,7 +266,8 @@ struct ConnectScreen: View {
                 text: Binding(
                     get: { transport.bridgeSettings.keyHex },
                     set: { transport.bridgeSettings.keyHex = $0 }
-                )
+                ),
+                secure: true
             )
             Text(transport.bridgeSettings.isComplete
                  ? "Le boîtier est appairé. Il sert dès que le Bluetooth direct ne suffit pas — c'est lui qui atteint la Switch."
@@ -290,17 +291,32 @@ struct ConnectScreen: View {
         .background(RoundedRectangle(cornerRadius: Theme.cardRadius).fill(Theme.surface.opacity(0.6)))
     }
 
-    private func labelledField(_ title: String, placeholder: String, text: Binding<String>) -> some View {
+    private func labelledField(
+        _ title: String,
+        placeholder: String,
+        text: Binding<String>,
+        secure: Bool = false
+    ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.secondaryText)
-            TextField(placeholder, text: text)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .font(.callout.monospaced())
-                .padding(10)
-                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surfaceHigh))
+            Group {
+                // Le secret est masqué : un champ ordinaire l'exposerait à un
+                // regard par-dessus l'épaule, à une capture d'écran ou à un
+                // clavier tiers. L'adresse, elle, reste en clair.
+                if secure {
+                    SecureField(placeholder, text: text)
+                        .textContentType(.password)
+                } else {
+                    TextField(placeholder, text: text)
+                }
+            }
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .font(.callout.monospaced())
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surfaceHigh))
         }
     }
 
