@@ -128,7 +128,7 @@ journalctl -u hemipad-relay -f   # dit par où ça passe à chaque changement
 ## Développer
 
 ```bash
-cargo test                         # 59 vérifications
+cargo test                         # 90 vérifications
 cargo clippy --all-targets -- -D warnings
 cargo fmt --all --check
 ./scripts/verifier-abi-c.sh        # l'en-tête C correspond-il à la bibliothèque ?
@@ -143,17 +143,29 @@ se verrait autrement qu'à l'exécution, sur l'appareil.
 
 ```text
 position  taille  contenu
-0         4       « HPB1 », la marque et la version du format
-4         1       identifiant de rapport (1 manette, 2 clavier)
+0         4       « HPB2 », la marque et la version du format
+4         1       identifiant de rapport (1 manette, 2 clavier, 3 battement)
 5         1       longueur utile (9 pour la manette, 8 pour le clavier)
-6         2       réservé, à zéro
+6         1       sens : 0 vers le boîtier, 1 vers l'application
+7         1       réservé, à zéro
 8         8       compteur, en gros-boutiste
-16        12      charge utile, complétée de zéros
+16        12      charge utile complétée de zéros, chiffrée (AES-128, mode compteur)
 28        16      signature : les 16 premiers octets du HMAC des 28 premiers
 ```
 
 Total : 44 octets, toujours. Une trame d'une autre taille est refusée sans
 être lue.
+
+Le secret partagé ne sert pas tel quel : on en tire une clé pour signer et une
+autre pour chiffrer. La signature couvre le chiffré et se vérifie avant tout
+déchiffrement. Le sens est signé : une trame renvoyée à son expéditeur est
+refusée, si bien que personne sur le Wi-Fi ne peut faire croire à
+l'application que le boîtier répond en lui renvoyant ses propres battements.
+Ce qui reste visible sur le réseau : la sorte de rapport et le rythme des
+trames, pas leur contenu.
+
+Le boîtier et l'application doivent parler la même version du format :
+après cette mise à jour, mettez à jour les deux.
 
 Ce que le boîtier écrit ensuite, une fois la trame vérifiée :
 

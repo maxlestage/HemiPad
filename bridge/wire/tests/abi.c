@@ -24,7 +24,7 @@ static void check(int condition, const char *label) {
 }
 
 int main(void) {
-    check(hemipad_wire_abi_version() == 1, "version de l'ABI");
+    check(hemipad_wire_abi_version() == 2, "version de l'ABI");
     check(hemipad_wire_frame_len() == 44, "taille d'une trame");
     check(hemipad_wire_key_len() == 32, "taille du secret");
     check(hemipad_wire_payload_len(HEMIPAD_WIRE_REPORT_GAMEPAD) == 9, "manette : 9 octets");
@@ -36,17 +36,19 @@ int main(void) {
     const uint8_t manette[9] = {128, 128, 200, 60, 0, 255, 8, 0x01, 0x80};
     uint8_t frame[64];
 
-    int32_t sealed = hemipad_wire_seal(key, sizeof key, HEMIPAD_WIRE_REPORT_GAMEPAD,
-                                       manette, sizeof manette, 7,
+    int32_t sealed = hemipad_wire_seal(key, sizeof key, HEMIPAD_WIRE_TO_BRIDGE,
+                                       HEMIPAD_WIRE_REPORT_GAMEPAD, manette, sizeof manette, 7,
                                        frame, hemipad_wire_frame_len());
     check(sealed == HEMIPAD_WIRE_OK, "sceller une trame");
-    check(memcmp(frame, "HPB1", 4) == 0, "la trame porte sa marque");
+    check(memcmp(frame, "HPB2", 4) == 0, "la trame porte sa marque");
+    check(frame[6] == HEMIPAD_WIRE_TO_BRIDGE, "la trame porte son sens");
+    check(memcmp(frame + 16, manette, sizeof manette) != 0, "la manette passe chiffree");
 
     uint8_t report_id = 0;
     uint8_t payload[12];
     size_t payload_len = 0;
     uint64_t counter = 0;
-    int32_t opened = hemipad_wire_open(key, sizeof key, frame, hemipad_wire_frame_len(), 6,
+    int32_t opened = hemipad_wire_open(key, sizeof key, HEMIPAD_WIRE_TO_BRIDGE, frame, hemipad_wire_frame_len(), 6,
                                        &report_id, payload, sizeof payload,
                                        &payload_len, &counter);
     check(opened == HEMIPAD_WIRE_OK, "ouvrir la trame");
@@ -56,13 +58,19 @@ int main(void) {
     check(memcmp(payload, manette, sizeof manette) == 0, "les octets reviennent intacts");
 
     /* Rejouée : refusée. */
-    int32_t replayed = hemipad_wire_open(key, sizeof key, frame, hemipad_wire_frame_len(), 7,
+    int32_t replayed = hemipad_wire_open(key, sizeof key, HEMIPAD_WIRE_TO_BRIDGE, frame, hemipad_wire_frame_len(), 7,
                                          NULL, payload, sizeof payload, NULL, NULL);
     check(replayed == HEMIPAD_WIRE_REPLAY, "une trame rejouée est refusée");
 
+    /* Renvoyée à l'application : refusée, ce n'est pas le boîtier qui parle. */
+    int32_t reflected = hemipad_wire_open(key, sizeof key, HEMIPAD_WIRE_TO_APP, frame,
+                                          hemipad_wire_frame_len(), 0,
+                                          NULL, payload, sizeof payload, NULL, NULL);
+    check(reflected == HEMIPAD_WIRE_DIRECTION, "une trame renvoyee est refusee");
+
     /* Modifiée : refusée. */
     frame[18] ^= 0xFF;
-    int32_t forged = hemipad_wire_open(key, sizeof key, frame, hemipad_wire_frame_len(), 6,
+    int32_t forged = hemipad_wire_open(key, sizeof key, HEMIPAD_WIRE_TO_BRIDGE, frame, hemipad_wire_frame_len(), 6,
                                        NULL, payload, sizeof payload, NULL, NULL);
     check(forged == HEMIPAD_WIRE_SIGNATURE, "une trame modifiée est refusée");
 
@@ -91,7 +99,7 @@ int main(void) {
           "un chemin inconnu est refuse");
 
     /* Pointeur nul : un code, pas un plantage. */
-    int32_t empty = hemipad_wire_seal(NULL, 32, HEMIPAD_WIRE_REPORT_GAMEPAD,
+    int32_t empty = hemipad_wire_seal(NULL, 32, HEMIPAD_WIRE_TO_BRIDGE, HEMIPAD_WIRE_REPORT_GAMEPAD,
                                       manette, sizeof manette, 1, frame, sizeof frame);
     check(empty == HEMIPAD_WIRE_NULL_POINTER, "un pointeur nul est refusé sans plantage");
 

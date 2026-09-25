@@ -305,9 +305,11 @@ struct ConnectScreen: View {
                 // Le secret est masqué : un champ ordinaire l'exposerait à un
                 // regard par-dessus l'épaule, à une capture d'écran ou à un
                 // clavier tiers. L'adresse, elle, reste en clair.
+                // Pas de type « mot de passe » : iOS proposerait de
+                // l'enregistrer dans le Trousseau iCloud, et le secret, fait
+                // pour ne jamais quitter cet appareil, partirait dans le nuage.
                 if secure {
                     SecureField(placeholder, text: text)
-                        .textContentType(.password)
                 } else {
                     TextField(placeholder, text: text)
                 }

@@ -153,7 +153,9 @@ final class RemotePlayPage: NSObject, ObservableObject, WKNavigationDelegate, WK
             decisionHandler(.allow)
         } else {
             // Hors de Microsoft et de la Xbox : Safari, jamais dans HemiPad.
-            if url.scheme?.lowercased() == "https" {
+            // Et seulement sur un lien touché : une page ou une redirection
+            // ne peut pas, d'elle-même, faire sortir de l'application.
+            if url.scheme?.lowercased() == "https", navigationAction.navigationType == .linkActivated {
                 UIApplication.shared.open(url)
             }
             decisionHandler(.cancel)

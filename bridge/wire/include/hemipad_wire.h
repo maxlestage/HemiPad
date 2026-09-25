@@ -43,6 +43,13 @@ extern "C" {
 #define HEMIPAD_WIRE_REPLAY (-9)
 /** Chemin de sortie inconnu. */
 #define HEMIPAD_WIRE_UNKNOWN_OUTPUT (-10)
+/** La trame va dans l'autre sens (une des nôtres, renvoyée), ou sens inconnu. */
+#define HEMIPAD_WIRE_DIRECTION (-11)
+
+/* Sens d'une trame. Il est signé : une trame renvoyée à son expéditeur est
+ * refusée. */
+#define HEMIPAD_WIRE_TO_BRIDGE 0
+#define HEMIPAD_WIRE_TO_APP 1
 
 /** Identifiants de rapport, les mêmes que dans le descripteur HID. */
 #define HEMIPAD_WIRE_REPORT_GAMEPAD 1
@@ -69,8 +76,11 @@ size_t hemipad_wire_key_len(void);
 size_t hemipad_wire_payload_len(uint8_t report_id);
 
 /**
- * Scelle un rapport dans une trame prête à envoyer.
+ * Scelle un rapport dans une trame prête à envoyer : charge utile chiffrée,
+ * puis le tout signé.
  *
+ * @param direction HEMIPAD_WIRE_TO_BRIDGE depuis l'application,
+ *                  HEMIPAD_WIRE_TO_APP depuis le boîtier.
  * @param counter doit augmenter à chaque trame : c'est ce qui interdit de
  *                rejouer une trame capturée sur le réseau.
  * @param out     reçoit hemipad_wire_frame_len() octets.
@@ -78,6 +88,7 @@ size_t hemipad_wire_payload_len(uint8_t report_id);
  */
 int32_t hemipad_wire_seal(const uint8_t *key,
                           size_t key_len,
+                          uint8_t direction,
                           uint8_t report_id,
                           const uint8_t *payload,
                           size_t payload_len,
@@ -86,17 +97,21 @@ int32_t hemipad_wire_seal(const uint8_t *key,
                           size_t out_len);
 
 /**
- * Ouvre une trame reçue, après en avoir vérifié la signature et le compteur.
+ * Ouvre une trame reçue, après en avoir vérifié la signature, le sens et le
+ * compteur, puis la déchiffre.
  *
  * Les pointeurs de sortie out_report_id, out_payload_len et out_counter
  * peuvent être nuls si l'appelant ne s'y intéresse pas.
  *
+ * @param direction    sens attendu des trames reçues : HEMIPAD_WIRE_TO_APP
+ *                     dans l'application, HEMIPAD_WIRE_TO_BRIDGE dans le boîtier.
  * @param last_counter dernier compteur accepté ; une trame qui ne le dépasse
  *                     pas est refusée.
  * @return HEMIPAD_WIRE_OK, ou un code négatif.
  */
 int32_t hemipad_wire_open(const uint8_t *key,
                           size_t key_len,
+                          uint8_t direction,
                           const uint8_t *frame,
                           size_t frame_len,
                           uint64_t last_counter,

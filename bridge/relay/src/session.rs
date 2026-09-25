@@ -5,7 +5,7 @@
 //! on regarde ce qu'il veut envoyer. Par où cela sort — le câble ou le
 //! Bluetooth — ne le regarde pas : c'est l'affaire de `outputs`.
 
-use hemipad_wire::{open, seal, FrameError, ReportKind, FRAME_LEN, MAX_PAYLOAD};
+use hemipad_wire::{open, seal, Direction, FrameError, ReportKind, FRAME_LEN, MAX_PAYLOAD};
 
 /// Manette au repos : sticks au centre, rien d'enfoncé, croix en position
 /// nulle. Les mêmes octets que `GamepadState.neutral` côté iOS.
@@ -83,14 +83,18 @@ impl Session {
     /// Une trame vient d'arriver. Rend ce qu'elle demande, ou la raison du
     /// refus.
     pub fn accept(&mut self, frame: &[u8]) -> Result<Accepted, FrameError> {
-        let opened = open(&self.key, frame, self.last_counter)?;
+        let opened = open(&self.key, Direction::ToBridge, frame, self.last_counter)?;
         self.last_counter = opened.counter;
         if !opened.kind.reaches_console() {
             // Un battement ne réarme pas le garde-fou : sinon un appareil qui
             // ne ferait que battre laisserait une gâchette enfoncée.
             let mut reply = [0u8; FRAME_LEN];
+            // La réponse part dans l'autre sens, signé : ce n'est donc pas la
+            // copie du battement reçu, et personne ne peut la fabriquer en
+            // renvoyant à l'application ses propres trames.
             seal(
                 &self.key,
+                Direction::ToApp,
                 opened.kind,
                 opened.payload(),
                 opened.counter,
@@ -140,7 +144,15 @@ mod tests {
 
     fn frame(counter: u64, kind: ReportKind, payload: &[u8]) -> [u8; FRAME_LEN] {
         let mut bytes = [0u8; FRAME_LEN];
-        seal(&KEY, kind, payload, counter, &mut bytes).unwrap();
+        seal(
+            &KEY,
+            Direction::ToBridge,
+            kind,
+            payload,
+            counter,
+            &mut bytes,
+        )
+        .unwrap();
         bytes
     }
 
@@ -247,7 +259,7 @@ mod tests {
         };
         // La réponse s'ouvre avec le même secret : l'application saura que
         // c'est bien le boîtier appairé qui a répondu.
-        let opened = hemipad_wire::open(&KEY, &reply, 1).unwrap();
+        let opened = hemipad_wire::open(&KEY, Direction::ToApp, &reply, 1).unwrap();
         assert_eq!(opened.kind, ReportKind::Heartbeat);
         assert_eq!(opened.counter, 2);
 
