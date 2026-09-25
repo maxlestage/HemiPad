@@ -26,7 +26,10 @@ fichier_secret="$dossier_secret/cle"
 gadget=/sys/kernel/config/usb_gadget/hemipad
 
 echo "== 1. Le programme"
-if [ -x "$racine/target/release/hemipad-relay" ]; then
+if [ -x "$racine/hemipad-relay" ]; then
+  # Paquet publié, déjà compilé pour la carte : rien à compiler ici.
+  install -m 755 "$racine/hemipad-relay" "$binaire"
+elif [ -x "$racine/target/release/hemipad-relay" ]; then
   install -m 755 "$racine/target/release/hemipad-relay" "$binaire"
 elif command -v cargo > /dev/null; then
   (cd "$racine" && cargo build --release -p hemipad-relay)
