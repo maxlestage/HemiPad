@@ -89,7 +89,8 @@ impl core::fmt::Debug for OutputFrame {
 /// pour cette sorte de rapport : une longueur inventée ferait comprendre
 /// n'importe quoi à la console.
 pub fn wrap(output: Output, kind: ReportKind, payload: &[u8]) -> Option<OutputFrame> {
-    if payload.len() != kind.payload_len() {
+    // Un battement de cœur ne va pas à la console : il n'a rien à emballer.
+    if !kind.reaches_console() || payload.len() != kind.payload_len() {
         return None;
     }
     let mut bytes = [0u8; MAX_OUTPUT_LEN];
@@ -157,6 +158,12 @@ mod tests {
         assert!(wrap(Output::Usb, ReportKind::Gamepad, &CLAVIER).is_none());
         assert!(wrap(Output::Bluetooth, ReportKind::Keyboard, &MANETTE).is_none());
         assert!(wrap(Output::Usb, ReportKind::Gamepad, &[]).is_none());
+    }
+
+    #[test]
+    fn a_heartbeat_is_never_sent_to_the_console() {
+        assert!(wrap(Output::Usb, ReportKind::Heartbeat, &[]).is_none());
+        assert!(wrap(Output::Bluetooth, ReportKind::Heartbeat, &[]).is_none());
     }
 
     #[test]

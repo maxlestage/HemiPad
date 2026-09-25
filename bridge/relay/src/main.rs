@@ -30,7 +30,7 @@ use std::time::{Duration, Instant};
 use config::{load_key, Config};
 use hemipad_wire::{FrameError, FRAME_LEN};
 use outputs::{Outputs, Sent, Sink, UsbSink};
-use session::{Report, Session};
+use session::{Accepted, Report, Session};
 
 /// Attente maximale sur le réseau avant de reprendre la main pour vérifier le
 /// garde-fou.
@@ -134,10 +134,17 @@ fn run(config: &Config) -> io::Result<()> {
 
         match socket.recv_from(&mut buffer) {
             Ok((length, from)) => match session.accept(&buffer[..length]) {
-                Ok(report) => {
+                Ok(Accepted::Report(report)) => {
                     if let Sent::FellBackToUsb = send_one(&mut outputs, &report) {
                         eprintln!("Bluetooth coupé : le câble prend la suite");
                         debug_assert!(!outputs.has_bluetooth());
+                    }
+                }
+                Ok(Accepted::Heartbeat(reply)) => {
+                    // « Je suis là. » C'est sur cette réponse que
+                    // l'application décide de passer par le boîtier.
+                    if let Err(error) = socket.send_to(&reply, from) {
+                        eprintln!("réponse au battement impossible : {error}");
                     }
                 }
                 Err(reason) => {
@@ -313,7 +320,9 @@ mod tests {
             &mut good,
         )
         .unwrap();
-        let report = session.accept(&good).unwrap();
+        let Accepted::Report(report) = session.accept(&good).unwrap() else {
+            panic!("un rapport était attendu")
+        };
         assert_eq!(send_one(&mut outputs, &report), Sent::By(Output::Usb));
 
         // Une trame forgée : refusée avant d'atteindre le moindre chemin.

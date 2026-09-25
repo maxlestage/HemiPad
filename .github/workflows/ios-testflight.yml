@@ -54,6 +54,19 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      # L'application lie une bibliothèque Rust : il faut la chaîne et les
+      # cibles Apple avant de compiler. La version est figée par
+      # bridge/rust-toolchain.toml.
+      - name: Chaîne Rust pour iOS
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --profile minimal --default-toolchain none
+          source "$HOME/.cargo/env"
+          cd bridge && rustup toolchain install
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
+          rustc --version
+
+
       - name: Vérifier que les secrets sont en place
         env:
           KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}

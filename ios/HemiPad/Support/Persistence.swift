@@ -6,6 +6,7 @@ enum SettingsStore {
     private static let profileKey = "hemipad.profile"
     private static let consoleKey = "hemipad.console"
     private static let transportKey = "hemipad.transport"
+    private static let bridgeKey = "hemipad.bridge"
 
     static func loadProfile() -> HemiplegiaProfile {
         guard let data = UserDefaults.standard.data(forKey: profileKey),
@@ -35,12 +36,28 @@ enum SettingsStore {
     static func loadTransport() -> TransportKind {
         guard let raw = UserDefaults.standard.string(forKey: transportKey),
               let kind = TransportKind(rawValue: raw) else {
-            return .loopback
+            // Le Bluetooth direct par défaut : personne n'a à aller l'allumer
+            // quelque part avant que la manette serve à quelque chose.
+            return .bluetoothHID
         }
-        return kind
+        // Le boîtier n'est pas un choix de transport : il tourne à côté.
+        return kind == .bridge ? .bluetoothHID : kind
     }
 
     static func save(_ kind: TransportKind) {
         UserDefaults.standard.set(kind.rawValue, forKey: transportKey)
+    }
+
+    static func loadBridge() -> BridgeSettings {
+        guard let data = UserDefaults.standard.data(forKey: bridgeKey),
+              let settings = try? JSONDecoder().decode(BridgeSettings.self, from: data) else {
+            return .empty
+        }
+        return settings
+    }
+
+    static func save(_ settings: BridgeSettings) {
+        guard let data = try? JSONEncoder().encode(settings) else { return }
+        UserDefaults.standard.set(data, forKey: bridgeKey)
     }
 }

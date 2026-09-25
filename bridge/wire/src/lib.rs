@@ -9,11 +9,13 @@
 //! "C"` ci-dessous ne renvoient jamais d'erreur par panique : elles rendent un
 //! code négatif, que Swift transforme en erreur.
 
+pub mod connection;
 pub mod descriptor;
 pub mod frame;
 pub mod output;
 pub mod sha256;
 
+pub use connection::{Chooser, Path, DEFAULT_BRIDGE_TIMEOUT_MS, DEFAULT_SETTLE_MS};
 pub use descriptor::HID_REPORT_DESCRIPTOR;
 pub use frame::{
     open, seal, Frame, FrameError, ReportKind, FRAME_LEN, KEY_LEN, MAGIC, MAX_PAYLOAD, TAG_LEN,
@@ -231,6 +233,87 @@ pub unsafe extern "C" fn hemipad_wire_wrap_output(
 #[no_mangle]
 pub extern "C" fn hemipad_wire_max_output_len() -> usize {
     MAX_OUTPUT_LEN
+}
+
+// --- Choix du chemin, pour l'application -----------------------------------
+//
+// Swift détient la structure et la passe à chaque appel : aucune allocation,
+// rien à libérer, et l'état reste visible du côté qui s'en sert.
+
+/// Prépare un choix de chemin neuf.
+///
+/// # Safety
+/// `chooser` doit adresser une structure `HemipadChooser` accessible en
+/// écriture.
+#[no_mangle]
+pub unsafe extern "C" fn hemipad_wire_chooser_init(chooser: *mut Chooser) {
+    if chooser.is_null() {
+        return;
+    }
+    *chooser = Chooser::new();
+}
+
+/// Règle les deux délais : combien de temps le chemin direct doit tenir avant
+/// de reprendre la main, et le silence du boîtier toléré.
+///
+/// # Safety
+/// `chooser` doit adresser une structure accessible en écriture.
+#[no_mangle]
+pub unsafe extern "C" fn hemipad_wire_chooser_set_timings(
+    chooser: *mut Chooser,
+    settle_ms: u64,
+    bridge_timeout_ms: u64,
+) {
+    if chooser.is_null() {
+        return;
+    }
+    *chooser = Chooser::with_timings(settle_ms, bridge_timeout_ms);
+}
+
+/// Une machine s'est abonnée, ou détachée, en Bluetooth direct.
+///
+/// # Safety
+/// `chooser` doit adresser une structure accessible en écriture.
+#[no_mangle]
+pub unsafe extern "C" fn hemipad_wire_chooser_set_direct(
+    chooser: *mut Chooser,
+    connected: bool,
+    now_ms: u64,
+) {
+    let Some(chooser) = chooser.as_mut() else {
+        return;
+    };
+    chooser.set_direct(connected, now_ms);
+}
+
+/// Le boîtier vient de répondre.
+///
+/// # Safety
+/// `chooser` doit adresser une structure accessible en écriture.
+#[no_mangle]
+pub unsafe extern "C" fn hemipad_wire_chooser_bridge_seen(chooser: *mut Chooser, now_ms: u64) {
+    let Some(chooser) = chooser.as_mut() else {
+        return;
+    };
+    chooser.bridge_seen(now_ms);
+}
+
+/// Le chemin à prendre maintenant : 0 aucun, 1 direct, 2 le boîtier.
+///
+/// # Safety
+/// `chooser` doit adresser une structure accessible en écriture.
+#[no_mangle]
+pub unsafe extern "C" fn hemipad_wire_chooser_path(chooser: *mut Chooser, now_ms: u64) -> u8 {
+    let Some(chooser) = chooser.as_mut() else {
+        return Path::None.code();
+    };
+    chooser.path(now_ms).code()
+}
+
+/// Taille de la structure, pour que Swift lui réserve la bonne place.
+#[no_mangle]
+pub extern "C" fn hemipad_wire_chooser_size() -> usize {
+    core::mem::size_of::<Chooser>()
 }
 
 #[cfg(test)]
@@ -459,6 +542,42 @@ mod tests {
         );
     }
 
+    /// Le même enchaînement que fera l'application : le boîtier répond, le
+    /// direct arrive, puis s'installe.
+    #[test]
+    fn the_c_abi_chooses_the_path_on_its_own() {
+        let mut chooser = Chooser::new();
+        unsafe {
+            hemipad_wire_chooser_set_timings(&mut chooser, 1_000, 2_000);
+            assert_eq!(hemipad_wire_chooser_path(&mut chooser, 0), 0, "rien encore");
+
+            hemipad_wire_chooser_bridge_seen(&mut chooser, 0);
+            assert_eq!(hemipad_wire_chooser_path(&mut chooser, 0), 2, "le boîtier");
+
+            hemipad_wire_chooser_set_direct(&mut chooser, true, 100);
+            hemipad_wire_chooser_bridge_seen(&mut chooser, 100);
+            assert_eq!(hemipad_wire_chooser_path(&mut chooser, 100), 2, "trop tôt");
+
+            hemipad_wire_chooser_bridge_seen(&mut chooser, 1_100);
+            assert_eq!(
+                hemipad_wire_chooser_path(&mut chooser, 1_100),
+                1,
+                "le direct"
+            );
+        }
+    }
+
+    #[test]
+    fn the_chooser_abi_survives_a_null_pointer() {
+        unsafe {
+            hemipad_wire_chooser_init(core::ptr::null_mut());
+            hemipad_wire_chooser_set_timings(core::ptr::null_mut(), 1, 2);
+            hemipad_wire_chooser_set_direct(core::ptr::null_mut(), true, 0);
+            hemipad_wire_chooser_bridge_seen(core::ptr::null_mut(), 0);
+            assert_eq!(hemipad_wire_chooser_path(core::ptr::null_mut(), 0), 0);
+        }
+    }
+
     #[test]
     fn the_abi_announces_its_shape() {
         assert_eq!(hemipad_wire_abi_version(), 1);
@@ -468,5 +587,6 @@ mod tests {
         assert_eq!(hemipad_wire_payload_len(2), 8);
         assert_eq!(hemipad_wire_payload_len(3), 0);
         assert_eq!(hemipad_wire_max_output_len(), MAX_OUTPUT_LEN);
+        assert_eq!(hemipad_wire_chooser_size(), core::mem::size_of::<Chooser>());
     }
 }

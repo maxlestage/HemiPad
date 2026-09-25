@@ -95,6 +95,37 @@ int main(void) {
                                       manette, sizeof manette, 1, frame, sizeof frame);
     check(empty == HEMIPAD_WIRE_NULL_POINTER, "un pointeur nul est refusé sans plantage");
 
+    /* Le choix du chemin : l'état tient-il dans la place réservée ? */
+    check(hemipad_wire_chooser_size() <= sizeof(HemipadChooser),
+          "l'etat du choix tient dans la place reservee");
+
+    HemipadChooser chooser;
+    hemipad_wire_chooser_set_timings(&chooser, 1000, 2000);
+    check(hemipad_wire_chooser_path(&chooser, 0) == HEMIPAD_WIRE_PATH_NONE,
+          "rien de connecte : aucun chemin");
+
+    hemipad_wire_chooser_bridge_seen(&chooser, 0);
+    check(hemipad_wire_chooser_path(&chooser, 0) == HEMIPAD_WIRE_PATH_BRIDGE,
+          "le boitier repond : on passe par lui");
+
+    hemipad_wire_chooser_set_direct(&chooser, true, 100);
+    hemipad_wire_chooser_bridge_seen(&chooser, 100);
+    check(hemipad_wire_chooser_path(&chooser, 100) == HEMIPAD_WIRE_PATH_BRIDGE,
+          "le direct vient d'arriver : il attend son tour");
+
+    hemipad_wire_chooser_bridge_seen(&chooser, 1100);
+    check(hemipad_wire_chooser_path(&chooser, 1100) == HEMIPAD_WIRE_PATH_DIRECT,
+          "le direct a tenu : il reprend la main");
+
+    hemipad_wire_chooser_set_direct(&chooser, false, 1200);
+    hemipad_wire_chooser_bridge_seen(&chooser, 1200);
+    check(hemipad_wire_chooser_path(&chooser, 1200) == HEMIPAD_WIRE_PATH_BRIDGE,
+          "le direct tombe : bascule immediate");
+
+    hemipad_wire_chooser_init(&chooser);
+    check(hemipad_wire_chooser_path(&chooser, 0) == HEMIPAD_WIRE_PATH_NONE,
+          "remis a neuf");
+
     if (failures > 0) {
         printf("\n%d vérification(s) en échec\n", failures);
         return 1;
