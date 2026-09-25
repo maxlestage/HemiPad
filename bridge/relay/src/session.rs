@@ -5,7 +5,7 @@
 //! on regarde ce qu'il veut envoyer. Par où cela sort — le câble ou le
 //! Bluetooth — ne le regarde pas : c'est l'affaire de `outputs`.
 
-use hemipad_wire::{open, FrameError, ReportKind, MAX_PAYLOAD};
+use hemipad_wire::{open, seal, FrameError, ReportKind, FRAME_LEN, MAX_PAYLOAD};
 
 /// Manette au repos : sticks au centre, rien d'enfoncé, croix en position
 /// nulle. Les mêmes octets que `GamepadState.neutral` côté iOS.
@@ -44,6 +44,16 @@ impl core::fmt::Debug for Report {
     }
 }
 
+/// Ce qu'une trame acceptée demande de faire.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Accepted {
+    /// Un rapport à faire parvenir à la console.
+    Report(Report),
+    /// Un « es-tu là ? » : rien ne va à la console, on renvoie la trame
+    /// signée pour que l'application sache que le boîtier répond.
+    Heartbeat([u8; FRAME_LEN]),
+}
+
 /// La liaison avec un appareil appairé : son secret, et le dernier compteur vu.
 pub struct Session {
     key: [u8; hemipad_wire::KEY_LEN],
@@ -70,14 +80,28 @@ impl Session {
         self.last_counter
     }
 
-    /// Une trame vient d'arriver. Rend le rapport à écrire, ou la raison du
+    /// Une trame vient d'arriver. Rend ce qu'elle demande, ou la raison du
     /// refus.
-    pub fn accept(&mut self, frame: &[u8]) -> Result<Report, FrameError> {
+    pub fn accept(&mut self, frame: &[u8]) -> Result<Accepted, FrameError> {
         let opened = open(&self.key, frame, self.last_counter)?;
         self.last_counter = opened.counter;
+        if !opened.kind.reaches_console() {
+            // Un battement ne réarme pas le garde-fou : sinon un appareil qui
+            // ne ferait que battre laisserait une gâchette enfoncée.
+            let mut reply = [0u8; FRAME_LEN];
+            seal(
+                &self.key,
+                opened.kind,
+                opened.payload(),
+                opened.counter,
+                &mut reply,
+            )
+            .map_err(|_| FrameError::PayloadLength)?;
+            return Ok(Accepted::Heartbeat(reply));
+        }
         self.silence = 0;
         self.released = false;
-        Ok(Report::new(opened.kind, opened.payload()))
+        Ok(Accepted::Report(Report::new(opened.kind, opened.payload())))
     }
 
     /// Le temps passe sans rien recevoir. Si le silence dure, tout est
@@ -124,9 +148,12 @@ mod tests {
     fn an_accepted_frame_becomes_a_report() {
         let mut session = Session::new(KEY, 500);
         let payload = [1u8, 2, 3, 4, 5, 6, 8, 9, 10];
-        let report = session
+        let Accepted::Report(report) = session
             .accept(&frame(1, ReportKind::Gamepad, &payload))
-            .unwrap();
+            .unwrap()
+        else {
+            panic!("un rapport était attendu")
+        };
         assert_eq!(report.kind, ReportKind::Gamepad);
         assert_eq!(report.payload(), &payload);
     }
@@ -135,9 +162,12 @@ mod tests {
     fn the_keyboard_keeps_its_own_kind() {
         let mut session = Session::new(KEY, 500);
         let keys = [0x01u8, 0, 0x04, 0, 0, 0, 0, 0];
-        let report = session
+        let Accepted::Report(report) = session
             .accept(&frame(1, ReportKind::Keyboard, &keys))
-            .unwrap();
+            .unwrap()
+        else {
+            panic!("un rapport était attendu")
+        };
         assert_eq!(report.kind, ReportKind::Keyboard);
         assert_eq!(report.payload(), &keys);
     }
@@ -198,6 +228,32 @@ mod tests {
             .accept(&frame(2, ReportKind::Gamepad, &[255; 9]))
             .unwrap();
         assert_eq!(session.tick(100).len(), 2);
+    }
+
+    /// Le battement revient signé, et ne touche ni la console ni le
+    /// garde-fou.
+    #[test]
+    fn a_heartbeat_comes_back_signed_and_changes_nothing_else() {
+        let mut session = Session::new(KEY, 500);
+        session
+            .accept(&frame(1, ReportKind::Gamepad, &[255; 9]))
+            .unwrap();
+
+        let Accepted::Heartbeat(reply) = session
+            .accept(&frame(2, ReportKind::Heartbeat, &[]))
+            .unwrap()
+        else {
+            panic!("un battement était attendu")
+        };
+        // La réponse s'ouvre avec le même secret : l'application saura que
+        // c'est bien le boîtier appairé qui a répondu.
+        let opened = hemipad_wire::open(&KEY, &reply, 1).unwrap();
+        assert_eq!(opened.kind, ReportKind::Heartbeat);
+        assert_eq!(opened.counter, 2);
+
+        // Le garde-fou n'a pas été réarmé : le silence des vraies commandes
+        // relâche toujours tout.
+        assert_eq!(session.tick(500).len(), 2);
     }
 
     #[test]
