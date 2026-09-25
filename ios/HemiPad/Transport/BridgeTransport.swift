@@ -49,7 +49,18 @@ final class BridgeTransport: ControllerTransport {
     private let queue = DispatchQueue(label: "app.hemipad.bridge")
     /// Compteur des trames émises. Jamais remis à zéro dans une session : un
     /// compteur qui recule ferait refuser nos propres trames.
-    private var counter: UInt64 = 0
+    ///
+    /// Semé sur l'heure (millisecondes) plutôt que zéro : au redémarrage de
+    /// l'application, le boîtier tourne peut-être encore avec un compteur déjà
+    /// haut ; repartir de zéro ferait tout rejeter jusqu'au redémarrage du
+    /// boîtier. L'heure avance toujours, donc chaque session repart au-dessus
+    /// de la précédente. Cela n'ouvre aucun rejeu : une trame capturée porte un
+    /// compteur plus bas que ce nouveau départ, et reste refusée.
+    private var counter: UInt64 = UInt64(Date().timeIntervalSince1970 * 1000)
+    /// Dernier compteur d'une réponse acceptée du boîtier. Sans lui, une
+    /// réponse « battement » authentique captée sur le Wi-Fi pourrait être
+    /// rejouée à l'infini pour faire croire le boîtier vivant.
+    private var lastReplyCounter: UInt64 = 0
     private var heartbeatTimer: DispatchSourceTimer?
 
     /// Identifiant stable du boîtier, pour le registre des machines.
@@ -71,7 +82,7 @@ final class BridgeTransport: ControllerTransport {
 
         let endpoint = NWEndpoint.hostPort(
             host: NWEndpoint.Host(settings.host),
-            port: NWEndpoint.Port(rawValue: settings.port) ?? .init(integerLiteral: 45_800)
+            port: NWEndpoint.Port(rawValue: settings.port) ?? .init(integerLiteral: BridgeSettings.defaultPort)
         )
         let connection = NWConnection(to: endpoint, using: .udp)
         self.connection = connection
@@ -148,13 +159,15 @@ final class BridgeTransport: ControllerTransport {
         }
     }
 
-    /// La réponse vient-elle bien du boîtier appairé ? Une trame qui ne
-    /// s'ouvre pas avec notre secret vient de quelqu'un d'autre.
+    /// La réponse vient-elle bien du boîtier appairé, et n'est-elle pas une
+    /// rejouée ? Une trame qui ne s'ouvre pas avec notre secret vient de
+    /// quelqu'un d'autre ; une trame dont le compteur ne dépasse pas le dernier
+    /// accepté est une rediffusion — refusée dans les deux cas.
     private func isGenuineReply(_ data: Data) -> Bool {
         guard data.count == Wire.frameLength else { return false }
         let bytes = [UInt8](data)
         var reportID: UInt8 = 0
-        var payload = [UInt8](repeating: 0, count: 16)
+        var payload = [UInt8](repeating: 0, count: Wire.maxOutputLength)
         var payloadLength = 0
         var received: UInt64 = 0
         let code = key.withUnsafeBufferPointer { keyBuffer in
@@ -165,7 +178,7 @@ final class BridgeTransport: ControllerTransport {
                         keyBuffer.count,
                         frameBuffer.baseAddress,
                         frameBuffer.count,
-                        0,
+                        lastReplyCounter,
                         &reportID,
                         payloadBuffer.baseAddress,
                         payloadBuffer.count,
@@ -175,7 +188,9 @@ final class BridgeTransport: ControllerTransport {
                 }
             }
         }
-        return code == HEMIPAD_WIRE_OK && reportID == Self.heartbeatReportID
+        guard code == HEMIPAD_WIRE_OK, reportID == Self.heartbeatReportID else { return false }
+        lastReplyCounter = received
+        return true
     }
 
     private func noteAlive() {
