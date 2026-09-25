@@ -105,6 +105,55 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  pont-usb:
+    name: Pont USB (Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Chaîne Rust
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy,rustfmt
+          rustup default stable
+          rustc --version
+
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bridge/target
+          key: pont-${{ runner.os }}-${{ hashFiles('bridge/**/Cargo.toml', 'bridge/**/*.rs') }}
+          restore-keys: pont-${{ runner.os }}-
+
+      - name: Format
+        working-directory: bridge
+        run: cargo fmt --all --check
+
+      - name: Clippy, sans la moindre alerte
+        working-directory: bridge
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests
+        working-directory: bridge
+        run: cargo test
+
+      # Le seul contrôle qui attrape un désaccord entre l'en-tête C et le code
+      # Rust : c'est par cet en-tête que Swift appellera la bibliothèque.
+      - name: L'ABI C correspond-elle à son en-tête ?
+        working-directory: bridge
+        run: ./scripts/verifier-abi-c.sh
+
+      # Si le descripteur HID diverge entre l'application et le boîtier, la
+      # console interprète de travers ce qu'elle reçoit, sans rien signaler.
+      - name: Le boîtier et l'application décrivent-ils la même manette ?
+        run: python3 bridge/scripts/verifier-descripteur.py
+
+      - name: Syntaxe des scripts d'installation
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          shellcheck bridge/scripts/*.sh
+
   projet-xcode:
     name: Projet Xcode régénérable
     runs-on: ubuntu-latest

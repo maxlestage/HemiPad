@@ -1,0 +1,24 @@
+# Le pont USB de HemiPad.
+#
+# Deux morceaux, un seul code :
+# - `wire`  : le format des trames et leur authentification. Compilé en
+#             bibliothèque statique avec une ABI C, il est appelé aussi bien
+#             par le boîtier que par l'application iOS.
+# - `relay` : le programme du boîtier. Il reçoit les trames par le réseau et
+#             les rejoue sur le port USB, où la console voit une manette.
+[workspace]
+members = ["wire", "relay"]
+resolver = "2"
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.75"
+license = "UNLICENSED"
+publish = false
+
+[profile.release]
+opt-level = "s"
+lto = true
+panic = "abort"
+strip = true
