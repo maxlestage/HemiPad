@@ -9,6 +9,7 @@
 //! "C"` ci-dessous ne renvoient jamais d'erreur par panique : elles rendent un
 //! code négatif, que Swift transforme en erreur.
 
+pub mod aes;
 pub mod connection;
 pub mod descriptor;
 pub mod frame;
