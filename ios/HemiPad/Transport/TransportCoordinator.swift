@@ -18,6 +18,18 @@ final class TransportCoordinator: ObservableObject {
     }
     /// Nombre de rapports réellement émis, affiché dans l'écran de diagnostic.
     @Published private(set) var sentReports: Int = 0
+    /// Par où les commandes partent en ce moment. Personne ne le choisit :
+    /// c'est la bibliothèque Rust qui décide, et cette valeur ne sert qu'à
+    /// l'afficher.
+    @Published private(set) var path: ConnectionPath = .none
+    /// Les coordonnées du boîtier. Vides tant qu'il n'a pas été appairé.
+    @Published var bridgeSettings: BridgeSettings {
+        didSet {
+            guard bridgeSettings != oldValue else { return }
+            SettingsStore.save(bridgeSettings)
+            switchBridge()
+        }
+    }
     /// La machine connectée en ce moment, si elle est reconnue.
     @Published private(set) var connectedMachine: UUID?
 
@@ -33,6 +45,12 @@ final class TransportCoordinator: ObservableObject {
     var gamepadMirror: (@MainActor (GamepadState) -> Void)?
 
     private var transport: ControllerTransport?
+    /// Le chemin par le boîtier, s'il est appairé. Il tourne en même temps que
+    /// le Bluetooth direct : c'est ce qui permet de basculer sans rien
+    /// demander quand l'un des deux tombe.
+    private var bridge: BridgeTransport?
+    /// La règle du choix, écrite en Rust.
+    private let chooser = PathChooser()
     private let gamepadEncoder = GamepadReportEncoder()
     private let keyboardEncoder = KeyboardReportEncoder()
     private var lastGamepadPayload: [UInt8] = []
@@ -44,10 +62,12 @@ final class TransportCoordinator: ObservableObject {
 
     init(kind: TransportKind = .loopback) {
         self.kind = kind
+        bridgeSettings = SettingsStore.loadBridge()
     }
 
     func connect() {
         switchTransport()
+        switchBridge()
     }
 
     /// « Réessayer » après un échec : c'est un choix explicite de la personne,
@@ -63,6 +83,10 @@ final class TransportCoordinator: ObservableObject {
         flushTimer = nil
         transport?.stop()
         transport = nil
+        bridge?.stop()
+        bridge = nil
+        chooser.setDirect(connected: false)
+        path = .none
         state = .idle
     }
 
@@ -76,20 +100,40 @@ final class TransportCoordinator: ObservableObject {
     /// Envoi immédiat d'une frappe clavier (appui puis relâchement).
     func sendKeystroke(_ stroke: Keystroke, heldModifiers: KeyModifier = []) {
         for payload in keyboardEncoder.pressAndRelease(stroke, heldModifiers: heldModifiers) {
-            transport?.send(reportID: .keyboard, payload: payload)
+            route(reportID: .keyboard, payload: payload)
             sentReports += 1
+        }
+    }
+
+    /// Envoie un rapport par le chemin du moment.
+    ///
+    /// Le chemin n'est pas un réglage : la bibliothèque Rust le décide à
+    /// partir de ce qui répond, et bascule d'elle-même quand l'un des deux
+    /// tombe. Ici on ne fait que suivre sa décision.
+    private func route(reportID: HIDReportDescriptors.ReportID, payload: [UInt8]) {
+        let chosen = chooser.path()
+        if chosen != path { path = chosen }
+        switch chosen {
+        case .direct:
+            transport?.send(reportID: reportID, payload: payload)
+        case .bridge:
+            bridge?.send(reportID: reportID, payload: payload)
+        case .none:
+            // Aucun chemin : rien ne part. Rejouer plus tard des appuis tapés
+            // dans le vide serait pire que les perdre.
+            break
         }
     }
 
     /// Maintient explicitement un jeu de modificateurs (aperçu de l'accord en
     /// cours sur l'ordinateur, utile avec les modificateurs collants).
     func sendModifiers(_ modifiers: KeyModifier) {
-        transport?.send(reportID: .keyboard, payload: keyboardEncoder.encode(modifiers: modifiers, keys: []))
+        route(reportID: .keyboard, payload: keyboardEncoder.encode(modifiers: modifiers, keys: []))
         sentReports += 1
     }
 
     func releaseKeyboard() {
-        transport?.send(reportID: .keyboard, payload: keyboardEncoder.releaseAll())
+        route(reportID: .keyboard, payload: keyboardEncoder.releaseAll())
     }
 
     // MARK: - Détails
@@ -102,6 +146,12 @@ final class TransportCoordinator: ObservableObject {
             newTransport = BLEHIDPeripheralTransport()
         case .loopback:
             newTransport = LoopbackTransport()
+        case .bridge:
+            // Le boîtier n'est pas un choix : il tourne à côté du Bluetooth
+            // direct, allumé dès qu'il est appairé. Si ce réglage traîne d'une
+            // ancienne version, on revient au Bluetooth direct.
+            kind = .bluetoothHID
+            newTransport = BLEHIDPeripheralTransport()
         }
         newTransport.onStateChange = { [weak self] state in
             guard let self else { return }
@@ -122,6 +172,28 @@ final class TransportCoordinator: ObservableObject {
         state = presented(newTransport.state)
     }
 
+    /// Allume ou éteint le chemin par le boîtier selon ce qui est appairé.
+    private func switchBridge() {
+        bridge?.stop()
+        bridge = nil
+        guard bridgeSettings.isComplete, let bridge = BridgeTransport(settings: bridgeSettings) else {
+            path = chooser.path()
+            return
+        }
+        bridge.onHeartbeat = { [weak self] in
+            guard let self else { return }
+            self.chooser.bridgeSeen()
+            let chosen = self.chooser.path()
+            if chosen != self.path { self.path = chosen }
+        }
+        bridge.onMachineEvent = { [weak self] event in
+            guard let self else { return }
+            Task { @MainActor in self.handle(event) }
+        }
+        self.bridge = bridge
+        bridge.start()
+    }
+
     private func handle(_ event: MachineEvent) {
         switch event {
         case .connected(let id):
@@ -129,6 +201,8 @@ final class TransportCoordinator: ObservableObject {
         case .disconnected(let id):
             if connectedMachine == id { connectedMachine = nil }
         }
+        chooser.setDirect(connected: connectedMachine != nil)
+        path = chooser.path()
         onMachineEvent?(event)
         if let current = transport?.state {
             state = presented(current)
@@ -171,7 +245,7 @@ final class TransportCoordinator: ObservableObject {
         guard payload != lastGamepadPayload else { return }
         lastGamepadPayload = payload
         gamepadMirror?(pending)
-        transport?.send(reportID: .gamepad, payload: payload)
+        route(reportID: .gamepad, payload: payload)
         sentReports += 1
     }
 }

@@ -8,6 +8,9 @@ enum TransportKind: String, Codable, CaseIterable, Identifiable, Sendable {
     /// HID over GATT : l'iPhone ou l'iPad se présente lui-même comme une
     /// manette Bluetooth, sous le nom HemiPad.
     case bluetoothHID
+    /// Par le boîtier, joint en Wi-Fi, qui rejoue les commandes sur le port
+    /// USB ou en Bluetooth vers la console.
+    case bridge
     /// Boucle locale : rien n'est émis, tout est journalisé. Sert aux essais
     /// et aux aperçus SwiftUI.
     case loopback
@@ -16,7 +19,8 @@ enum TransportKind: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .bluetoothHID: return "Bluetooth"
+        case .bluetoothHID: return "Bluetooth direct"
+        case .bridge: return "Par le boîtier"
         case .loopback: return "Mode démo"
         }
     }
@@ -25,6 +29,8 @@ enum TransportKind: String, Codable, CaseIterable, Identifiable, Sendable {
         switch self {
         case .bluetoothHID:
             return "L'appareil s'annonce comme manette HemiPad, sans boîtier ni câble. Accepté par les ordinateurs (Windows, Linux) et Android."
+        case .bridge:
+            return "Les commandes passent par le boîtier, en Wi-Fi. Lui se présente à la console en Bluetooth ou par le câble : c'est ce qui atteint la Switch."
         case .loopback:
             return "Aucune émission : pour régler la manette sans console sous la main."
         }
