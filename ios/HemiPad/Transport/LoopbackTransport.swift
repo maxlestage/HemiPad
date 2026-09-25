@@ -30,6 +30,13 @@ final class LoopbackTransport: ControllerTransport {
 
     func send(reportID: HIDReportDescriptors.ReportID, payload: [UInt8]) {
         lastPayloads[reportID] = payload
-        logger.debug("report \(reportID.rawValue): \(payload.map { String(format: "%02X", $0) }.joined(separator: " "))")
+        // On ne journalise jamais le contenu du clavier : ce serait tracer ce
+        // que la personne tape, même en mode démo. Pour la manette, la longueur
+        // suffit au diagnostic.
+        if reportID == .keyboard {
+            logger.debug("rapport clavier (\(payload.count) octets)")
+        } else {
+            logger.debug("rapport \(reportID.rawValue) : \(payload.count) octets")
+        }
     }
 }

@@ -31,6 +31,7 @@
 		3EC0A594F8E7C3B7B83811E9 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D59D702F23397B57362B8F /* Haptics.swift */; };
 		711EBFD8D509AE352500A01F /* ObjCExceptionCatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 8A82C0DE8EEF07B4FCF15343 /* ObjCExceptionCatcher.m */; };
 		85EE1D9E7D5846D7AB94B8D5 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B9E3C26373B22DD1039056 /* Persistence.swift */; };
+		5F6C1379F63614971F5875D0 /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E87F335E9792F68846CBE261 /* SecretStore.swift */; };
 		EB79075BB20705C1C8DEB86F /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE98764A66BFA8D65C191D4 /* Theme.swift */; };
 		CB1AE04E11AD43098D148374 /* BLEHIDPeripheralTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */; };
 		32AF47F40E1B2EE9B3795746 /* BLEPublicationSentinel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38D2F3C19F4A562FA2476184 /* BLEPublicationSentinel.swift */; };
@@ -45,6 +46,7 @@
 		E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C35973498C6132B703FF4AB /* ConnectScreen.swift */; };
 		D1815133DD2CA24546BF12AE /* ControlEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3028267CDB8EE7C7D6BFA2 /* ControlEditorView.swift */; };
 		D781A304F7B42A5ABCB13E28 /* ControllerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */; };
+		321EAAB375B670CB09BAAB5C /* GuideScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA58DC7F62122C518C7C28C9 /* GuideScreen.swift */; };
 		4A012A90A5153FC679B78E41 /* KeyboardScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B5B932433AD55C695654D5 /* KeyboardScreen.swift */; };
 		7ACCA459423F2BE08BDE732C /* PadButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */; };
 		1D41526A35B15C8F755C9174 /* RemotePlayScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFD5181BA3185A2FB798B994 /* RemotePlayScreen.swift */; };
@@ -97,6 +99,7 @@
 		D4D59D702F23397B57362B8F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		8A82C0DE8EEF07B4FCF15343 /* ObjCExceptionCatcher.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCExceptionCatcher.m; sourceTree = "<group>"; };
 		26B9E3C26373B22DD1039056 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		E87F335E9792F68846CBE261 /* SecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStore.swift; sourceTree = "<group>"; };
 		1DE98764A66BFA8D65C191D4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEHIDPeripheralTransport.swift; sourceTree = "<group>"; };
 		38D2F3C19F4A562FA2476184 /* BLEPublicationSentinel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEPublicationSentinel.swift; sourceTree = "<group>"; };
@@ -111,6 +114,7 @@
 		3C35973498C6132B703FF4AB /* ConnectScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectScreen.swift; sourceTree = "<group>"; };
 		1B3028267CDB8EE7C7D6BFA2 /* ControlEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlEditorView.swift; sourceTree = "<group>"; };
 		76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerScreen.swift; sourceTree = "<group>"; };
+		EA58DC7F62122C518C7C28C9 /* GuideScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuideScreen.swift; sourceTree = "<group>"; };
 		52B5B932433AD55C695654D5 /* KeyboardScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardScreen.swift; sourceTree = "<group>"; };
 		8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadButtonView.swift; sourceTree = "<group>"; };
 		DFD5181BA3185A2FB798B994 /* RemotePlayScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePlayScreen.swift; sourceTree = "<group>"; };
@@ -242,6 +246,7 @@
 				4581F004CED70ED836039D70 /* ObjCExceptionCatcher.h */,
 				8A82C0DE8EEF07B4FCF15343 /* ObjCExceptionCatcher.m */,
 				26B9E3C26373B22DD1039056 /* Persistence.swift */,
+				E87F335E9792F68846CBE261 /* SecretStore.swift */,
 				1DE98764A66BFA8D65C191D4 /* Theme.swift */,
 			);
 			path = Support;
@@ -270,6 +275,7 @@
 				3C35973498C6132B703FF4AB /* ConnectScreen.swift */,
 				1B3028267CDB8EE7C7D6BFA2 /* ControlEditorView.swift */,
 				76E3EAF0686DEE3FC86AE4FB /* ControllerScreen.swift */,
+				EA58DC7F62122C518C7C28C9 /* GuideScreen.swift */,
 				52B5B932433AD55C695654D5 /* KeyboardScreen.swift */,
 				8FB0E655E386C93B3A9EF483 /* PadButtonView.swift */,
 				DFD5181BA3185A2FB798B994 /* RemotePlayScreen.swift */,
@@ -447,6 +453,7 @@
 				3EC0A594F8E7C3B7B83811E9 /* Haptics.swift in Sources */,
 				711EBFD8D509AE352500A01F /* ObjCExceptionCatcher.m in Sources */,
 				85EE1D9E7D5846D7AB94B8D5 /* Persistence.swift in Sources */,
+				5F6C1379F63614971F5875D0 /* SecretStore.swift in Sources */,
 				EB79075BB20705C1C8DEB86F /* Theme.swift in Sources */,
 				CB1AE04E11AD43098D148374 /* BLEHIDPeripheralTransport.swift in Sources */,
 				32AF47F40E1B2EE9B3795746 /* BLEPublicationSentinel.swift in Sources */,
@@ -461,6 +468,7 @@
 				E2289098F7C4609E9E34D99A /* ConnectScreen.swift in Sources */,
 				D1815133DD2CA24546BF12AE /* ControlEditorView.swift in Sources */,
 				D781A304F7B42A5ABCB13E28 /* ControllerScreen.swift in Sources */,
+				321EAAB375B670CB09BAAB5C /* GuideScreen.swift in Sources */,
 				4A012A90A5153FC679B78E41 /* KeyboardScreen.swift in Sources */,
 				7ACCA459423F2BE08BDE732C /* PadButtonView.swift in Sources */,
 				1D41526A35B15C8F755C9174 /* RemotePlayScreen.swift in Sources */,
