@@ -28,6 +28,8 @@
 	<string>HemiPad utilise le Bluetooth pour se présenter comme manette et clavier auprès de votre console ou de votre ordinateur.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>HemiPad utilise le Bluetooth pour se présenter comme manette et clavier auprès de votre console ou de votre ordinateur.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>HemiPad joint sur votre Wi-Fi le boîtier qui relaie la manette vers la console.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>HemiPad utilise l'inclinaison de l'appareil pour remplacer le second stick, injouable avec une seule main.</string>
 	<key>UIApplicationSceneManifest</key>

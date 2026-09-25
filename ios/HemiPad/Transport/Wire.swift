@@ -9,7 +9,7 @@ import Foundation
 /// pleine partie.
 enum Wire {
     /// La version d'ABI que cette application sait parler.
-    static let expectedABIVersion: Int32 = 1
+    static let expectedABIVersion: Int32 = 2
 
     /// La bibliothèque liée est-elle celle attendue ? Vérifié une fois au
     /// démarrage : mieux vaut refuser le pont que décaler les octets.
@@ -19,15 +19,31 @@ enum Wire {
 
     static var frameLength: Int { hemipad_wire_frame_len() }
     static var keyLength: Int { hemipad_wire_key_len() }
-    /// Place à prévoir pour un rapport ouvert : la longueur vient de la
-    /// bibliothèque, plutôt qu'un nombre écrit en dur ici.
-    static var maxOutputLength: Int { hemipad_wire_max_output_len() }
+
+    /// Dans quel sens va une trame. Le sens est signé : une trame renvoyée
+    /// telle quelle à son expéditeur est refusée.
+    enum Direction: UInt8 {
+        /// De l'application vers le boîtier.
+        case toBridge = 0
+        /// Du boîtier vers l'application.
+        case toApp = 1
+    }
+
+    /// Une trame ouverte : ce qu'elle porte, une fois vérifiée et déchiffrée.
+    struct Opened: Equatable {
+        let reportID: UInt8
+        let payload: [UInt8]
+        let counter: UInt64
+    }
 
     /// Ce qui a empêché de sceller ou d'ouvrir une trame.
     enum Failure: Error, Equatable {
         case badKeyLength
         case badPayloadLength
         case unknownReport
+        case badSignature
+        case replay
+        case wrongDirection
         case other(Int32)
 
         init(code: Int32) {
@@ -35,12 +51,16 @@ enum Wire {
             case HEMIPAD_WIRE_KEY_LENGTH: self = .badKeyLength
             case HEMIPAD_WIRE_PAYLOAD_LENGTH: self = .badPayloadLength
             case HEMIPAD_WIRE_UNKNOWN_REPORT: self = .unknownReport
+            case HEMIPAD_WIRE_SIGNATURE: self = .badSignature
+            case HEMIPAD_WIRE_REPLAY: self = .replay
+            case HEMIPAD_WIRE_DIRECTION: self = .wrongDirection
             default: self = .other(code)
             }
         }
     }
 
-    /// Scelle un rapport dans une trame prête à partir vers le boîtier.
+    /// Scelle un rapport dans une trame prête à partir vers le boîtier : la
+    /// charge utile est chiffrée, puis le tout signé.
     ///
     /// `counter` doit augmenter à chaque trame : c'est ce qui interdit à
     /// quelqu'un d'autre sur le Wi-Fi de rejouer une trame capturée.
@@ -48,7 +68,8 @@ enum Wire {
         reportID: UInt8,
         payload: [UInt8],
         counter: UInt64,
-        key: [UInt8]
+        key: [UInt8],
+        direction: Direction = .toBridge
     ) throws -> Data {
         var frame = [UInt8](repeating: 0, count: frameLength)
         let code = key.withUnsafeBufferPointer { keyBuffer in
@@ -57,6 +78,7 @@ enum Wire {
                     hemipad_wire_seal(
                         keyBuffer.baseAddress,
                         keyBuffer.count,
+                        direction.rawValue,
                         reportID,
                         payloadBuffer.baseAddress,
                         payloadBuffer.count,
@@ -71,19 +93,66 @@ enum Wire {
         return Data(frame)
     }
 
+    /// Ouvre une trame reçue : signature, sens et compteur vérifiés, puis
+    /// charge utile déchiffrée. `lastCounter` est le dernier compteur accepté.
+    static func open(
+        _ data: Data,
+        lastCounter: UInt64,
+        key: [UInt8],
+        direction: Direction = .toApp
+    ) throws -> Opened {
+        let bytes = [UInt8](data)
+        var reportID: UInt8 = 0
+        // Une trame entière : toujours assez pour sa charge utile.
+        var payload = [UInt8](repeating: 0, count: frameLength)
+        var payloadLength = 0
+        var counter: UInt64 = 0
+        let code = key.withUnsafeBufferPointer { keyBuffer in
+            bytes.withUnsafeBufferPointer { frameBuffer in
+                payload.withUnsafeMutableBufferPointer { payloadBuffer in
+                    hemipad_wire_open(
+                        keyBuffer.baseAddress,
+                        keyBuffer.count,
+                        direction.rawValue,
+                        frameBuffer.baseAddress,
+                        frameBuffer.count,
+                        lastCounter,
+                        &reportID,
+                        payloadBuffer.baseAddress,
+                        payloadBuffer.count,
+                        &payloadLength,
+                        &counter
+                    )
+                }
+            }
+        }
+        guard code == HEMIPAD_WIRE_OK else { throw Failure(code: code) }
+        return Opened(reportID: reportID, payload: Array(payload.prefix(payloadLength)), counter: counter)
+    }
+
     /// Lit un secret partagé écrit en hexadécimal, tel que l'installation du
     /// boîtier l'affiche. Rend `nil` s'il n'a pas la bonne forme.
     static func key(fromHex text: String) -> [UInt8]? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = Array(text.trimmingCharacters(in: .whitespacesAndNewlines).utf8)
         guard trimmed.count == keyLength * 2 else { return nil }
+        // Chiffres hexadécimaux seulement : `UInt8("+f", radix: 16)` serait
+        // accepté par Swift, et deux écritures différentes donneraient alors
+        // le même secret.
+        func digit(_ character: UInt8) -> UInt8? {
+            switch character {
+            case UInt8(ascii: "0")...UInt8(ascii: "9"): return character - UInt8(ascii: "0")
+            case UInt8(ascii: "a")...UInt8(ascii: "f"): return character - UInt8(ascii: "a") + 10
+            case UInt8(ascii: "A")...UInt8(ascii: "F"): return character - UInt8(ascii: "A") + 10
+            default: return nil
+            }
+        }
         var bytes: [UInt8] = []
         bytes.reserveCapacity(keyLength)
-        var index = trimmed.startIndex
-        while index < trimmed.endIndex {
-            let next = trimmed.index(index, offsetBy: 2)
-            guard let byte = UInt8(trimmed[index..<next], radix: 16) else { return nil }
-            bytes.append(byte)
-            index = next
+        var index = 0
+        while index < trimmed.count {
+            guard let high = digit(trimmed[index]), let low = digit(trimmed[index + 1]) else { return nil }
+            bytes.append(high << 4 | low)
+            index += 2
         }
         return bytes
     }

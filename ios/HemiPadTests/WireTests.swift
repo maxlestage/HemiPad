@@ -25,9 +25,28 @@ final class WireTests: XCTestCase {
             key: key
         )
         XCTAssertEqual(frame.count, Wire.frameLength)
-        XCTAssertEqual(Array(frame.prefix(4)), Array("HPB1".utf8), "la trame porte sa marque")
-        // La charge utile est recopiée telle quelle, à sa place.
-        XCTAssertEqual(Array(frame[16..<25]), payload)
+        XCTAssertEqual(Array(frame.prefix(4)), Array("HPB2".utf8), "la trame porte sa marque")
+        XCTAssertEqual(frame[6], Wire.Direction.toBridge.rawValue, "la trame porte son sens")
+        // La charge utile ne passe pas en clair…
+        XCTAssertNotEqual(Array(frame[16..<25]), payload)
+        // … mais le boîtier la retrouve intacte.
+        let opened = try Wire.open(frame, lastCounter: 6, key: key, direction: .toBridge)
+        XCTAssertEqual(opened.payload, payload)
+        XCTAssertEqual(opened.counter, 7)
+    }
+
+    /// Nos propres battements, renvoyés par quelqu'un d'autre sur le Wi-Fi, ne
+    /// doivent pas faire croire que le boîtier répond.
+    func testAFrameSentBackToTheAppIsRefused() throws {
+        let heartbeat = try Wire.seal(reportID: 3, payload: [], counter: 10, key: key)
+        XCTAssertThrowsError(try Wire.open(heartbeat, lastCounter: 0, key: key)) { error in
+            XCTAssertEqual(error as? Wire.Failure, .wrongDirection)
+        }
+        let reply = try Wire.seal(reportID: 3, payload: [], counter: 10, key: key, direction: .toApp)
+        XCTAssertEqual(try Wire.open(reply, lastCounter: 0, key: key).reportID, 3)
+        XCTAssertThrowsError(try Wire.open(reply, lastCounter: 10, key: key)) { error in
+            XCTAssertEqual(error as? Wire.Failure, .replay)
+        }
     }
 
     func testTwoFramesOfTheSameReportDifferByTheirSignature() throws {
@@ -72,6 +91,7 @@ final class WireTests: XCTestCase {
         XCTAssertNil(Wire.key(fromHex: "a1a1"), "trop court")
         XCTAssertNil(Wire.key(fromHex: String(repeating: "a", count: 65)), "longueur impaire")
         XCTAssertNil(Wire.key(fromHex: String(repeating: "zz", count: 32)), "hors hexadécimal")
+        XCTAssertNil(Wire.key(fromHex: String(repeating: "+f", count: 32)), "signe accepté par Swift, pas ici")
     }
 }
 
