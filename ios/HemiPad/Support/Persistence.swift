@@ -61,8 +61,32 @@ enum SettingsStore {
             host = stored.host
             port = stored.port
         }
-        let keyHex = SecretStore.read(bridgeSecretAccount) ?? ""
+        var keyHex = SecretStore.read(bridgeSecretAccount) ?? ""
+        if let legacy = legacyPlaintextKey() {
+            // Une version précédente rangeait le secret en clair dans les
+            // réglages. Il passe au Trousseau, et la copie en clair disparaît.
+            if keyHex.isEmpty {
+                SecretStore.write(legacy, for: bridgeSecretAccount)
+                keyHex = SecretStore.read(bridgeSecretAccount) ?? ""
+            }
+            if !keyHex.isEmpty {
+                let address = BridgeAddress(host: host, port: port)
+                if let data = try? JSONEncoder().encode(address) {
+                    UserDefaults.standard.set(data, forKey: bridgeKey)
+                }
+            }
+        }
         return BridgeSettings(host: host, port: port, keyHex: keyHex)
+    }
+
+    /// Le secret tel qu'une version précédente le laissait, en clair, à côté
+    /// de l'adresse. `nil` s'il n'y en a pas.
+    private static func legacyPlaintextKey() -> String? {
+        guard let data = UserDefaults.standard.data(forKey: bridgeKey),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let key = object["keyHex"] as? String,
+              !key.isEmpty else { return nil }
+        return key
     }
 
     static func save(_ settings: BridgeSettings) {

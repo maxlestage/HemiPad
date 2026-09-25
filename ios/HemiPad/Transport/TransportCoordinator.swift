@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import UIKit
 
 /// Point d'entrée unique pour parler à la machine.
 ///
@@ -60,9 +61,27 @@ final class TransportCoordinator: ObservableObject {
     /// Période minimale entre deux rapports manette (125 Hz).
     private let minimumInterval: TimeInterval = 0.008
 
+    /// Guette le premier déverrouillage de l'appareil.
+    private var protectedDataObserver: AnyCancellable?
+
     init(kind: TransportKind = .loopback) {
         self.kind = kind
         bridgeSettings = SettingsStore.loadBridge()
+        // Relancée par le Bluetooth avant tout déverrouillage, l'application
+        // n'a pas pu lire le secret du boîtier : elle le relit dès que
+        // l'appareil est déverrouillé, sans attendre un redémarrage.
+        protectedDataObserver = NotificationCenter.default
+            .publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)
+            .sink { [weak self] _ in
+                Task { @MainActor in self?.reloadBridgeSecretIfMissing() }
+            }
+    }
+
+    private func reloadBridgeSecretIfMissing() {
+        guard bridgeSettings.keyHex.isEmpty else { return }
+        let stored = SettingsStore.loadBridge()
+        guard !stored.keyHex.isEmpty else { return }
+        bridgeSettings.keyHex = stored.keyHex
     }
 
     func connect() {
