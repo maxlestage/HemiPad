@@ -156,6 +156,7 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
           shellcheck bridge/scripts/*.sh
+          python3 -m py_compile bridge/scripts/*.py
 
   projet-xcode:
     name: Projet Xcode régénérable

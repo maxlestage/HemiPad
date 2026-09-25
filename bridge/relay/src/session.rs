@@ -1,8 +1,9 @@
-//! Ce que le boîtier décide d'écrire dans le port USB, et quand.
+//! Ce que le boîtier décide d'envoyer à la console, et quand.
 //!
-//! Séparé de la lecture du réseau et du pilote USB pour être vérifiable sans
-//! matériel : on lui donne des trames et le temps qui passe, on regarde ce
-//! qu'il veut écrire.
+//! Séparé de la lecture du réseau et des chemins de sortie pour être
+//! vérifiable sans matériel : on lui donne des trames et le temps qui passe,
+//! on regarde ce qu'il veut envoyer. Par où cela sort — le câble ou le
+//! Bluetooth — ne le regarde pas : c'est l'affaire de `outputs`.
 
 use hemipad_wire::{open, FrameError, ReportKind, MAX_PAYLOAD};
 
@@ -12,34 +13,34 @@ pub const NEUTRAL_GAMEPAD: [u8; 9] = [128, 128, 128, 128, 0, 0, 8, 0, 0];
 /// Clavier au repos : aucun modificateur, aucune touche.
 pub const NEUTRAL_KEYBOARD: [u8; 8] = [0; 8];
 
-/// Un rapport prêt à être écrit dans `/dev/hidg0`, identifiant en tête.
+/// Un rapport à faire parvenir à la console, tel quel : c'est le chemin de
+/// sortie qui décidera comment l'emballer.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Report {
-    bytes: [u8; MAX_PAYLOAD + 1],
+    pub kind: ReportKind,
+    payload: [u8; MAX_PAYLOAD],
     len: usize,
 }
 
 impl Report {
     fn new(kind: ReportKind, payload: &[u8]) -> Self {
-        let mut bytes = [0u8; MAX_PAYLOAD + 1];
-        // Le descripteur HID de HemiPad numérote ses rapports : l'hôte attend
-        // donc l'identifiant en premier octet.
-        bytes[0] = kind.id();
-        bytes[1..1 + payload.len()].copy_from_slice(payload);
+        let mut bytes = [0u8; MAX_PAYLOAD];
+        bytes[..payload.len()].copy_from_slice(payload);
         Self {
-            bytes,
-            len: payload.len() + 1,
+            kind,
+            payload: bytes,
+            len: payload.len(),
         }
     }
 
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.bytes[..self.len]
+    pub fn payload(&self) -> &[u8] {
+        &self.payload[..self.len]
     }
 }
 
 impl core::fmt::Debug for Report {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(formatter, "Report{:?}", self.as_bytes())
+        write!(formatter, "Report({:?}, {:?})", self.kind, self.payload())
     }
 }
 
@@ -120,26 +121,25 @@ mod tests {
     }
 
     #[test]
-    fn an_accepted_frame_becomes_a_report_with_its_identifier() {
+    fn an_accepted_frame_becomes_a_report() {
         let mut session = Session::new(KEY, 500);
         let payload = [1u8, 2, 3, 4, 5, 6, 8, 9, 10];
         let report = session
             .accept(&frame(1, ReportKind::Gamepad, &payload))
             .unwrap();
-        assert_eq!(report.as_bytes()[0], 1, "identifiant de rapport en tête");
-        assert_eq!(&report.as_bytes()[1..], &payload);
-        assert_eq!(report.as_bytes().len(), 10);
+        assert_eq!(report.kind, ReportKind::Gamepad);
+        assert_eq!(report.payload(), &payload);
     }
 
     #[test]
-    fn the_keyboard_keeps_its_own_identifier() {
+    fn the_keyboard_keeps_its_own_kind() {
         let mut session = Session::new(KEY, 500);
         let keys = [0x01u8, 0, 0x04, 0, 0, 0, 0, 0];
         let report = session
             .accept(&frame(1, ReportKind::Keyboard, &keys))
             .unwrap();
-        assert_eq!(report.as_bytes()[0], 2);
-        assert_eq!(report.as_bytes().len(), 9);
+        assert_eq!(report.kind, ReportKind::Keyboard);
+        assert_eq!(report.payload(), &keys);
     }
 
     #[test]
@@ -179,11 +179,10 @@ mod tests {
         assert!(session.tick(299).is_empty());
         let released = session.tick(1);
         assert_eq!(released.len(), 2, "la manette et le clavier sont relâchés");
-        assert_eq!(
-            released[0].as_bytes(),
-            [1, 128, 128, 128, 128, 0, 0, 8, 0, 0]
-        );
-        assert_eq!(released[1].as_bytes(), [2, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(released[0].kind, ReportKind::Gamepad);
+        assert_eq!(released[0].payload(), &NEUTRAL_GAMEPAD);
+        assert_eq!(released[1].kind, ReportKind::Keyboard);
+        assert_eq!(released[1].payload(), &NEUTRAL_KEYBOARD);
     }
 
     #[test]

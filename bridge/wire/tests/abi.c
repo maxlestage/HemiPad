@@ -66,6 +66,30 @@ int main(void) {
                                        NULL, payload, sizeof payload, NULL, NULL);
     check(forged == HEMIPAD_WIRE_SIGNATURE, "une trame modifiée est refusée");
 
+    /* Les deux chemins de sortie portent les mêmes octets de manette. */
+    uint8_t emballe[16];
+    int32_t par_usb = hemipad_wire_wrap_output(HEMIPAD_WIRE_OUTPUT_USB,
+                                               HEMIPAD_WIRE_REPORT_GAMEPAD,
+                                               manette, sizeof manette,
+                                               emballe, sizeof emballe);
+    check(par_usb == 10, "emballage USB : 10 octets");
+    check(emballe[0] == HEMIPAD_WIRE_REPORT_GAMEPAD, "USB commence par l'identifiant");
+    check(memcmp(emballe + 1, manette, sizeof manette) == 0, "USB porte le rapport");
+
+    int32_t par_bluetooth = hemipad_wire_wrap_output(HEMIPAD_WIRE_OUTPUT_BLUETOOTH,
+                                                     HEMIPAD_WIRE_REPORT_GAMEPAD,
+                                                     manette, sizeof manette,
+                                                     emballe, sizeof emballe);
+    check(par_bluetooth == 11, "emballage Bluetooth : 11 octets");
+    check(emballe[0] == 0xA1, "Bluetooth commence par l'en-tête HIDP");
+    check(emballe[1] == HEMIPAD_WIRE_REPORT_GAMEPAD, "puis l'identifiant");
+    check(memcmp(emballe + 2, manette, sizeof manette) == 0, "Bluetooth porte le meme rapport");
+
+    check(hemipad_wire_max_output_len() == 11, "place a prevoir");
+    check(hemipad_wire_wrap_output(9, HEMIPAD_WIRE_REPORT_GAMEPAD, manette, sizeof manette,
+                                   emballe, sizeof emballe) == HEMIPAD_WIRE_UNKNOWN_OUTPUT,
+          "un chemin inconnu est refuse");
+
     /* Pointeur nul : un code, pas un plantage. */
     int32_t empty = hemipad_wire_seal(NULL, 32, HEMIPAD_WIRE_REPORT_GAMEPAD,
                                       manette, sizeof manette, 1, frame, sizeof frame);

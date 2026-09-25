@@ -28,7 +28,7 @@ Ce qui protège le projet, et ce qui reste à régler à la main dans GitHub.
 - Des tests vérifient la liste des domaines, le script injecté (exécuté dans
   JavaScriptCore) et que WebKit voit bien les garde-fous de navigation.
 
-## Pont USB (le boîtier)
+## Le boîtier (pont USB et Bluetooth)
 
 Le boîtier écoute sur le réseau local : sans protection, n'importe qui sur le
 même Wi-Fi pourrait jouer à votre place.
@@ -49,7 +49,11 @@ même Wi-Fi pourrait jouer à votre place.
   périphérique autorisé, appels système filtrés.
 - **Le secret est refusé** s'il est lisible par d'autres que son propriétaire.
 - **Le boîtier n'usurpe l'identité de personne** : il s'annonce sous le nom
-  « HemiPad », avec l'identifiant générique des montages composites Linux.
+  « HemiPad », en USB comme en Bluetooth, avec l'identifiant générique des
+  montages composites Linux.
+- **La liaison Bluetooth vers la console est chiffrée et appairée** :
+  l'enregistrement du profil l'exige, et le service n'a le droit qu'aux
+  familles de sockets qu'il utilise vraiment.
 
 Le détail est dans `bridge/README.md`.
 
