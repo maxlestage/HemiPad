@@ -59,6 +59,14 @@ final class ConnectionStore {
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try? excluded.setResourceValues(values)
+        // Chiffré au repos, mais lisible dès le premier déverrouillage après un
+        // redémarrage : le Bluetooth peut relancer l'application, écran
+        // verrouillé, pour reprendre une connexion, et il faut alors pouvoir
+        // lire le registre.
+        try? FileManager.default.setAttributes(
+            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+            ofItemAtPath: folder.path
+        )
         return try ConnectionStore(path: folder.appendingPathComponent("connexions.sqlite").path)
     }
 
