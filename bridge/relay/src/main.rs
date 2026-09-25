@@ -202,14 +202,24 @@ fn listen_for_consoles() -> Option<Receiver<bluetooth::Channel>> {
     let control_psm = control.psm();
     let interrupt_psm = interrupt.psm();
 
-    // Le canal de contrôle doit être accepté, sinon la console abandonne la
-    // connexion — mais rien n'en sort : les rapports partent par l'autre.
-    thread::spawn(move || loop {
-        match control.accept() {
-            Ok(_channel) => {}
-            Err(error) => {
-                eprintln!("canal de contrôle : {error}");
-                return;
+    // Le canal de contrôle doit rester OUVERT toute la connexion : le profil
+    // HID classique s'en sert en continu, et le fermer aussitôt ferait rompre
+    // la session côté console. On garde donc le dernier canal accepté vivant.
+    // Une erreur d'accept est transitoire (une console qui raccroche) : on la
+    // journalise et on continue d'écouter, sans jamais tuer la boucle.
+    thread::spawn(move || {
+        let mut ouvert: Option<bluetooth::Channel> = None;
+        loop {
+            match control.accept() {
+                Ok(channel) => {
+                    // Garde le canal vivant ; le précédent, remplacé, se ferme.
+                    if ouvert.replace(channel).is_some() {
+                        eprintln!("canal de contrôle : nouvelle connexion");
+                    }
+                }
+                Err(error) => {
+                    eprintln!("canal de contrôle : {error} — on continue d'écouter");
+                }
             }
         }
     });
@@ -223,8 +233,7 @@ fn listen_for_consoles() -> Option<Receiver<bluetooth::Channel>> {
                 }
             }
             Err(error) => {
-                eprintln!("canal d'interruption : {error}");
-                return;
+                eprintln!("canal d'interruption : {error} — on continue d'écouter");
             }
         }
     });
