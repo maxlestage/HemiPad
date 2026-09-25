@@ -209,31 +209,33 @@ fn listen_for_consoles() -> Option<Receiver<bluetooth::Channel>> {
     // journalise et on continue d'écouter, sans jamais tuer la boucle.
     thread::spawn(move || {
         let mut ouvert: Option<bluetooth::Channel> = None;
+        let mut echecs: u64 = 0;
         loop {
             match control.accept() {
                 Ok(channel) => {
+                    echecs = 0;
                     // Garde le canal vivant ; le précédent, remplacé, se ferme.
                     if ouvert.replace(channel).is_some() {
                         eprintln!("canal de contrôle : nouvelle connexion");
                     }
                 }
-                Err(error) => {
-                    eprintln!("canal de contrôle : {error} — on continue d'écouter");
-                }
+                Err(error) => backoff_apres_echec(&mut echecs, "canal de contrôle", &error),
             }
         }
     });
 
     let (sender, receiver) = mpsc::channel();
-    thread::spawn(move || loop {
-        match interrupt.accept() {
-            Ok(channel) => {
-                if sender.send(channel).is_err() {
-                    return;
+    thread::spawn(move || {
+        let mut echecs: u64 = 0;
+        loop {
+            match interrupt.accept() {
+                Ok(channel) => {
+                    echecs = 0;
+                    if sender.send(channel).is_err() {
+                        return;
+                    }
                 }
-            }
-            Err(error) => {
-                eprintln!("canal d'interruption : {error} — on continue d'écouter");
+                Err(error) => backoff_apres_echec(&mut echecs, "canal d'interruption", &error),
             }
         }
     });
@@ -270,6 +272,18 @@ fn describe(output: Option<hemipad_wire::Output>) -> &'static str {
         Some(hemipad_wire::Output::Usb) => "câble USB",
         None => "aucun",
     }
+}
+
+/// Après un échec d'accept Bluetooth : on attend un court instant et on ne
+/// journalise que de loin en loin. Sans cela, une panne persistante (plus de
+/// descripteurs, adaptateur réinitialisé) ferait tourner la boucle à plein
+/// régime et remplirait le journal — une ligne par tour.
+fn backoff_apres_echec(echecs: &mut u64, canal: &str, error: &io::Error) {
+    *echecs += 1;
+    if echecs.is_power_of_two() {
+        eprintln!("{canal} : {error} — {echecs} échec(s), on continue d'écouter");
+    }
+    thread::sleep(Duration::from_millis(200));
 }
 
 fn timed_out(error: &io::Error) -> bool {
