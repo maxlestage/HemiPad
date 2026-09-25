@@ -254,16 +254,16 @@ export const en: Dictionary = {
         kind: 'list',
         steps: ['Windows', 'Linux', 'Android'],
         note:
-          'Switch, PS5 and Xbox only accept their own controllers over Bluetooth, and iOS lets no app pose as a USB controller. For PS5 and Xbox, a computer can relay: see below.'
+          'Switch, PS5 and Xbox only accept their own controllers over Bluetooth, and iOS lets no app pose as a USB controller. Hence the box, which has neither limit: it unlocks the Switch. For PS5 and Xbox, a computer relays. See below.'
       }
     ],
     routes: {
       title: "PS5, Xbox, Switch: what works",
-      lede: "No third-party controller connects to them directly, and no app can change that. A computer can relay instead, without buying anything.",
+      lede: "No third-party controller connects to them directly. But two relays exist: a computer, or the small HemiPad box set next to the console. One or the other, depending on the console.",
       items: [
         { name: "PS5", verdict: "Through a Windows or Linux computer, for free", steps: ["On the PS5: Settings › System › Remote Play › Enable.", "On the computer: install chiaki-ng, free and open source.", "Pair HemiPad with the computer over Bluetooth, then open the PS5 in chiaki-ng."], note: "The game shows on the computer, with the slight delay of Remote Play." },
-        { name: "Xbox", verdict: "Through a Windows PC, for free", steps: ["On the Xbox: Settings › Devices & connections › Remote features › Enable.", "On the PC: Xbox app, pick the console, then Remote play.", "Pair HemiPad with the PC over Bluetooth. If the app does not see it, launch it from Steam, which presents any controller as an Xbox controller."], note: "The game shows on the PC, with the slight delay of remote play." },
-        { name: "Switch", verdict: "No path without extra hardware", steps: [], note: "The Switch has neither remote play nor a computer app. What helps: System Settings › Controllers and Sensors › Change Button Mapping, to gather the controls under one hand." }
+        { name: "Xbox", verdict: "Through a Windows PC, for free", steps: ["On the Xbox: Settings › Devices & connections › Remote features › Enable.", "On the PC: Xbox app, pick the console, then Remote play.", "Pair HemiPad with the PC over Bluetooth. If the app does not see it, launch it from Steam, which presents any controller as an Xbox controller."], note: "The game shows on the PC, with the slight delay of remote play. Or, without a PC, right in the app: Connection tab › Xbox › \u201cPlay Xbox in HemiPad\u201d." },
+        { name: "Switch", verdict: "Through the HemiPad box, wireless or wired", steps: ["Set up the box once: a Raspberry Pi Zero 2 W is enough (see the bridge/ folder).", "Wireless: search for a controller from the Switch, it sees \u201cHemiPad\u201d.", "Or wired: plug the box into the Switch's USB port."], note: "The Switch accepts ordinary controllers: the box presents one, over Bluetooth or USB. To be confirmed on your console." }
       ]
     },
     specs: [

@@ -129,8 +129,8 @@ browser.newContext = async (...options) => {
   check((await cartes.count()) === 3, 'PS5, Xbox et Switch ont chacune leur carte « ce qui marche »')
   const etapes = await cartes.evaluateAll((noeuds) => noeuds.map((n) => n.querySelectorAll('.route-steps li').length))
   check(
-    etapes[0] === 3 && etapes[1] === 3 && etapes[2] === 0,
-    'PS5 et Xbox : trois étapes ; Switch : aucune, dit franchement',
+    etapes.every((n) => n === 3),
+    'PS5, Xbox et Switch : chacune ses étapes, y compris la Switch par le boîtier',
     etapes.join(', ')
   )
   await context.close()

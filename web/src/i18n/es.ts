@@ -255,16 +255,16 @@ export const es: Dictionary = {
         kind: 'list',
         steps: ['Windows', 'Linux', 'Android'],
         note:
-          'Switch, PS5 y Xbox solo aceptan sus propios mandos por Bluetooth, e iOS no deja que ninguna aplicación se haga pasar por un mando USB. Para PS5 y Xbox, un ordenador puede hacer de relevo: ver abajo.'
+          'Switch, PS5 y Xbox solo aceptan sus propios mandos por Bluetooth, e iOS no deja que ninguna aplicación se haga pasar por un mando USB. De ahí la caja, que no tiene esos límites: desbloquea la Switch. Para PS5 y Xbox, un ordenador hace de relevo. Ver abajo.'
       }
     ],
     routes: {
       title: "PS5, Xbox, Switch: lo que funciona",
-      lede: "Ningún mando de otra marca se conecta a ellas directamente, y ninguna aplicación puede cambiarlo. Un ordenador puede hacer de relevo, sin comprar nada.",
+      lede: "Ningún mando de otra marca se conecta a ellas directamente. Pero existen dos relevos: un ordenador, o la pequeña caja HemiPad junto a la consola. Uno u otro, según la consola.",
       items: [
         { name: "PS5", verdict: "Con un ordenador Windows o Linux, gratis", steps: ["En la PS5: Ajustes › Sistema › Juego remoto › Activar.", "En el ordenador: instalar chiaki-ng, gratuito y libre.", "Emparejar HemiPad con el ordenador por Bluetooth y abrir la PS5 en chiaki-ng."], note: "El juego se ve en el ordenador, con el ligero retraso del juego remoto." },
-        { name: "Xbox", verdict: "Con un PC Windows, gratis", steps: ["En la Xbox: Configuración › Dispositivos y conexiones › Funciones remotas › Activar.", "En el PC: aplicación Xbox, elegir la consola y luego Juego remoto.", "Emparejar HemiPad con el PC por Bluetooth. Si la aplicación no lo ve, abrirla desde Steam, que presenta cualquier mando como un mando Xbox."], note: "El juego se ve en el PC, con el ligero retraso del juego remoto." },
-        { name: "Switch", verdict: "Ningún camino sin hardware adicional", steps: [], note: "La Switch no tiene juego remoto ni aplicación para ordenador. Lo que ayuda: Configuración de la consola › Mandos y sensores › Cambiar la asignación de botones, para reunir los controles bajo una mano." }
+        { name: "Xbox", verdict: "Con un PC Windows, gratis", steps: ["En la Xbox: Configuración › Dispositivos y conexiones › Funciones remotas › Activar.", "En el PC: aplicación Xbox, elegir la consola y luego Juego remoto.", "Emparejar HemiPad con el PC por Bluetooth. Si la aplicación no lo ve, abrirla desde Steam, que presenta cualquier mando como un mando Xbox."], note: "El juego se ve en el PC, con el ligero retraso del juego remoto. O, sin PC, directamente en la app: pestaña Conexión › Xbox › «Jugar a la Xbox en HemiPad»." },
+        { name: "Switch", verdict: "Con la caja HemiPad, sin cables o por cable", steps: ["Instalar la caja una vez: basta una Raspberry Pi Zero 2 W (ver la carpeta bridge/).", "Sin cables: buscar un mando desde la Switch, verá «HemiPad».", "O por cable: conectar la caja al puerto USB de la Switch."], note: "La Switch acepta mandos normales: la caja le presenta uno, por Bluetooth o USB. A confirmar en tu consola." }
       ]
     },
     specs: [
