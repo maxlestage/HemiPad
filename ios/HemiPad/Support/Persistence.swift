@@ -48,16 +48,35 @@ enum SettingsStore {
         UserDefaults.standard.set(kind.rawValue, forKey: transportKey)
     }
 
+    /// Nom sous lequel le secret du boîtier est rangé dans le Trousseau.
+    private static let bridgeSecretAccount = "bridge.key"
+
     static func loadBridge() -> BridgeSettings {
-        guard let data = UserDefaults.standard.data(forKey: bridgeKey),
-              let settings = try? JSONDecoder().decode(BridgeSettings.self, from: data) else {
-            return .empty
+        // L'adresse et le port restent dans les réglages ordinaires ; le secret,
+        // lui, vient du Trousseau, où il ne part pas dans les sauvegardes.
+        var host = ""
+        var port = BridgeSettings.defaultPort
+        if let data = UserDefaults.standard.data(forKey: bridgeKey),
+           let stored = try? JSONDecoder().decode(BridgeAddress.self, from: data) {
+            host = stored.host
+            port = stored.port
         }
-        return settings
+        let keyHex = SecretStore.read(bridgeSecretAccount) ?? ""
+        return BridgeSettings(host: host, port: port, keyHex: keyHex)
     }
 
     static func save(_ settings: BridgeSettings) {
-        guard let data = try? JSONEncoder().encode(settings) else { return }
-        UserDefaults.standard.set(data, forKey: bridgeKey)
+        let address = BridgeAddress(host: settings.host, port: settings.port)
+        if let data = try? JSONEncoder().encode(address) {
+            UserDefaults.standard.set(data, forKey: bridgeKey)
+        }
+        SecretStore.write(settings.keyHex, for: bridgeSecretAccount)
+    }
+
+    /// La partie non secrète des coordonnées du boîtier, seule à aller dans les
+    /// réglages ordinaires.
+    private struct BridgeAddress: Codable {
+        let host: String
+        let port: UInt16
     }
 }

@@ -19,6 +19,9 @@ enum Wire {
 
     static var frameLength: Int { hemipad_wire_frame_len() }
     static var keyLength: Int { hemipad_wire_key_len() }
+    /// Place à prévoir pour un rapport ouvert : la longueur vient de la
+    /// bibliothèque, plutôt qu'un nombre écrit en dur ici.
+    static var maxOutputLength: Int { hemipad_wire_max_output_len() }
 
     /// Ce qui a empêché de sceller ou d'ouvrir une trame.
     enum Failure: Error, Equatable {
