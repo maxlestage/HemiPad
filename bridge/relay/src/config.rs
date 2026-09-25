@@ -2,10 +2,21 @@
 
 use std::fs;
 use std::io;
+use std::os::unix::fs::MetadataExt;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 use hemipad_wire::KEY_LEN;
+
+extern "C" {
+    fn geteuid() -> u32;
+}
+
+/// Identifiant de l'utilisateur qui lance le pont.
+fn libc_geteuid() -> u32 {
+    // SAFETY : geteuid est toujours sûr, sans effet de bord.
+    unsafe { geteuid() }
+}
 
 /// Ce dont le programme a besoin pour démarrer.
 pub struct Config {
@@ -92,6 +103,20 @@ Options :
 /// tout le monde peut lire ne protège plus rien.
 pub fn load_key(path: &Path) -> io::Result<[u8; KEY_LEN]> {
     let metadata = fs::metadata(path)?;
+    // Le secret doit appartenir à celui qui lance le pont : un fichier 0600
+    // d'un autre utilisateur serait lisible par lui.
+    let moi = libc_geteuid();
+    if metadata.uid() != moi {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!(
+                "{} appartient à un autre utilisateur (uid {}) : le pont tourne sous l'uid {}",
+                path.display(),
+                metadata.uid(),
+                moi
+            ),
+        ));
+    }
     let mode = metadata.permissions().mode() & 0o077;
     if mode != 0 {
         return Err(io::Error::new(

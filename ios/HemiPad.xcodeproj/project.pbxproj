@@ -31,6 +31,7 @@
 		3EC0A594F8E7C3B7B83811E9 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D59D702F23397B57362B8F /* Haptics.swift */; };
 		711EBFD8D509AE352500A01F /* ObjCExceptionCatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 8A82C0DE8EEF07B4FCF15343 /* ObjCExceptionCatcher.m */; };
 		85EE1D9E7D5846D7AB94B8D5 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B9E3C26373B22DD1039056 /* Persistence.swift */; };
+		5F6C1379F63614971F5875D0 /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E87F335E9792F68846CBE261 /* SecretStore.swift */; };
 		EB79075BB20705C1C8DEB86F /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE98764A66BFA8D65C191D4 /* Theme.swift */; };
 		CB1AE04E11AD43098D148374 /* BLEHIDPeripheralTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */; };
 		32AF47F40E1B2EE9B3795746 /* BLEPublicationSentinel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38D2F3C19F4A562FA2476184 /* BLEPublicationSentinel.swift */; };
@@ -98,6 +99,7 @@
 		D4D59D702F23397B57362B8F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		8A82C0DE8EEF07B4FCF15343 /* ObjCExceptionCatcher.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCExceptionCatcher.m; sourceTree = "<group>"; };
 		26B9E3C26373B22DD1039056 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		E87F335E9792F68846CBE261 /* SecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStore.swift; sourceTree = "<group>"; };
 		1DE98764A66BFA8D65C191D4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4352919DD7AF2187EEB4CBEB /* BLEHIDPeripheralTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEHIDPeripheralTransport.swift; sourceTree = "<group>"; };
 		38D2F3C19F4A562FA2476184 /* BLEPublicationSentinel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEPublicationSentinel.swift; sourceTree = "<group>"; };
@@ -244,6 +246,7 @@
 				4581F004CED70ED836039D70 /* ObjCExceptionCatcher.h */,
 				8A82C0DE8EEF07B4FCF15343 /* ObjCExceptionCatcher.m */,
 				26B9E3C26373B22DD1039056 /* Persistence.swift */,
+				E87F335E9792F68846CBE261 /* SecretStore.swift */,
 				1DE98764A66BFA8D65C191D4 /* Theme.swift */,
 			);
 			path = Support;
@@ -450,6 +453,7 @@
 				3EC0A594F8E7C3B7B83811E9 /* Haptics.swift in Sources */,
 				711EBFD8D509AE352500A01F /* ObjCExceptionCatcher.m in Sources */,
 				85EE1D9E7D5846D7AB94B8D5 /* Persistence.swift in Sources */,
+				5F6C1379F63614971F5875D0 /* SecretStore.swift in Sources */,
 				EB79075BB20705C1C8DEB86F /* Theme.swift in Sources */,
 				CB1AE04E11AD43098D148374 /* BLEHIDPeripheralTransport.swift in Sources */,
 				32AF47F40E1B2EE9B3795746 /* BLEPublicationSentinel.swift in Sources */,
