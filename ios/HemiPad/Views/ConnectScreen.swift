@@ -8,6 +8,8 @@ struct ConnectScreen: View {
     @State private var renaming: RememberedMachine?
     @State private var draftName = ""
     @State private var showsRemotePlay = false
+    @State private var showsPS5Guide = false
+    @State private var showsBridgeGuide = false
 
     var body: some View {
         ScrollView {
@@ -119,6 +121,14 @@ struct ConnectScreen: View {
         .background(AuroraBackground(reducedMotion: state.profile.reducedMotion))
         .fullScreenCover(isPresented: $showsRemotePlay) {
             RemotePlayScreen()
+                .hemipadEnvironment(state)
+        }
+        .fullScreenCover(isPresented: $showsPS5Guide) {
+            GuideScreen.playstationRemotePlay
+                .hemipadEnvironment(state)
+        }
+        .fullScreenCover(isPresented: $showsBridgeGuide) {
+            GuideScreen.bridgeSetup(secretPlaceholder: !transport.bridgeSettings.isComplete)
                 .hemipadEnvironment(state)
         }
         .alert("Nommer la machine", isPresented: Binding(
@@ -264,6 +274,16 @@ struct ConnectScreen: View {
                 .font(.caption)
                 .foregroundStyle(Theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                showsBridgeGuide = true
+            } label: {
+                Label("Comment monter le boîtier", systemImage: "questionmark.circle")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(state.accent)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(Text("Ouvre le guide pas à pas"))
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -304,6 +324,27 @@ struct ConnectScreen: View {
         }
     }
 
+    /// La PS5, par la lecture à distance officielle : un guide pas à pas.
+    private var ps5GuideButton: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                showsPS5Guide = true
+            } label: {
+                Label("Guide : jouer à la PS5", systemImage: "play.tv.fill")
+                    .font(.callout.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(state.accent))
+                    .foregroundStyle(Theme.background)
+            }
+            .buttonStyle(.plain)
+            Text("La lecture à distance de Sony, avec un ordinateur pour relais. Le guide donne les cinq étapes.")
+                .font(.caption)
+                .foregroundStyle(Theme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     /// Accepté ou refusé en Bluetooth direct, d'un coup d'œil.
     private func directBadge(_ reach: BluetoothReach) -> some View {
         Label(
@@ -340,6 +381,10 @@ struct ConnectScreen: View {
 
                 if console.target == .xbox {
                     remotePlayButton
+                }
+
+                if console.target == .playstation {
+                    ps5GuideButton
                 }
 
                 if let setting = reach.consoleSetting {
