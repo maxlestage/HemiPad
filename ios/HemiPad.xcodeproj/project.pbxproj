@@ -329,7 +329,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"$SRCROOT/../bridge/scripts/compiler-pour-xcode.sh\"\n";
+			shellScript = "sh \"$SRCROOT/../bridge/scripts/compiler-pour-xcode.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
