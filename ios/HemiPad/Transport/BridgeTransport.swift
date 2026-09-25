@@ -21,12 +21,19 @@ struct BridgeSettings: Codable, Equatable {
     }
 }
 
-/// Le chemin par le boîtier : les commandes partent en Wi-Fi, signées, et le
-/// boîtier les rejoue vers la console.
+/// Le chemin par le boîtier : les commandes partent en Wi-Fi, chiffrées et
+/// signées, et le boîtier les rejoue vers la console.
 ///
-/// Rien n'est envoyé en clair et rien ne peut être rejoué : chaque trame porte
-/// une signature et un compteur, tous deux calculés par la bibliothèque Rust,
-/// la même que celle du boîtier.
+/// Le contenu des trames ne passe pas en clair (ce qui est tapé au clavier ne
+/// se lit pas sur le Wi-Fi), et rien ne peut être rejoué ni renvoyé : chaque
+/// trame porte un compteur, son sens et une signature, le tout calculé par la
+/// bibliothèque Rust, la même que celle du boîtier. Restent visibles : la
+/// sorte de rapport et le rythme des trames.
+///
+/// Le compteur, la connexion et le minuteur ne sont touchés que depuis
+/// `queue` : l'interface appelle `send` depuis le fil principal, le battement
+/// part depuis `queue`, et deux trames ne doivent jamais porter le même
+/// compteur.
 final class BridgeTransport: ControllerTransport {
     let kind: TransportKind = .bridge
 
@@ -47,16 +54,19 @@ final class BridgeTransport: ControllerTransport {
     private let key: [UInt8]
     private var connection: NWConnection?
     private let queue = DispatchQueue(label: "app.hemipad.bridge")
-    /// Compteur des trames émises. Jamais remis à zéro dans une session : un
-    /// compteur qui recule ferait refuser nos propres trames.
+    /// Compteur des trames émises. Il ne recule jamais, même d'une session à
+    /// l'autre : un compteur qui recule ferait refuser nos propres trames par
+    /// le boîtier, et — pire — réutiliserait le chiffrement d'une trame déjà
+    /// partie, ce qui permettrait d'en deviner le contenu.
     ///
-    /// Semé sur l'heure (millisecondes) plutôt que zéro : au redémarrage de
-    /// l'application, le boîtier tourne peut-être encore avec un compteur déjà
-    /// haut ; repartir de zéro ferait tout rejeter jusqu'au redémarrage du
-    /// boîtier. L'heure avance toujours, donc chaque session repart au-dessus
-    /// de la précédente. Cela n'ouvre aucun rejeu : une trame capturée porte un
-    /// compteur plus bas que ce nouveau départ, et reste refusée.
-    private var counter: UInt64 = UInt64(Date().timeIntervalSince1970 * 1000)
+    /// Au démarrage, il repart au-dessus de tout ce qui a pu être émis : de
+    /// l'heure (millisecondes), et de la réserve notée sur l'appareil. La
+    /// réserve est inscrite *avant* d'être entamée : même si l'application
+    /// s'arrête net, la session suivante repart plus haut. Et si l'heure de
+    /// l'appareil est reculée, la réserve tient bon.
+    private var counter: UInt64
+    /// Jusqu'où le compteur peut monter avant d'inscrire une nouvelle réserve.
+    private var reservedUpTo: UInt64
     /// Dernier compteur d'une réponse acceptée du boîtier. Sans lui, une
     /// réponse « battement » authentique captée sur le Wi-Fi pourrait être
     /// rejouée à l'infini pour faire croire le boîtier vivant.
@@ -70,6 +80,11 @@ final class BridgeTransport: ControllerTransport {
         guard settings.isComplete, let key = Wire.key(fromHex: settings.keyHex) else { return nil }
         self.settings = settings
         self.key = key
+        let clock = UInt64(max(0, Date().timeIntervalSince1970 * 1000))
+        let start = max(clock, Self.storedReservation())
+        counter = start
+        reservedUpTo = start
+        reserve(from: start)
     }
 
     func start() {
@@ -85,9 +100,11 @@ final class BridgeTransport: ControllerTransport {
             port: NWEndpoint.Port(rawValue: settings.port) ?? .init(integerLiteral: BridgeSettings.defaultPort)
         )
         let connection = NWConnection(to: endpoint, using: .udp)
-        self.connection = connection
-        connection.stateUpdateHandler = { [weak self] update in
-            guard let self else { return }
+        connection.stateUpdateHandler = { [weak self, weak connection] update in
+            // Une connexion déjà remplacée (ou arrêtée) ne parle plus pour le
+            // boîtier : son « annulée » ne doit pas écraser l'état de la
+            // suivante.
+            guard let self, let connection, self.connection === connection else { return }
             switch update {
             case .ready:
                 // Prêt ne veut pas dire joignable : en UDP, rien ne le prouve
@@ -95,21 +112,25 @@ final class BridgeTransport: ControllerTransport {
                 self.receive()
                 self.startHeartbeat()
             case .failed(let error):
-                self.state = .failed("Boîtier injoignable : \(error.localizedDescription)")
+                let message = "Boîtier injoignable : \(error.localizedDescription)"
+                DispatchQueue.main.async { self.state = .failed(message) }
             case .cancelled:
-                self.state = .idle
+                DispatchQueue.main.async { self.state = .idle }
             default:
                 break
             }
         }
+        queue.sync { self.connection = connection }
         connection.start(queue: queue)
     }
 
     func stop() {
-        heartbeatTimer?.cancel()
-        heartbeatTimer = nil
-        connection?.cancel()
-        connection = nil
+        queue.sync {
+            heartbeatTimer?.cancel()
+            heartbeatTimer = nil
+            connection?.cancel()
+            connection = nil
+        }
         if let machineID {
             onMachineEvent?(.disconnected(machineID))
             self.machineID = nil
@@ -118,14 +139,21 @@ final class BridgeTransport: ControllerTransport {
     }
 
     func send(reportID: HIDReportDescriptors.ReportID, payload: [UInt8]) {
-        send(rawReportID: reportID.rawValue, payload: payload)
+        queue.async { [weak self] in
+            self?.transmit(rawReportID: reportID.rawValue, payload: payload)
+        }
     }
 
     // MARK: - Détails
 
-    private func send(rawReportID: UInt8, payload: [UInt8]) {
+    /// Scelle et envoie une trame. Toujours sur `queue`.
+    private func transmit(rawReportID: UInt8, payload: [UInt8]) {
+        dispatchPrecondition(condition: .onQueue(queue))
         guard let connection, connection.state == .ready else { return }
         counter &+= 1
+        if counter >= reservedUpTo {
+            reserve(from: counter)
+        }
         guard let frame = try? Wire.seal(
             reportID: rawReportID,
             payload: payload,
@@ -141,7 +169,7 @@ final class BridgeTransport: ControllerTransport {
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now(), repeating: .milliseconds(400))
         timer.setEventHandler { [weak self] in
-            self?.send(rawReportID: Self.heartbeatReportID, payload: [])
+            self?.transmit(rawReportID: Self.heartbeatReportID, payload: [])
         }
         heartbeatTimer = timer
         timer.resume()
@@ -159,38 +187,36 @@ final class BridgeTransport: ControllerTransport {
         }
     }
 
-    /// La réponse vient-elle bien du boîtier appairé, et n'est-elle pas une
-    /// rejouée ? Une trame qui ne s'ouvre pas avec notre secret vient de
-    /// quelqu'un d'autre ; une trame dont le compteur ne dépasse pas le dernier
-    /// accepté est une rediffusion — refusée dans les deux cas.
+    /// La réponse vient-elle bien du boîtier appairé, et n'est-elle ni une
+    /// rejouée, ni une de nos propres trames renvoyée ? Une trame qui ne
+    /// s'ouvre pas avec notre secret vient de quelqu'un d'autre ; une trame
+    /// dont le compteur ne dépasse pas le dernier accepté est une rediffusion ;
+    /// une trame qui va vers le boîtier n'est pas une réponse — refusée dans
+    /// les trois cas.
     private func isGenuineReply(_ data: Data) -> Bool {
-        guard data.count == Wire.frameLength else { return false }
-        let bytes = [UInt8](data)
-        var reportID: UInt8 = 0
-        var payload = [UInt8](repeating: 0, count: Wire.maxOutputLength)
-        var payloadLength = 0
-        var received: UInt64 = 0
-        let code = key.withUnsafeBufferPointer { keyBuffer in
-            bytes.withUnsafeBufferPointer { frameBuffer in
-                payload.withUnsafeMutableBufferPointer { payloadBuffer in
-                    hemipad_wire_open(
-                        keyBuffer.baseAddress,
-                        keyBuffer.count,
-                        frameBuffer.baseAddress,
-                        frameBuffer.count,
-                        lastReplyCounter,
-                        &reportID,
-                        payloadBuffer.baseAddress,
-                        payloadBuffer.count,
-                        &payloadLength,
-                        &received
-                    )
-                }
-            }
-        }
-        guard code == HEMIPAD_WIRE_OK, reportID == Self.heartbeatReportID else { return false }
-        lastReplyCounter = received
+        guard data.count == Wire.frameLength,
+              let opened = try? Wire.open(data, lastCounter: lastReplyCounter, key: key, direction: .toApp),
+              opened.reportID == Self.heartbeatReportID else { return false }
+        lastReplyCounter = opened.counter
         return true
+    }
+
+    // MARK: - Réserve du compteur
+
+    private static let reservationKey = "hemipad.bridge.compteur"
+    /// Taille d'une réserve : à 125 trames par seconde, de quoi tenir plus
+    /// de dix minutes avant d'écrire à nouveau.
+    private static let reservationBlock: UInt64 = 100_000
+
+    private static func storedReservation() -> UInt64 {
+        (UserDefaults.standard.object(forKey: reservationKey) as? NSNumber)?.uint64Value ?? 0
+    }
+
+    /// Inscrit une nouvelle réserve avant de l'entamer.
+    private func reserve(from value: UInt64) {
+        let (next, overflow) = value.addingReportingOverflow(Self.reservationBlock)
+        reservedUpTo = overflow ? .max : next
+        UserDefaults.standard.set(NSNumber(value: reservedUpTo), forKey: Self.reservationKey)
     }
 
     private func noteAlive() {

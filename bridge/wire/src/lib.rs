@@ -19,7 +19,8 @@ pub mod sha256;
 pub use connection::{Chooser, Path, DEFAULT_BRIDGE_TIMEOUT_MS, DEFAULT_SETTLE_MS};
 pub use descriptor::HID_REPORT_DESCRIPTOR;
 pub use frame::{
-    open, seal, Frame, FrameError, ReportKind, FRAME_LEN, KEY_LEN, MAGIC, MAX_PAYLOAD, TAG_LEN,
+    open, seal, Direction, Frame, FrameError, ReportKind, FRAME_LEN, KEY_LEN, MAGIC, MAX_PAYLOAD,
+    TAG_LEN,
 };
 pub use output::{wrap, Output, OutputFrame, HIDP_INPUT_HEADER, MAX_OUTPUT_LEN};
 
@@ -28,7 +29,7 @@ use core::slice;
 /// Version de l'ABI. Swift la lit au démarrage : si la bibliothèque liée
 /// n'est pas celle attendue, mieux vaut le savoir tout de suite que de
 /// découvrir un décalage d'octets en pleine partie.
-pub const ABI_VERSION: i32 = 1;
+pub const ABI_VERSION: i32 = 2;
 
 /// Codes rendus par l'ABI C. Zéro veut dire « c'est fait ».
 pub mod status {
@@ -43,6 +44,7 @@ pub mod status {
     pub const SIGNATURE: i32 = -8;
     pub const REPLAY: i32 = -9;
     pub const UNKNOWN_OUTPUT: i32 = -10;
+    pub const DIRECTION: i32 = -11;
 }
 
 fn code(error: FrameError) -> i32 {
@@ -54,6 +56,7 @@ fn code(error: FrameError) -> i32 {
         FrameError::KeyLength => status::KEY_LENGTH,
         FrameError::Signature => status::SIGNATURE,
         FrameError::Replay => status::REPLAY,
+        FrameError::Direction => status::DIRECTION,
         FrameError::OutputTooSmall => status::OUTPUT_TOO_SMALL,
     }
 }
@@ -115,13 +118,16 @@ pub extern "C" fn hemipad_wire_payload_len(report_id: u8) -> usize {
 }
 
 /// Scelle un rapport dans `out`, qui doit pouvoir recevoir `frame_len` octets.
+/// `direction` vaut 0 vers le boîtier, 1 vers l'application.
 ///
 /// # Safety
 /// Les trois pointeurs doivent adresser le nombre d'octets annoncé.
+#[allow(clippy::too_many_arguments)]
 #[no_mangle]
 pub unsafe extern "C" fn hemipad_wire_seal(
     key: *const u8,
     key_len: usize,
+    direction: u8,
     report_id: u8,
     payload: *const u8,
     payload_len: usize,
@@ -136,10 +142,13 @@ pub unsafe extern "C" fn hemipad_wire_seal(
     ) else {
         return status::NULL_POINTER;
     };
+    let Some(direction) = Direction::from_id(direction) else {
+        return status::DIRECTION;
+    };
     let Some(kind) = ReportKind::from_id(report_id) else {
         return status::UNKNOWN_REPORT;
     };
-    match seal(key, kind, payload, counter, out) {
+    match seal(key, direction, kind, payload, counter, out) {
         Ok(()) => status::OK,
         Err(error) => code(error),
     }
@@ -147,6 +156,7 @@ pub unsafe extern "C" fn hemipad_wire_seal(
 
 /// Ouvre une trame reçue. En cas de succès, écrit l'identifiant de rapport, la
 /// charge utile, sa longueur et le compteur dans les emplacements fournis.
+/// `direction` est le sens attendu des trames reçues (1 pour l'application).
 ///
 /// Les pointeurs de sortie facultatifs peuvent être nuls.
 ///
@@ -157,6 +167,7 @@ pub unsafe extern "C" fn hemipad_wire_seal(
 pub unsafe extern "C" fn hemipad_wire_open(
     key: *const u8,
     key_len: usize,
+    direction: u8,
     frame: *const u8,
     frame_len: usize,
     last_counter: u64,
@@ -169,7 +180,10 @@ pub unsafe extern "C" fn hemipad_wire_open(
     let (Some(key), Some(frame)) = (borrow(key, key_len), borrow(frame, frame_len)) else {
         return status::NULL_POINTER;
     };
-    let opened = match open(key, frame, last_counter) {
+    let Some(direction) = Direction::from_id(direction) else {
+        return status::DIRECTION;
+    };
+    let opened = match open(key, direction, frame, last_counter) {
         Ok(opened) => opened,
         Err(error) => return code(error),
     };
@@ -333,6 +347,7 @@ mod tests {
             hemipad_wire_seal(
                 KEY.as_ptr(),
                 KEY.len(),
+                0,
                 1,
                 GAMEPAD.as_ptr(),
                 GAMEPAD.len(),
@@ -351,6 +366,7 @@ mod tests {
             hemipad_wire_open(
                 KEY.as_ptr(),
                 KEY.len(),
+                0,
                 frame.as_ptr(),
                 frame.len(),
                 41,
@@ -376,6 +392,7 @@ mod tests {
                 hemipad_wire_seal(
                     core::ptr::null(),
                     KEY_LEN,
+                    0,
                     1,
                     GAMEPAD.as_ptr(),
                     GAMEPAD.len(),
@@ -392,6 +409,7 @@ mod tests {
                 hemipad_wire_seal(
                     KEY.as_ptr(),
                     KEY.len(),
+                    0,
                     9,
                     GAMEPAD.as_ptr(),
                     GAMEPAD.len(),
@@ -408,6 +426,7 @@ mod tests {
                 hemipad_wire_seal(
                     KEY.as_ptr(),
                     8,
+                    0,
                     1,
                     GAMEPAD.as_ptr(),
                     GAMEPAD.len(),
@@ -424,6 +443,7 @@ mod tests {
                 hemipad_wire_seal(
                     KEY.as_ptr(),
                     KEY.len(),
+                    0,
                     1,
                     GAMEPAD.as_ptr(),
                     GAMEPAD.len(),
@@ -443,6 +463,7 @@ mod tests {
             hemipad_wire_seal(
                 KEY.as_ptr(),
                 KEY.len(),
+                0,
                 1,
                 GAMEPAD.as_ptr(),
                 GAMEPAD.len(),
@@ -457,6 +478,7 @@ mod tests {
             hemipad_wire_open(
                 KEY.as_ptr(),
                 KEY.len(),
+                0,
                 frame.as_ptr(),
                 frame.len(),
                 0,
@@ -581,7 +603,7 @@ mod tests {
 
     #[test]
     fn the_abi_announces_its_shape() {
-        assert_eq!(hemipad_wire_abi_version(), 1);
+        assert_eq!(hemipad_wire_abi_version(), 2);
         assert_eq!(hemipad_wire_frame_len(), FRAME_LEN);
         assert_eq!(hemipad_wire_key_len(), KEY_LEN);
         assert_eq!(hemipad_wire_payload_len(1), 9);
@@ -589,5 +611,57 @@ mod tests {
         assert_eq!(hemipad_wire_payload_len(3), 0);
         assert_eq!(hemipad_wire_max_output_len(), MAX_OUTPUT_LEN);
         assert_eq!(hemipad_wire_chooser_size(), core::mem::size_of::<Chooser>());
+    }
+
+    #[test]
+    fn the_c_abi_refuses_an_unknown_direction_and_a_reflected_frame() {
+        let mut frame = [0u8; FRAME_LEN];
+        assert_eq!(
+            unsafe {
+                hemipad_wire_seal(
+                    KEY.as_ptr(),
+                    KEY.len(),
+                    7,
+                    1,
+                    GAMEPAD.as_ptr(),
+                    GAMEPAD.len(),
+                    1,
+                    frame.as_mut_ptr(),
+                    frame.len(),
+                )
+            },
+            status::DIRECTION
+        );
+        let sealed = unsafe {
+            hemipad_wire_seal(
+                KEY.as_ptr(),
+                KEY.len(),
+                0,
+                1,
+                GAMEPAD.as_ptr(),
+                GAMEPAD.len(),
+                1,
+                frame.as_mut_ptr(),
+                frame.len(),
+            )
+        };
+        assert_eq!(sealed, status::OK);
+        let mut payload = [0u8; MAX_PAYLOAD];
+        let reflected = unsafe {
+            hemipad_wire_open(
+                KEY.as_ptr(),
+                KEY.len(),
+                1,
+                frame.as_ptr(),
+                frame.len(),
+                0,
+                core::ptr::null_mut(),
+                payload.as_mut_ptr(),
+                payload.len(),
+                core::ptr::null_mut(),
+                core::ptr::null_mut(),
+            )
+        };
+        assert_eq!(reflected, status::DIRECTION);
     }
 }
