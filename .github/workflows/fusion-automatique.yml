@@ -123,13 +123,15 @@ jobs:
                 continue
               }
 
-              const { data: verifications } = await github.rest.checks.listForRef({
+              // Toutes les pages : au-delà de cent vérifications, une en échec
+              // sur la seconde page passerait sinon inaperçue.
+              const verifications = await github.paginate(github.rest.checks.listForRef, {
                 owner,
                 repo,
                 ref: resume.head.sha,
                 per_page: 100
               })
-              const pertinentes = verifications.check_runs.filter(
+              const pertinentes = verifications.filter(
                 (run) => !IGNORE.includes(run.name)
               )
 
@@ -197,6 +199,14 @@ jobs:
                 pull_number: resume.number
               })
 
+              // Tout ce qui précède a été vérifié sur resume.head.sha. Un commit
+              // poussé entre-temps n'a pas eu ses vérifications : on attend le
+              // prochain passage plutôt que de le fusionner à l'aveugle.
+              if (pr.head.sha !== resume.head.sha) {
+                core.info(`${prefixe} : nouveau commit ${pr.head.sha} depuis la vérification — on attend.`)
+                continue
+              }
+
               if (pr.mergeable !== true || pr.mergeable_state === 'dirty') {
                 core.warning(
                   `${prefixe} : non fusionnable pour l'instant (mergeable=${pr.mergeable}, état=${pr.mergeable_state}).`
@@ -209,7 +219,9 @@ jobs:
                 repo,
                 pull_number: pr.number,
                 merge_method: 'merge',
-                sha: pr.head.sha,
+                // GitHub refuse la fusion si la tête a bougé depuis : c'est
+                // exactement le commit vérifié qui entre, et aucun autre.
+                sha: resume.head.sha,
                 commit_title: `${pr.title} (#${pr.number})`,
                 commit_message: `Fusion automatique : ${pertinentes.length} vérification(s) au vert.`
               })
