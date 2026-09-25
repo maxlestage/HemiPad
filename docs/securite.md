@@ -28,6 +28,35 @@ Ce qui protège le projet, et ce qui reste à régler à la main dans GitHub.
 - Des tests vérifient la liste des domaines, le script injecté (exécuté dans
   JavaScriptCore) et que WebKit voit bien les garde-fous de navigation.
 
+## Le boîtier (pont USB et Bluetooth)
+
+Le boîtier écoute sur le réseau local : sans protection, n'importe qui sur le
+même Wi-Fi pourrait jouer à votre place.
+
+- **Secret partagé** de 32 octets tiré au sort à l'installation, qui ne
+  circule jamais sur le réseau. Chaque trame porte une signature
+  HMAC-SHA-256 ; sans le secret, on ne peut pas en fabriquer une.
+- **Compteur qui ne recule jamais** : une trame capturée ne peut pas être
+  rejouée.
+- **Rien n'est écrit avant vérification** : une trame refusée n'atteint jamais
+  le port USB, et même signée, une trame dont l'en-tête annonce une longueur
+  fausse est refusée.
+- **Signatures comparées à durée constante** : le temps de réponse ne laisse
+  rien deviner.
+- **Garde-fou** : après une demi-seconde de silence, tout est relâché — une
+  coupure de Wi-Fi ne laisse pas une gâchette enfoncée.
+- **Service enfermé** : aucune capacité, système en lecture seule, un seul
+  périphérique autorisé, appels système filtrés.
+- **Le secret est refusé** s'il est lisible par d'autres que son propriétaire.
+- **Le boîtier n'usurpe l'identité de personne** : il s'annonce sous le nom
+  « HemiPad », en USB comme en Bluetooth, avec l'identifiant générique des
+  montages composites Linux.
+- **La liaison Bluetooth vers la console est chiffrée et appairée** :
+  l'enregistrement du profil l'exige, et le service n'a le droit qu'aux
+  familles de sockets qu'il utilise vraiment.
+
+Le détail est dans `bridge/README.md`.
+
 ## Site
 
 - **Politique de sécurité (CSP) stricte** : scripts, styles, polices et images

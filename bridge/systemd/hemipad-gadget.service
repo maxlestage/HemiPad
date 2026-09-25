@@ -1,0 +1,18 @@
+# Monte le gadget USB : c'est ce qui fait apparaître /dev/hidg0.
+#
+# Unité à part, et non une étape de hemipad-relay : charger un module et
+# monter configfs demande des privilèges que le pont, lui, ne doit surtout
+# pas garder pendant qu'il écoute le réseau.
+[Unit]
+Description=Gadget USB HemiPad
+DefaultDependencies=no
+After=sysinit.target
+Before=hemipad-relay.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/hemipad-monter-gadget
+
+[Install]
+WantedBy=multi-user.target

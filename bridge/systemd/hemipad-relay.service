@@ -1,0 +1,49 @@
+# Le pont HemiPad : reçoit les commandes par le réseau, les écrit sur le port
+# USB. C'est la seule partie exposée au réseau, donc la plus enfermée.
+[Unit]
+Description=Pont USB HemiPad
+Requires=hemipad-gadget.service
+After=hemipad-gadget.service hemipad-bluetooth.service network-online.target
+Wants=hemipad-bluetooth.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/hemipad-relay
+Restart=always
+RestartSec=2
+
+# Le programme n'a besoin que d'écouter le réseau, de lire son secret et
+# d'écrire dans /dev/hidg0. Tout le reste lui est fermé : une faille dedans ne
+# donnerait pas la carte.
+User=root
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateMounts=yes
+ProtectProc=invisible
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @obsolete @module @mount
+# Le réseau local et le Bluetooth, rien d'autre : pas de socket brut.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_BLUETOOTH
+# Le seul périphérique auquel il touche.
+DevicePolicy=closed
+DeviceAllow=/dev/hidg0 rw
+
+[Install]
+WantedBy=multi-user.target

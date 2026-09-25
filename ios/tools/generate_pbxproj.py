@@ -267,6 +267,40 @@ def build_project() -> str:
     test_tree.emit(lines)
     add("/* End PBXGroup section */")
 
+    # --- PBXShellScriptBuildPhase -------------------------------------------
+    # La bibliothèque Rust est compilée avant le Swift : c'est elle qui porte
+    # le format des trames et le choix du chemin, que l'application appelle
+    # par son ABI C.
+    add("")
+    add("/* Begin PBXShellScriptBuildPhase section */")
+    add(f"\t\t{uid('rust', APP_NAME)} /* Bibliothèque Rust */ = {{")
+    add("\t\t\tisa = PBXShellScriptBuildPhase;")
+    add("\t\t\tbuildActionMask = 2147483647;")
+    add("\t\t\tfiles = (")
+    add("\t\t\t);")
+    add("\t\t\tinputPaths = (")
+    add("\t\t\t\t\"$(SRCROOT)/../bridge/wire/src\",")
+    add("\t\t\t\t\"$(SRCROOT)/../bridge/wire/Cargo.toml\",")
+    add("\t\t\t);")
+    add("\t\t\tname = \"Bibliothèque Rust\";")
+    add("\t\t\toutputPaths = (")
+    add(
+        "\t\t\t\t\"$(SRCROOT)/../bridge/target/xcode/"
+        "$(CONFIGURATION)-$(PLATFORM_NAME)/libhemipad_wire.a\","
+    )
+    add("\t\t\t);")
+    add("\t\t\trunOnlyForDeploymentPostprocessing = 0;")
+    add("\t\t\tshellPath = /bin/sh;")
+    # Lancé par « sh <script> » plutôt qu'en exécutable direct : le bit
+    # d'exécution de git n'entre alors pas en jeu, et rien ne dépend de la
+    # façon dont le dépôt a été extrait.
+    add(
+        "\t\t\tshellScript = \"sh \\\"$SRCROOT/../bridge/scripts/"
+        "compiler-pour-xcode.sh\\\"\\n\";"
+    )
+    add("\t\t};")
+    add("/* End PBXShellScriptBuildPhase section */")
+
     # --- PBXNativeTarget ----------------------------------------------------
     add("")
     add("/* Begin PBXNativeTarget section */")
@@ -277,6 +311,7 @@ def build_project() -> str:
         f"/* Build configuration list for PBXNativeTarget \"{APP_NAME}\" */;"
     )
     add("\t\t\tbuildPhases = (")
+    add(f"\t\t\t\t{uid('rust', APP_NAME)} /* Bibliothèque Rust */,")
     add(f"\t\t\t\t{uid('sources', APP_NAME)} /* Sources */,")
     add(f"\t\t\t\t{uid('frameworks', APP_NAME)} /* Frameworks */,")
     add(f"\t\t\t\t{uid('resources', APP_NAME)} /* Resources */,")
@@ -520,6 +555,21 @@ def app_settings(configuration: str, info_plist: str) -> dict[str, str]:
         "SWIFT_VERSION": SWIFT_VERSION,
         "TARGETED_DEVICE_FAMILY": "\"1,2\"",
     }
+    # La bibliothèque Rust : où trouver son en-tête, son archive, et le nom
+    # sous lequel la lier.
+    settings["HEADER_SEARCH_PATHS"] = (
+        "(\n\t\t\t\t\t\"$(inherited)\",\n"
+        "\t\t\t\t\t\"$(SRCROOT)/../bridge/wire/include\",\n\t\t\t\t)"
+    )
+    settings["LIBRARY_SEARCH_PATHS"] = (
+        "(\n\t\t\t\t\t\"$(inherited)\",\n"
+        "\t\t\t\t\t\"$(SRCROOT)/../bridge/target/xcode/"
+        "$(CONFIGURATION)-$(PLATFORM_NAME)\",\n\t\t\t\t)"
+    )
+    settings["OTHER_LDFLAGS"] = (
+        "(\n\t\t\t\t\t\"$(inherited)\",\n\t\t\t\t\t\"-lhemipad_wire\",\n\t\t\t\t)"
+    )
+
     header = bridging_header()
     if header:
         settings["SWIFT_OBJC_BRIDGING_HEADER"] = f"\"{header}\""
@@ -527,7 +577,13 @@ def app_settings(configuration: str, info_plist: str) -> dict[str, str]:
 
 
 def test_settings(configuration: str) -> dict[str, str]:
+    # Les essais se lient à l'application (BUNDLE_LOADER), qui porte déjà la
+    # bibliothèque Rust. Ils ont quand même besoin de trouver son en-tête.
     return {
+        "HEADER_SEARCH_PATHS": (
+            "(\n\t\t\t\t\t\"$(inherited)\",\n"
+            "\t\t\t\t\t\"$(SRCROOT)/../bridge/wire/include\",\n\t\t\t\t)"
+        ),
         "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
         "BUNDLE_LOADER": "\"$(TEST_HOST)\"",
         "CODE_SIGN_STYLE": "Automatic",

@@ -1,0 +1,15 @@
+[package]
+name = "hemipad-relay"
+description = "Le programme du boîtier : rejoue les commandes HemiPad sur le port USB."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "hemipad-relay"
+path = "src/main.rs"
+
+[dependencies]
+hemipad-wire = { path = "../wire" }
