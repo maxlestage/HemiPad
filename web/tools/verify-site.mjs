@@ -1241,8 +1241,24 @@ for (const [largeur, hauteur, tactile] of [
       break
     }
     visitées.push(cible)
-    const position = await page.evaluate((id) => {
+    const position = await page.evaluate(async (id) => {
       const élément = id === 'pied' ? document.querySelector('footer') : document.getElementById(id)
+      // Le défilement fini ne suffit pas : une section qui apparaît glisse
+      // encore de quelques pixels. On attend qu'elle soit immobile elle aussi
+      // (dix images d'affilée, deux secondes au plus) avant de la mesurer.
+      await new Promise((résoudre) => {
+        let dernier = NaN
+        let stable = 0
+        const début = performance.now()
+        const regarder = () => {
+          const haut = élément.getBoundingClientRect().top
+          stable = haut === dernier ? stable + 1 : 0
+          dernier = haut
+          if (stable >= 10 || performance.now() - début > 2000) résoudre()
+          else requestAnimationFrame(regarder)
+        }
+        requestAnimationFrame(regarder)
+      })
       return {
         haut: élément.getBoundingClientRect().top,
         attendu: parseFloat(getComputedStyle(élément).scrollMarginTop) || 0,
