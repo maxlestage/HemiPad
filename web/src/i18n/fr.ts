@@ -254,16 +254,16 @@ export const fr: Dictionary = {
         kind: 'list',
         steps: ['Windows', 'Linux', 'Android'],
         note:
-          "Switch, PS5 et Xbox n'acceptent en Bluetooth que leurs propres manettes, et iOS ne laisse aucune application se faire passer pour une manette USB. Pour la PS5 et la Xbox, un ordinateur fait le relais : voir ci-dessous."
+          "Switch, PS5 et Xbox n'acceptent en Bluetooth que leurs propres manettes, et iOS ne laisse aucune application se faire passer pour une manette USB. D'où le boîtier, qui n'a pas ces limites : il débloque la Switch. Pour la PS5 et la Xbox, un ordinateur fait le relais. Voir ci-dessous."
       }
     ],
     routes: {
       title: "PS5, Xbox, Switch : ce qui marche",
-      lede: "Aucune manette d'une autre marque ne s'y connecte directement, et aucune application ne peut y changer quoi que ce soit. Un ordinateur peut en revanche faire le relais, sans rien acheter.",
+      lede: "Aucune manette d'une autre marque ne s'y connecte directement. Mais deux relais existent : un ordinateur, ou le petit boîtier HemiPad posé près de la console. Selon la console, l'un ou l'autre.",
       items: [
         { name: "PS5", verdict: "Par un ordinateur Windows ou Linux, gratuitement", steps: ["Sur la PS5 : Paramètres › Système › Lecture à distance › Activer.", "Sur l'ordinateur : installer chiaki-ng, gratuit et libre.", "Appairer HemiPad à l'ordinateur en Bluetooth, puis ouvrir la PS5 dans chiaki-ng."], note: "Le jeu s'affiche sur l'ordinateur, avec le léger délai de la lecture à distance." },
-        { name: "Xbox", verdict: "Par un PC Windows, gratuitement", steps: ["Sur la Xbox : Paramètres › Appareils et connexions › Fonctionnalités à distance › Activer.", "Sur le PC : application Xbox, choisir la console, puis Lecture à distance.", "Appairer HemiPad au PC en Bluetooth. Si l'application ne la voit pas, la lancer depuis Steam, qui présente toute manette comme une manette Xbox."], note: "Le jeu s'affiche sur le PC, avec le léger délai de la lecture à distance." },
-        { name: "Switch", verdict: "Aucun chemin sans matériel", steps: [], note: "La Switch n'a ni lecture à distance ni application pour ordinateur. Ce qui aide : Paramètres de la console › Manettes et capteurs › Changer l'assignation des boutons, pour rassembler les commandes sous une main." }
+        { name: "Xbox", verdict: "Par un PC Windows, gratuitement", steps: ["Sur la Xbox : Paramètres › Appareils et connexions › Fonctionnalités à distance › Activer.", "Sur le PC : application Xbox, choisir la console, puis Lecture à distance.", "Appairer HemiPad au PC en Bluetooth. Si l'application ne la voit pas, la lancer depuis Steam, qui présente toute manette comme une manette Xbox."], note: "Le jeu s'affiche sur le PC, avec le léger délai de la lecture à distance. Ou, sans PC, directement dans l'app : onglet Connexion › Xbox › « Jouer à la Xbox dans HemiPad »." },
+        { name: "Switch", verdict: "Par le boîtier HemiPad, sans fil ou par câble", steps: ["Installer le boîtier une fois : un Raspberry Pi Zero 2 W suffit (voir le dossier bridge/).", "Sans fil : chercher une manette depuis la Switch, elle voit « HemiPad ».", "Ou par câble : brancher le boîtier au port USB de la Switch."], note: "La Switch accepte les manettes ordinaires : le boîtier lui en présente une, en Bluetooth comme en USB. À confirmer sur votre console." }
       ]
     },
     specs: [
