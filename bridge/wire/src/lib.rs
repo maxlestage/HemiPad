@@ -11,12 +11,14 @@
 
 pub mod descriptor;
 pub mod frame;
+pub mod output;
 pub mod sha256;
 
 pub use descriptor::HID_REPORT_DESCRIPTOR;
 pub use frame::{
     open, seal, Frame, FrameError, ReportKind, FRAME_LEN, KEY_LEN, MAGIC, MAX_PAYLOAD, TAG_LEN,
 };
+pub use output::{wrap, Output, OutputFrame, HIDP_INPUT_HEADER, MAX_OUTPUT_LEN};
 
 use core::slice;
 
@@ -37,6 +39,7 @@ pub mod status {
     pub const UNKNOWN_REPORT: i32 = -7;
     pub const SIGNATURE: i32 = -8;
     pub const REPLAY: i32 = -9;
+    pub const UNKNOWN_OUTPUT: i32 = -10;
 }
 
 fn code(error: FrameError) -> i32 {
@@ -185,6 +188,49 @@ pub unsafe extern "C" fn hemipad_wire_open(
         *out_counter = opened.counter;
     }
     status::OK
+}
+
+/// Emballe un rapport pour le chemin par lequel il sortira : le port USB, ou
+/// le Bluetooth, qui demande un octet d'en-tête de plus.
+///
+/// Rend le nombre d'octets écrits, ou un code négatif.
+///
+/// # Safety
+/// `payload` et `out` doivent adresser le nombre d'octets annoncé.
+#[no_mangle]
+pub unsafe extern "C" fn hemipad_wire_wrap_output(
+    output: u8,
+    report_id: u8,
+    payload: *const u8,
+    payload_len: usize,
+    out: *mut u8,
+    out_len: usize,
+) -> i32 {
+    let (Some(payload), Some(out)) = (borrow(payload, payload_len), borrow_mut(out, out_len))
+    else {
+        return status::NULL_POINTER;
+    };
+    let Some(output) = Output::from_code(output) else {
+        return status::UNKNOWN_OUTPUT;
+    };
+    let Some(kind) = ReportKind::from_id(report_id) else {
+        return status::UNKNOWN_REPORT;
+    };
+    let Some(frame) = wrap(output, kind, payload) else {
+        return status::PAYLOAD_LENGTH;
+    };
+    let bytes = frame.as_bytes();
+    if out.len() < bytes.len() {
+        return status::OUTPUT_TOO_SMALL;
+    }
+    out[..bytes.len()].copy_from_slice(bytes);
+    bytes.len() as i32
+}
+
+/// Place à prévoir pour un rapport emballé, quel que soit le chemin.
+#[no_mangle]
+pub extern "C" fn hemipad_wire_max_output_len() -> usize {
+    MAX_OUTPUT_LEN
 }
 
 #[cfg(test)]
@@ -341,6 +387,79 @@ mod tests {
     }
 
     #[test]
+    fn the_c_abi_wraps_for_both_paths() {
+        let payload = [128u8, 128, 128, 128, 0, 0, 8, 0, 0];
+        let mut out = [0u8; MAX_OUTPUT_LEN];
+
+        let usb = unsafe {
+            hemipad_wire_wrap_output(
+                0,
+                1,
+                payload.as_ptr(),
+                payload.len(),
+                out.as_mut_ptr(),
+                out.len(),
+            )
+        };
+        assert_eq!(usb, 10);
+        assert_eq!(out[0], 1);
+
+        let bluetooth = unsafe {
+            hemipad_wire_wrap_output(
+                1,
+                1,
+                payload.as_ptr(),
+                payload.len(),
+                out.as_mut_ptr(),
+                out.len(),
+            )
+        };
+        assert_eq!(bluetooth, 11);
+        assert_eq!(out[0], HIDP_INPUT_HEADER);
+        assert_eq!(out[1], 1);
+
+        // Chemin inconnu, rapport inconnu, longueur fausse, tampon trop court.
+        assert_eq!(
+            unsafe {
+                hemipad_wire_wrap_output(
+                    9,
+                    1,
+                    payload.as_ptr(),
+                    payload.len(),
+                    out.as_mut_ptr(),
+                    out.len(),
+                )
+            },
+            status::UNKNOWN_OUTPUT
+        );
+        assert_eq!(
+            unsafe {
+                hemipad_wire_wrap_output(
+                    0,
+                    9,
+                    payload.as_ptr(),
+                    payload.len(),
+                    out.as_mut_ptr(),
+                    out.len(),
+                )
+            },
+            status::UNKNOWN_REPORT
+        );
+        assert_eq!(
+            unsafe {
+                hemipad_wire_wrap_output(0, 1, payload.as_ptr(), 3, out.as_mut_ptr(), out.len())
+            },
+            status::PAYLOAD_LENGTH
+        );
+        assert_eq!(
+            unsafe {
+                hemipad_wire_wrap_output(1, 1, payload.as_ptr(), payload.len(), out.as_mut_ptr(), 4)
+            },
+            status::OUTPUT_TOO_SMALL
+        );
+    }
+
+    #[test]
     fn the_abi_announces_its_shape() {
         assert_eq!(hemipad_wire_abi_version(), 1);
         assert_eq!(hemipad_wire_frame_len(), FRAME_LEN);
@@ -348,5 +467,6 @@ mod tests {
         assert_eq!(hemipad_wire_payload_len(1), 9);
         assert_eq!(hemipad_wire_payload_len(2), 8);
         assert_eq!(hemipad_wire_payload_len(3), 0);
+        assert_eq!(hemipad_wire_max_output_len(), MAX_OUTPUT_LEN);
     }
 }

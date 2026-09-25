@@ -1,0 +1,17 @@
+# Annonce le boîtier comme une manette Bluetooth.
+#
+# Sans cette annonce, les canaux sont ouverts mais aucune console ne s'y
+# connecte : elle ne sait pas qu'il y a une manette en face.
+[Unit]
+Description=Annonce Bluetooth HemiPad
+After=bluetooth.service
+Requires=bluetooth.service
+Before=hemipad-relay.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/hemipad-annoncer-bluetooth
+
+[Install]
+WantedBy=multi-user.target

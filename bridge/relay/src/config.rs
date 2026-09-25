@@ -19,6 +19,11 @@ pub struct Config {
     pub watchdog_ms: u64,
     /// N'affiche que le descripteur HID, en hexadécimal, et s'arrête.
     pub print_descriptor: bool,
+    /// Proposer aussi le chemin Bluetooth. Actif par défaut : c'est celui qui
+    /// évite le câble.
+    pub bluetooth: bool,
+    /// N'affiche que l'aide, et s'arrête sans erreur.
+    pub print_usage: bool,
 }
 
 impl Default for Config {
@@ -29,6 +34,8 @@ impl Default for Config {
             device: PathBuf::from("/dev/hidg0"),
             watchdog_ms: 500,
             print_descriptor: false,
+            bluetooth: true,
+            print_usage: false,
         }
     }
 }
@@ -54,7 +61,10 @@ impl Config {
                     })?;
                 }
                 "--descripteur" => config.print_descriptor = true,
-                "--aide" | "-h" => return Err(USAGE.to_string()),
+                "--sans-bluetooth" => config.bluetooth = false,
+                // Demander l'aide n'est pas une erreur : on la montre et on
+                // s'arrête avec succès.
+                "--aide" | "-h" => config.print_usage = true,
                 other => return Err(format!("option inconnue : {other}\n\n{USAGE}")),
             }
         }
@@ -63,13 +73,17 @@ impl Config {
 }
 
 pub const USAGE: &str = "\
-hemipad-relay — rejoue les commandes HemiPad sur le port USB.
+hemipad-relay — présente HemiPad à la console comme une manette.
+
+Par le Bluetooth si une console y est connectée, sinon par le câble USB.
+Aucun réglage à faire : le chemin disponible est pris tout seul.
 
 Options :
   --ecoute <adresse:port>   où écouter        (défaut 0.0.0.0:45800)
   --cle <fichier>           secret partagé    (défaut /etc/hemipad/cle)
-  --peripherique <fichier>  sortie HID        (défaut /dev/hidg0)
+  --peripherique <fichier>  sortie par câble  (défaut /dev/hidg0)
   --garde-fou <ms>          silence toléré avant de tout relâcher (défaut 500)
+  --sans-bluetooth          n'utilise que le câble USB
   --descripteur             affiche le descripteur HID en hexadécimal, et s'arrête
   --aide                    affiche ceci";
 
@@ -144,6 +158,21 @@ mod tests {
         assert_eq!(config.device, PathBuf::from("/dev/hidg0"));
         assert_eq!(config.watchdog_ms, 500);
         assert!(!config.print_descriptor);
+        assert!(config.bluetooth, "le Bluetooth est proposé par défaut");
+    }
+
+    #[test]
+    fn asking_for_help_is_not_an_error() {
+        let config = Config::from_args(args(&["--aide"]).into_iter()).unwrap();
+        assert!(config.print_usage);
+        let court = Config::from_args(args(&["-h"]).into_iter()).unwrap();
+        assert!(court.print_usage);
+    }
+
+    #[test]
+    fn bluetooth_can_be_left_out() {
+        let config = Config::from_args(args(&["--sans-bluetooth"]).into_iter()).unwrap();
+        assert!(!config.bluetooth);
     }
 
     #[test]

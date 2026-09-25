@@ -1,25 +1,40 @@
 # Le pont USB HemiPad
 
-Un petit boîtier branché au port USB de la console. HemiPad lui envoie les
-commandes par le Wi-Fi ; lui les rejoue sur le port USB, où la console voit
-une manette ordinaire.
+Un petit boîtier posé près de la console. HemiPad lui envoie les commandes par
+le Wi-Fi ; lui se présente à la console comme une manette ordinaire — **par
+Bluetooth, ou par le câble USB**, selon ce qui est branché.
 
 C'est la seule façon de sortir de la limite d'iOS : une application iPhone ne
-peut ni parler le Bluetooth des manettes, ni changer ce que le port USB de
-l'appareil annonce. Le boîtier, lui, n'a aucune de ces deux contraintes.
+peut ni parler le Bluetooth des manettes (iOS n'expose que le Bluetooth basse
+consommation, et pas le profil manette), ni changer ce que le port USB de
+l'appareil annonce. Le boîtier, lui, n'a aucune de ces deux contraintes : il
+tourne sous Linux, où les deux sont ouverts.
+
+## Sans fil, et sans rien régler
+
+On ne choisit pas le chemin. La règle tient en une phrase : **si une console
+est connectée en Bluetooth, tout passe par là ; sinon, par le câble.** Et si
+le Bluetooth lâche en pleine partie, le câble reprend au rapport suivant, sans
+rien demander.
+
+Le boîtier marche donc avec le Bluetooth seul (aucun câble vers la console),
+avec le câble seul, ou avec les deux.
 
 ## Ce que ça change vraiment
 
-| Machine | Bluetooth direct | Avec le pont USB |
+« Bluetooth depuis l'iPhone » veut dire : l'application seule, sans boîtier.
+« Avec le pont » veut dire : par le boîtier, sans fil ou par câble.
+
+| Machine | Bluetooth depuis l'iPhone | Avec le pont |
 | --- | --- | --- |
 | Windows, Linux, Android | déjà bon | bon aussi |
 | Steam Deck, Raspberry Pi | déjà bon | bon aussi |
-| **Nintendo Switch** | **refusé** | **devrait marcher** |
+| **Nintendo Switch** | **refusé** | **devrait marcher, avec ou sans fil** |
 | PlayStation 5 | refusé | refusé |
 | Xbox Series / One | refusé | refusé |
 
-La Switch accepte les manettes USB ordinaires : c'est elle que le pont
-débloque. À confirmer sur la vôtre, je n'ai pas pu l'essayer.
+La Switch accepte les manettes ordinaires, en Bluetooth comme en USB : c'est
+elle que le pont débloque. À confirmer sur la vôtre, je n'ai pas pu l'essayer.
 
 La PS5 et la Xbox, non. Elles ne se contentent pas de lire une manette : elles
 lui demandent de prouver qu'elle est authentifiée, par une puce que seuls
@@ -43,7 +58,9 @@ Deux morceaux, un seul code :
   source, donc aucune chance que les deux bouts cessent d'être d'accord sur un
   octet.
 - **`relay/`** — le programme du boîtier : il écoute le réseau, vérifie chaque
-  trame, écrit le rapport dans `/dev/hidg0`.
+  trame, et envoie le rapport par le chemin du moment. Les deux chemins portent
+  exactement les mêmes octets de manette ; seul l'emballage change, d'un octet
+  d'en-tête que le Bluetooth demande en plus.
 
 Le descripteur HID — la carte que la console lit pour comprendre les octets —
 est le même que celui publié en Bluetooth. Les deux copies sont comparées à
@@ -79,9 +96,9 @@ démarrer** si ce fichier est lisible par d'autres que son propriétaire.
 
 ## Installer le boîtier
 
-Il faut une carte capable du mode gadget USB : un Raspberry Pi Zero 2 W fait
-très bien l'affaire, et c'est le moins cher. Le port à utiliser est celui
-marqué « USB », pas celui de l'alimentation.
+Il faut une carte avec du Bluetooth et le mode gadget USB : un Raspberry Pi
+Zero 2 W fait très bien l'affaire, et c'est le moins cher. Pour le câble, le
+port à utiliser est celui marqué « USB », pas celui de l'alimentation.
 
 ```bash
 git clone <ce dépôt> && cd HemiPad/bridge
@@ -91,20 +108,27 @@ sudo reboot
 ```
 
 L'installation affiche le secret partagé : c'est lui qu'on saisit dans
-HemiPad, sur le téléphone. Après le redémarrage, branchez la carte au port USB
-de la console.
+HemiPad, sur le téléphone.
+
+Après le redémarrage, au choix :
+
+- **sans fil** : cherchez une manette depuis la console, elle verra
+  « HemiPad » ;
+- **par câble** : branchez la carte au port USB de la console.
+
+Rien d'autre à régler : le boîtier prend le chemin disponible.
 
 Pour vérifier que tout tourne :
 
 ```bash
-systemctl status hemipad-gadget hemipad-relay
-journalctl -u hemipad-relay -f
+systemctl status hemipad-gadget hemipad-bluetooth hemipad-relay
+journalctl -u hemipad-relay -f   # dit par où ça passe à chaque changement
 ```
 
 ## Développer
 
 ```bash
-cargo test                         # 39 vérifications
+cargo test                         # 59 vérifications
 cargo clippy --all-targets -- -D warnings
 cargo fmt --all --check
 ./scripts/verifier-abi-c.sh        # l'en-tête C correspond-il à la bibliothèque ?
@@ -130,3 +154,13 @@ position  taille  contenu
 
 Total : 44 octets, toujours. Une trame d'une autre taille est refusée sans
 être lue.
+
+Ce que le boîtier écrit ensuite, une fois la trame vérifiée :
+
+```text
+par le câble USB   [identifiant de rapport][charge utile]        10 octets
+par le Bluetooth   [0xA1][identifiant de rapport][charge utile]  11 octets
+```
+
+L'octet `0xA1` est l'en-tête HIDP d'un rapport d'entrée. Un octet d'écart, mais
+qui décide si la console comprend ou ignore.

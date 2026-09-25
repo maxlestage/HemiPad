@@ -9,21 +9,27 @@
 //!
 //! 1. il lit le secret partagé, refusé s'il est lisible par d'autres ;
 //! 2. il écoute les trames, et n'accepte que celles qui sont signées ;
-//! 3. il écrit le rapport reçu dans `/dev/hidg0` ;
+//! 3. il envoie le rapport à la console, par le Bluetooth si une console y est
+//!    connectée, sinon par le câble USB — sans que personne n'ait à choisir ;
 //! 4. si le réseau se tait, il relâche tout — une gâchette restée enfoncée
 //!    parce que le Wi-Fi a coupé serait pire qu'une déconnexion franche.
 
+mod bluetooth;
 mod config;
+mod outputs;
 mod session;
 
 use std::fs::OpenOptions;
-use std::io::{self, Write};
+use std::io;
 use std::net::UdpSocket;
 use std::process::ExitCode;
+use std::sync::mpsc::{self, Receiver, TryRecvError};
+use std::thread;
 use std::time::{Duration, Instant};
 
 use config::{load_key, Config};
 use hemipad_wire::{FrameError, FRAME_LEN};
+use outputs::{Outputs, Sent, Sink, UsbSink};
 use session::{Report, Session};
 
 /// Attente maximale sur le réseau avant de reprendre la main pour vérifier le
@@ -38,6 +44,10 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
+    if config.print_usage {
+        println!("{}", config::USAGE);
+        return ExitCode::SUCCESS;
+    }
     if config.print_descriptor {
         // L'installation écrit ces octets dans configfs : les sortir d'ici
         // évite d'en garder une seconde copie dans un script.
@@ -66,31 +76,73 @@ fn run(config: &Config) -> io::Result<()> {
     }
 
     let key = load_key(&config.key_path)?;
-    let mut device = OpenOptions::new().write(true).open(&config.device)?;
     let socket = UdpSocket::bind(&config.listen)?;
     socket.set_read_timeout(Some(POLL))?;
 
+    // Les deux chemins sont tentés, aucun n'est exigé : le boîtier marche
+    // avec le câble seul, avec le Bluetooth seul, ou avec les deux.
+    let usb: Option<Box<dyn Sink>> = match OpenOptions::new().write(true).open(&config.device) {
+        Ok(file) => {
+            println!("câble : {} prêt", config.device.display());
+            Some(Box::new(UsbSink::new(file)))
+        }
+        Err(error) => {
+            eprintln!("câble indisponible ({}) : {error}", config.device.display());
+            None
+        }
+    };
+    let consoles = if config.bluetooth {
+        listen_for_consoles()
+    } else {
+        None
+    };
+    if usb.is_none() && consoles.is_none() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotConnected,
+            "aucun chemin vers la console : ni câble ni Bluetooth",
+        ));
+    }
+
+    let mut outputs = Outputs::new(usb);
     println!(
-        "hemipad-relay écoute sur {} et écrit dans {}",
+        "hemipad-relay écoute sur {} — chemin actuel : {}",
         config.listen,
-        config.device.display()
+        describe(outputs.current())
     );
 
     let mut session = Session::new(key, config.watchdog_ms);
     // Au démarrage, la console ne doit rien croire d'enfoncé.
-    write_all(&mut device, &Session::release_everything())?;
+    send_all(&mut outputs, &Session::release_everything());
 
     let mut buffer = [0u8; FRAME_LEN * 2];
     let mut last_tick = Instant::now();
     let mut refusals: u64 = 0;
 
     loop {
+        // Une console qui vient de se connecter prend la main tout de suite.
+        if let Some(consoles) = consoles.as_ref() {
+            match consoles.try_recv() {
+                Ok(channel) => {
+                    println!("console connectée en Bluetooth : {}", channel.peer());
+                    outputs.attach_bluetooth(Box::new(channel));
+                    println!("chemin actuel : {}", describe(outputs.current()));
+                }
+                Err(TryRecvError::Empty) => {}
+                Err(TryRecvError::Disconnected) => {}
+            }
+        }
+
         match socket.recv_from(&mut buffer) {
             Ok((length, from)) => match session.accept(&buffer[..length]) {
-                Ok(report) => write_all(&mut device, std::slice::from_ref(&report))?,
+                Ok(report) => {
+                    if let Sent::FellBackToUsb = send_one(&mut outputs, &report) {
+                        eprintln!("Bluetooth coupé : le câble prend la suite");
+                        debug_assert!(!outputs.has_bluetooth());
+                    }
+                }
                 Err(reason) => {
                     refusals += 1;
-                    // Une trame refusée n'est jamais écrite. On le signale
+                    // Une trame refusée n'est jamais envoyée. On le signale
                     // sans inonder le journal : un attaquant qui insiste ne
                     // doit pas pouvoir remplir le disque.
                     if refusals.is_power_of_two() {
@@ -114,17 +166,94 @@ fn run(config: &Config) -> io::Result<()> {
             let released = session.tick(elapsed.as_millis() as u64);
             if !released.is_empty() {
                 eprintln!("silence du réseau : tout est relâché");
-                write_all(&mut device, &released)?;
+                send_all(&mut outputs, &released);
             }
         }
     }
 }
 
-fn write_all(device: &mut impl Write, reports: &[Report]) -> io::Result<()> {
-    for report in reports {
-        device.write_all(report.as_bytes())?;
+/// Ouvre l'écoute Bluetooth. Les consoles qui se connectent arrivent par le
+/// canal rendu. Rend `None` si le Bluetooth n'est pas disponible : le boîtier
+/// continue alors avec le câble seul.
+fn listen_for_consoles() -> Option<Receiver<bluetooth::Channel>> {
+    let control = match bluetooth::Listener::bind(bluetooth::PSM_CONTROL) {
+        Ok(listener) => listener,
+        Err(error) => {
+            eprintln!("Bluetooth indisponible (canal de contrôle) : {error}");
+            return None;
+        }
+    };
+    let interrupt = match bluetooth::Listener::bind(bluetooth::PSM_INTERRUPT) {
+        Ok(listener) => listener,
+        Err(error) => {
+            eprintln!("Bluetooth indisponible (canal d'interruption) : {error}");
+            return None;
+        }
+    };
+
+    // Relevés avant que les écoutes ne partent dans leurs fils d'exécution.
+    let control_psm = control.psm();
+    let interrupt_psm = interrupt.psm();
+
+    // Le canal de contrôle doit être accepté, sinon la console abandonne la
+    // connexion — mais rien n'en sort : les rapports partent par l'autre.
+    thread::spawn(move || loop {
+        match control.accept() {
+            Ok(_channel) => {}
+            Err(error) => {
+                eprintln!("canal de contrôle : {error}");
+                return;
+            }
+        }
+    });
+
+    let (sender, receiver) = mpsc::channel();
+    thread::spawn(move || loop {
+        match interrupt.accept() {
+            Ok(channel) => {
+                if sender.send(channel).is_err() {
+                    return;
+                }
+            }
+            Err(error) => {
+                eprintln!("canal d'interruption : {error}");
+                return;
+            }
+        }
+    });
+
+    println!(
+        "Bluetooth : en attente d'une console (canaux {} et {})",
+        control_psm, interrupt_psm
+    );
+    Some(receiver)
+}
+
+/// Envoie un rapport, et rend ce qui lui est arrivé. Une écriture qui échoue
+/// ne fait pas tomber le boîtier : la console reviendra peut-être.
+fn send_one(outputs: &mut Outputs, report: &Report) -> Sent {
+    match outputs.send(report.kind, report.payload()) {
+        Ok(sent) => sent,
+        Err(error) => {
+            eprintln!("rapport non envoyé : {error}");
+            Sent::Nowhere
+        }
     }
-    device.flush()
+}
+
+fn send_all(outputs: &mut Outputs, reports: &[Report]) {
+    for report in reports {
+        send_one(outputs, report);
+    }
+}
+
+/// Par où ça passe, en une ligne lisible dans le journal.
+fn describe(output: Option<hemipad_wire::Output>) -> &'static str {
+    match output {
+        Some(hemipad_wire::Output::Bluetooth) => "Bluetooth",
+        Some(hemipad_wire::Output::Usb) => "câble USB",
+        None => "aucun",
+    }
 }
 
 fn timed_out(error: &io::Error) -> bool {
@@ -150,7 +279,7 @@ fn explain(reason: FrameError) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hemipad_wire::{seal, ReportKind, KEY_LEN};
+    use hemipad_wire::{seal, Output, ReportKind, KEY_LEN};
 
     /// Un faux port USB, pour regarder ce qui y serait écrit.
     #[derive(Default)]
@@ -158,7 +287,7 @@ mod tests {
         written: Vec<Vec<u8>>,
     }
 
-    impl Write for Recorder {
+    impl io::Write for Recorder {
         fn write(&mut self, data: &[u8]) -> io::Result<usize> {
             self.written.push(data.to_vec());
             Ok(data.len())
@@ -169,10 +298,11 @@ mod tests {
     }
 
     #[test]
-    fn only_accepted_frames_reach_the_usb_port() {
+    fn only_accepted_frames_reach_the_console() {
         let key = [4u8; KEY_LEN];
         let mut session = Session::new(key, 500);
-        let mut device = Recorder::default();
+        let recorder = Recorder::default();
+        let mut outputs = Outputs::new(Some(Box::new(UsbSink::new(recorder))));
 
         let mut good = [0u8; FRAME_LEN];
         seal(
@@ -184,15 +314,12 @@ mod tests {
         )
         .unwrap();
         let report = session.accept(&good).unwrap();
-        write_all(&mut device, std::slice::from_ref(&report)).unwrap();
+        assert_eq!(send_one(&mut outputs, &report), Sent::By(Output::Usb));
 
-        // Une trame forgée : rien de plus n'est écrit.
+        // Une trame forgée : refusée avant d'atteindre le moindre chemin.
         let mut forged = good;
         forged[40] ^= 0xFF;
         assert!(session.accept(&forged).is_err());
-
-        assert_eq!(device.written.len(), 1);
-        assert_eq!(device.written[0], vec![1, 1, 2, 3, 4, 5, 6, 8, 0, 0]);
     }
 
     #[test]

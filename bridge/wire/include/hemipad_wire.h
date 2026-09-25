@@ -40,10 +40,16 @@ extern "C" {
 #define HEMIPAD_WIRE_SIGNATURE (-8)
 /** Compteur déjà vu : trame rejouée. */
 #define HEMIPAD_WIRE_REPLAY (-9)
+/** Chemin de sortie inconnu. */
+#define HEMIPAD_WIRE_UNKNOWN_OUTPUT (-10)
 
 /** Identifiants de rapport, les mêmes que dans le descripteur HID. */
 #define HEMIPAD_WIRE_REPORT_GAMEPAD 1
 #define HEMIPAD_WIRE_REPORT_KEYBOARD 2
+
+/** Par où sort un rapport, une fois arrivé au boîtier. */
+#define HEMIPAD_WIRE_OUTPUT_USB 0
+#define HEMIPAD_WIRE_OUTPUT_BLUETOOTH 1
 
 /**
  * Version de l'ABI de la bibliothèque liée. L'application la compare à celle
@@ -98,6 +104,24 @@ int32_t hemipad_wire_open(const uint8_t *key,
                           size_t out_payload_capacity,
                           size_t *out_payload_len,
                           uint64_t *out_counter);
+
+/** Place à prévoir pour un rapport emballé, quel que soit le chemin. */
+size_t hemipad_wire_max_output_len(void);
+
+/**
+ * Emballe un rapport pour le chemin par lequel il sortira.
+ *
+ * Les deux chemins portent les mêmes octets de manette ; le Bluetooth demande
+ * un octet d'en-tête de plus, que la console attend.
+ *
+ * @return le nombre d'octets écrits dans out, ou un code négatif.
+ */
+int32_t hemipad_wire_wrap_output(uint8_t output,
+                                 uint8_t report_id,
+                                 const uint8_t *payload,
+                                 size_t payload_len,
+                                 uint8_t *out,
+                                 size_t out_len);
 
 #ifdef __cplusplus
 }
