@@ -3,7 +3,8 @@
 [Unit]
 Description=Pont USB HemiPad
 Requires=hemipad-gadget.service
-After=hemipad-gadget.service network-online.target
+After=hemipad-gadget.service hemipad-bluetooth.service network-online.target
+Wants=hemipad-bluetooth.service
 Wants=network-online.target
 
 [Service]
@@ -38,8 +39,8 @@ MemoryDenyWriteExecute=yes
 SystemCallArchitectures=native
 SystemCallFilter=@system-service
 SystemCallFilter=~@privileged @resources @obsolete @module @mount
-# Le réseau local, rien d'autre : pas de socket brut.
-RestrictAddressFamilies=AF_INET AF_INET6
+# Le réseau local et le Bluetooth, rien d'autre : pas de socket brut.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_BLUETOOTH
 # Le seul périphérique auquel il touche.
 DevicePolicy=closed
 DeviceAllow=/dev/hidg0 rw

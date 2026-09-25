@@ -71,15 +71,44 @@ if ! grep -q 'modules-load=dwc2' "$cmdline"; then
 fi
 grep -qx 'libcomposite' /etc/modules 2> /dev/null || echo libcomposite >> /etc/modules
 
-echo "== 4. Le service"
+echo "== 4. Le Bluetooth"
+# Le greffon « input » de BlueZ veut tenir le rôle HID : tant qu'il le tient,
+# le boîtier ne peut pas se présenter comme une manette.
+reglage=/etc/systemd/system/bluetooth.service.d/hemipad.conf
+install -d -m 755 "$(dirname "$reglage")"
+cat > "$reglage" <<'REGLAGE'
+# HemiPad tient lui-même le rôle de manette : le greffon « input » de BlueZ
+# doit lui laisser la place.
+[Service]
+ExecStart=
+ExecStart=/usr/libexec/bluetooth/bluetoothd -P input
+REGLAGE
+if [ ! -x /usr/libexec/bluetooth/bluetoothd ] && [ -x /usr/lib/bluetooth/bluetoothd ]; then
+  sed -i 's|/usr/libexec/bluetooth/bluetoothd|/usr/lib/bluetooth/bluetoothd|' "$reglage"
+fi
+echo "   greffon « input » de BlueZ désactivé"
+
+if ! python3 -c 'import dbus' 2> /dev/null; then
+  echo "   installation de python3-dbus"
+  apt-get update -qq && apt-get install -y -qq python3-dbus
+fi
+install -m 755 "$racine/scripts/annoncer-manette-bluetooth.py" /usr/local/bin/hemipad-annoncer-bluetooth
+echo "   annonce installée"
+
+echo "== 5. Le service"
 install -m 755 "$racine/scripts/monter-gadget.sh" /usr/local/bin/hemipad-monter-gadget
-install -m 644 "$racine/systemd/hemipad-gadget.service" /etc/systemd/system/hemipad-gadget.service
-install -m 644 "$racine/systemd/hemipad-relay.service" /etc/systemd/system/hemipad-relay.service
+for unite in hemipad-gadget hemipad-bluetooth hemipad-relay; do
+  install -m 644 "$racine/systemd/$unite.service" "/etc/systemd/system/$unite.service"
+done
 systemctl daemon-reload
-systemctl enable hemipad-gadget.service hemipad-relay.service > /dev/null
-echo "   hemipad-gadget et hemipad-relay activés au démarrage"
+systemctl enable hemipad-gadget.service hemipad-bluetooth.service hemipad-relay.service > /dev/null
+echo "   les trois services sont activés au démarrage"
 
 echo
 echo "Terminé. Redémarrez la carte : sudo reboot"
-echo "Puis branchez-la au port USB de la console."
+echo
+echo "Ensuite, deux façons de jouer, au choix, sans rien régler :"
+echo "  · sans fil : cherchez une manette depuis la console, elle verra « HemiPad » ;"
+echo "  · par câble : branchez la carte au port USB de la console."
+echo
 echo "Le gadget se monte dans $gadget au démarrage."
