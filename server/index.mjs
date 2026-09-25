@@ -42,22 +42,6 @@ const politique = [
   "frame-ancestors 'none'"
 ]
 
-// La planche de logos (/logos/) est une page de travail autonome : styles et
-// script en ligne, polices Google. Elle garde sa propre politique, plus large,
-// sans rien relâcher pour le reste du site.
-const politiqueLogos = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  'font-src https://fonts.gstatic.com',
-  "img-src 'self' data:",
-  "connect-src 'self'",
-  "object-src 'none'",
-  "base-uri 'none'",
-  "form-action 'none'",
-  "frame-ancestors 'none'"
-]
-
 app.use((request, response, next) => {
   // HTTPS obligatoire : une visite en clair est renvoyée vers la même adresse
   // chiffrée. En local (pas d'en-tête du routeur), rien ne change.
@@ -66,7 +50,7 @@ app.use((request, response, next) => {
     return
   }
   const chiffre = request.secure
-  const directives = request.path.startsWith('/logos/') ? politiqueLogos : politique
+  const directives = politique
   response.set({
     'Content-Security-Policy': (chiffre ? [...directives, 'upgrade-insecure-requests'] : directives).join('; '),
     'X-Content-Type-Options': 'nosniff',
