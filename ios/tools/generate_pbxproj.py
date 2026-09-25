@@ -291,8 +291,11 @@ def build_project() -> str:
     add("\t\t\t);")
     add("\t\t\trunOnlyForDeploymentPostprocessing = 0;")
     add("\t\t\tshellPath = /bin/sh;")
+    # Lancé par « sh <script> » plutôt qu'en exécutable direct : le bit
+    # d'exécution de git n'entre alors pas en jeu, et rien ne dépend de la
+    # façon dont le dépôt a été extrait.
     add(
-        "\t\t\tshellScript = \"\\\"$SRCROOT/../bridge/scripts/"
+        "\t\t\tshellScript = \"sh \\\"$SRCROOT/../bridge/scripts/"
         "compiler-pour-xcode.sh\\\"\\n\";"
     )
     add("\t\t};")
