@@ -100,15 +100,41 @@ Il faut une carte avec du Bluetooth et le mode gadget USB : un Raspberry Pi
 Zero 2 W fait très bien l'affaire, et c'est le moins cher. Pour le câble, le
 port à utiliser est celui marqué « USB », pas celui de l'alimentation.
 
+Préparez la carte avec **Raspberry Pi OS Lite** (64 ou 32 bits), le Wi-Fi et
+SSH réglés dans Raspberry Pi Imager. Puis, connecté à la carte en SSH (une
+application SSH sur le téléphone suffit), une seule commande — rien à
+compiler :
+
 ```bash
-git clone <ce dépôt> && cd HemiPad/bridge
+curl -fsSL https://raw.githubusercontent.com/maxlestage/HemiPad/master/bridge/scripts/installer-depuis-internet.sh | sudo bash
+sudo reboot
+```
+
+Elle reconnaît la carte, télécharge le programme déjà compilé depuis la
+dernière publication du dépôt, en vérifie l'empreinte SHA-256, et fait toute
+l'installation. Le programme publié est compilé en statique : il marche quelle
+que soit la version du système de la carte. Pour lire le script avant de le
+lancer, téléchargez-le d'abord (`curl -fsSLO …`), puis `sudo bash
+installer-depuis-internet.sh`.
+
+L'installation affiche le secret partagé : c'est lui qu'on saisit dans
+HemiPad, sur le téléphone (copier-coller depuis l'application SSH).
+
+Pour compiler soi-même, sur la carte :
+
+```bash
+git clone https://github.com/maxlestage/HemiPad && cd HemiPad/bridge
 cargo build --release
 sudo ./scripts/installer-boitier.sh
 sudo reboot
 ```
 
-L'installation affiche le secret partagé : c'est lui qu'on saisit dans
-HemiPad, sur le téléphone.
+### Publier une nouvelle version
+
+Onglet **Actions** du dépôt → **Publication du boîtier** → **Run workflow**
+(sur master). Le programme est compilé pour les deux architectures, essayé
+sous émulation ARM, emballé, puis publié : la commande d'installation prend
+toujours la dernière publication.
 
 Après le redémarrage, au choix :
 
