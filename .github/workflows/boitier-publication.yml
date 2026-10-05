@@ -1,0 +1,137 @@
+name: Publication du boîtier
+
+# Compile le programme du boîtier pour le Raspberry Pi et le publie, prêt à
+# installer — sans rien compiler sur la carte :
+#
+#     curl -fsSL https://raw.githubusercontent.com/maxlestage/HemiPad/master/bridge/scripts/installer-depuis-internet.sh | sudo bash
+#
+# Deux paquets, compilés en statique (musl) : ils ne dépendent d'aucune
+# version particulière du système de la carte.
+#
+#   hemipad-boitier-arm64   Raspberry Pi OS 64 bits (Pi Zero 2 W, 3, 4, 5)
+#   hemipad-boitier-armv7   Raspberry Pi OS 32 bits (les mêmes cartes)
+#
+# Sur une pull request qui touche le boîtier : on compile et on emballe, pour
+# savoir tout de suite si la compilation pour la carte casse. On ne publie que
+# depuis master (bouton « Run workflow ») ou sur une étiquette boitier-v*.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['boitier-v*']
+  pull_request:
+    paths:
+      - 'bridge/**'
+      - '.github/workflows/boitier-publication.yml'
+
+# Droits minimaux par défaut ; seul le travail de publication peut écrire.
+permissions:
+  contents: read
+
+concurrency:
+  group: boitier-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compiler:
+    name: Boîtier pour Raspberry Pi
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # La version de Rust est figée par bridge/rust-toolchain.toml.
+      - name: Chaîne Rust et cibles de la carte
+        working-directory: bridge
+        run: |
+          rustup toolchain install
+          rustup target add aarch64-unknown-linux-musl armv7-unknown-linux-musleabihf
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf qemu-user-static
+
+      - name: Compiler
+        working-directory: bridge
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+          CARGO_TARGET_ARMV7_UNKNOWN_LINUX_MUSLEABIHF_LINKER: arm-linux-gnueabihf-gcc
+        run: |
+          cargo build --release --locked -p hemipad-relay --target aarch64-unknown-linux-musl
+          cargo build --release --locked -p hemipad-relay --target armv7-unknown-linux-musleabihf
+
+      # Le programme démarre-t-il vraiment sur la carte ? Lancé ici sous
+      # émulation ARM : il doit rendre exactement le même descripteur HID que
+      # la version compilée pour cette machine.
+      - name: Essai sous émulation ARM
+        working-directory: bridge
+        run: |
+          attendu="$(cargo run --quiet --release -p hemipad-relay -- --descripteur)"
+          for essai in aarch64-unknown-linux-musl:qemu-aarch64-static armv7-unknown-linux-musleabihf:qemu-arm-static; do
+            cible="${essai%%:*}"
+            emulateur="${essai##*:}"
+            file "target/$cible/release/hemipad-relay" | grep -q 'statically linked'
+            obtenu="$("$emulateur" "target/$cible/release/hemipad-relay" --descripteur)"
+            [ "$obtenu" = "$attendu" ] || { echo "::error::$cible : descripteur différent"; exit 1; }
+            echo "$cible : démarre, descripteur identique"
+          done
+
+      - name: Emballer
+        working-directory: bridge
+        run: |
+          ./scripts/empaqueter-boitier.sh aarch64-unknown-linux-musl arm64 ../dist
+          ./scripts/empaqueter-boitier.sh armv7-unknown-linux-musleabihf armv7 ../dist
+          (cd ../dist && sha256sum hemipad-boitier-*.tar.gz > SHA256SUMS && cat SHA256SUMS)
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: hemipad-boitier
+          path: dist/
+          retention-days: 7
+
+  publier:
+    name: Publier
+    needs: compiler
+    # Seul ce qui est sur master (ou une étiquette boitier-v*) est publié :
+    # une branche non fusionnée n'a pas à se retrouver sur les cartes.
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/boitier-v'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: hemipad-boitier
+          path: dist
+
+      - name: Publier la version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPOT: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          NUMERO: ${{ github.run_number }}
+        run: |
+          if [ "$REF_TYPE" = tag ]; then
+            etiquette="$REF_NAME"
+          else
+            etiquette="boitier-build-$NUMERO"
+          fi
+          cat > notes.md <<NOTES
+          Le programme du boîtier HemiPad, déjà compilé pour le Raspberry Pi.
+
+          Installation, depuis la carte :
+
+          \`\`\`
+          curl -fsSL https://raw.githubusercontent.com/$DEPOT/master/bridge/scripts/installer-depuis-internet.sh | sudo bash
+          \`\`\`
+
+          Le boîtier et l'application HemiPad doivent être à jour ensemble.
+          NOTES
+          gh release create "$etiquette" dist/* \
+            --repo "$DEPOT" \
+            --target "$GITHUB_SHA" \
+            --title "Boîtier HemiPad ($etiquette)" \
+            --notes-file notes.md \
+            --latest
+          echo "::notice::Publié : https://github.com/$DEPOT/releases/tag/$etiquette"
