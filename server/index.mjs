@@ -28,7 +28,10 @@ app.set('trust proxy', 1)
 // lui-même est donc refusé, les scripts en ligne compris.
 const politique = [
   "default-src 'self'",
-  "script-src 'self'",
+  // 'wasm-unsafe-eval' : le site est un programme WebAssembly. Cette clé
+  // n'autorise que la compilation du WebAssembly servi par le site — ni eval,
+  // ni script en ligne.
+  "script-src 'self' 'wasm-unsafe-eval'",
   "style-src 'self'",
   "font-src 'self'",
   "img-src 'self' data: blob:",

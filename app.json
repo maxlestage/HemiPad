@@ -3,7 +3,15 @@
   "description": "Site vitrine de HemiPad : la manette tactile iOS pensée pour une seule main valide.",
   "repository": "https://github.com/maxlestage/HemiPad",
   "logo": "https://raw.githubusercontent.com/maxlestage/HemiPad/master/web/public/hemipad-mark.svg",
-  "keywords": ["hemipad", "accessibilite", "manette", "ios", "react", "vite"],
+  "keywords": [
+    "hemipad",
+    "accessibilite",
+    "manette",
+    "ios",
+    "rust",
+    "yew",
+    "webassembly"
+  ],
   "website": "https://hemipad.herokuapp.com",
   "success_url": "/",
   "stack": "heroku-24",
@@ -14,7 +22,7 @@
   ],
   "env": {
     "NPM_CONFIG_PRODUCTION": {
-      "description": "Laissé à false pour que Vite et TypeScript soient installés au moment de la construction.",
+      "description": "Laissé à false : la construction a besoin des polices installées par npm.",
       "value": "false"
     },
     "NODE_ENV": {

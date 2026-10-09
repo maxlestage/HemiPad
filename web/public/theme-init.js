@@ -11,6 +11,8 @@
     var theme = localStorage.getItem('hemipad.theme')
     if (themes.indexOf(theme) === -1) theme = 'auto'
     document.documentElement.dataset.theme = theme
+    var mouvement = localStorage.getItem('hemipad.motion')
+    if (mouvement === 'full' || mouvement === 'reduced') document.documentElement.dataset.motion = mouvement
     var locale = localStorage.getItem('hemipad.locale')
     if (langues.indexOf(locale) !== -1) document.documentElement.lang = locale
     var prefersLight =
