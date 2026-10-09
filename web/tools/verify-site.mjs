@@ -62,9 +62,24 @@ function attendreImmobiles(page) {
   )
 }
 
+// Le téléphone de la démonstration apparaît en glissant quand il entre à
+// l'écran. Viser une commande pendant ce glissement, c'est la manquer : on
+// attend qu'il soit arrivé, comme le ferait l'œil.
+async function allerALaDemo(page) {
+  await page.locator('#demo').scrollIntoViewIfNeeded()
+  await page.waitForFunction(
+    () => {
+      const téléphone = document.querySelector('#demo .phone')
+      return téléphone?.classList.contains('est-visible') && téléphone.getAnimations().length === 0
+    },
+    null,
+    { timeout: 5000 }
+  )
+}
+
 const browser = await chromium.launch(
   optionsDeLancement({
-    // Sans carte graphique, Chromium refuse WebGL et la scène 3D basculerait
+    // Sans carte graphique, Chromium refuse WebGL et le film basculerait
     // sur l'image fixe — la vérification passerait sans avoir rien vérifié. On
     // lui impose le rendu logiciel pour tester le vrai chemin.
     args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
@@ -91,8 +106,15 @@ browser.newContext = async (...options) => {
   const reponse = await fetch(base)
   const entete = (nom) => reponse.headers.get(nom) ?? ''
   const csp = entete('content-security-policy')
-  check(/default-src 'self'/.test(csp) && /script-src 'self'(;|$)/.test(csp), 'la politique de sécurité (CSP) n’autorise que le site lui-même', csp)
-  check(!/unsafe-inline|unsafe-eval/.test(csp), 'aucun script ni style en ligne autorisé sur le site', csp)
+  check(
+    /default-src 'self'/.test(csp) && /script-src 'self' 'wasm-unsafe-eval'(;|$)/.test(csp),
+    'la politique de sécurité (CSP) n’autorise que le site lui-même, et son WebAssembly',
+    csp
+  )
+  // 'wasm-unsafe-eval' autorise la compilation du WebAssembly, pas eval() :
+  // c'est le seul assouplissement admis.
+  check(!/'unsafe-inline'|'unsafe-eval'/.test(csp), 'aucun script ni style en ligne autorisé sur le site', csp)
+  check(/style-src 'self'(;|$)/.test(csp), 'aucun style en ligne autorisé, pas même en attribut', csp)
   check(/frame-ancestors 'none'/.test(csp) && entete('x-frame-options') === 'DENY', 'le site refuse d’être affiché dans un cadre (clickjacking)')
   check(entete('x-content-type-options') === 'nosniff', 'X-Content-Type-Options: nosniff')
   check(entete('referrer-policy') === 'strict-origin-when-cross-origin', 'Referrer-Policy stricte')
@@ -248,7 +270,7 @@ for (const scheme of ['dark', 'light']) {
         }
         // Les décors du haut de page et les dessins SVG sont rognés par leur
         // cadre : seuls comptent les éléments qu'on lit ou qu'on touche.
-        if (el.closest('svg, .hero-grid, .hero-glow, .visually-hidden, .skip-link, canvas')) continue
+        if (el.closest('svg, canvas, .scene, .bande, .footer-grand, .visually-hidden, .skip-link')) continue
         const boite = el.getBoundingClientRect()
         if (boite.width > 0 && (boite.right > largeur + 0.5 || boite.left < -0.5)) {
           dehors.push(`${String(el.className).split(' ')[0] || el.tagName} ${Math.round(boite.left)}→${Math.round(boite.right)}`)
@@ -414,7 +436,7 @@ for (const scheme of ['dark', 'light']) {
   const errors = []
   page.on('pageerror', (error) => errors.push(String(error)))
   await page.goto(base, { waitUntil: 'networkidle' })
-  await page.locator('#demo').scrollIntoViewIfNeeded()
+  await allerALaDemo(page)
 
   const bouton = (nom) => page.locator('.demo-controls').getByRole('button', { name: nom, exact: true })
 
@@ -722,7 +744,7 @@ for (const scheme of ['dark', 'light']) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
   const page = await context.newPage()
   await page.goto(base, { waitUntil: 'networkidle' })
-  await page.locator('#demo').scrollIntoViewIfNeeded()
+  await allerALaDemo(page)
 
   const noms = ['Nintendo Switch', 'PlayStation', 'Xbox', 'Steam Deck / PC', /^(Rétro|Retro)/, /^(Ordinateur|Computer|Ordenador)$/]
   const sansCroix = []
@@ -790,7 +812,7 @@ for (const scheme of ['dark', 'light']) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
   const page = await context.newPage()
   await page.goto(base, { waitUntil: 'networkidle' })
-  await page.locator('#demo').scrollIntoViewIfNeeded()
+  await allerALaDemo(page)
   const consoleBouton = (nom) => page.locator('.demo-controls').getByRole('button', { name: nom }).first()
   const vision = () => page.locator('.control[data-control^="look"]').count()
 
@@ -935,83 +957,214 @@ for (const scheme of ['dark', 'light']) {
   await context.close()
 }
 
-// --- La scène 3D du hero ---------------------------------------------------
+// --- La porte d'entrée -----------------------------------------------------
+//
+// Le signe se trace pendant le chargement du programme, puis la porte se
+// lève. Elle ne doit jamais rester fermée sur la page.
+{
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
+  const page = await context.newPage()
+  const errors = []
+  page.on('pageerror', (error) => errors.push(String(error)))
+  await page.goto(base, { waitUntil: 'domcontentloaded' })
+  const fermée = await page.evaluate(() => getComputedStyle(document.querySelector('.porte')).visibility)
+  check(fermée === 'visible', 'la porte couvre la page pendant le chargement', fermée)
+  const ouverte = await page
+    .waitForFunction(
+      () =>
+        document.documentElement.classList.contains('programme-pret') &&
+        getComputedStyle(document.querySelector('.porte')).visibility === 'hidden',
+      null,
+      { timeout: 6000 }
+    )
+    .then(() => true)
+    .catch(() => false)
+  check(ouverte, 'le programme prêt, la porte se lève')
+  check(errors.length === 0, 'aucune erreur JavaScript au démarrage du programme', errors.join(' | '))
+  await context.close()
+}
 
+// Le programme ne se charge pas : la porte s'ouvre quand même, et la page
+// garde son contenu de secours plutôt qu'un écran vide.
 {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await context.newPage()
+  await page.route(/\.wasm$/, (route) => route.abort())
+  await page.goto(base, { waitUntil: 'domcontentloaded' })
+  const ouverte = await page
+    .waitForFunction(() => getComputedStyle(document.querySelector('.porte')).visibility === 'hidden', null, {
+      timeout: 9000
+    })
+    .then(() => true)
+    .catch(() => false)
+  check(ouverte, 'sans le programme, la porte finit par s’ouvrir')
+  await context.close()
+}
+
+// --- Le film de grains ------------------------------------------------------
+
+const station = (page) => page.evaluate(() => document.querySelector('#ouverture .scene')?.dataset.station)
+
+// Descendre la piste jusqu'à une fraction de sa course, sans douceur.
+const allerDansLaPiste = (page, fraction) =>
+  page.evaluate((f) => {
+    const piste = document.querySelector('#ouverture .piste')
+    const haut = piste.getBoundingClientRect().top + window.scrollY
+    const course = piste.offsetHeight - 2 * window.innerHeight
+    window.scrollTo({ top: haut + course * f, behavior: 'instant' })
+  }, fraction)
+
+for (const [largeur, hauteur] of [
+  [1280, 800],
+  [390, 844]
+]) {
+  const à = ` (${largeur}×${hauteur})`
+  const context = await browser.newContext({ viewport: { width: largeur, height: hauteur } })
   const page = await context.newPage()
   const errors = []
   page.on('pageerror', (error) => errors.push(String(error)))
   await page.goto(base, { waitUntil: 'networkidle' })
 
-  const zone = page.locator('.hero-scene')
-  check(await zone.count() === 1, 'la zone de la marque existe dans le hero')
-
-  // La réserve de hauteur est là avant l'arrivée du morceau 3D : sans elle,
-  // le texte sauterait au moment où la scène se charge.
-  const hauteur = await zone.evaluate((n) => Math.round(n.getBoundingClientRect().height))
-  check(hauteur > 120, 'la zone réserve sa hauteur avant le chargement', `${hauteur}px`)
-
-  await page.waitForFunction(() => Boolean(document.querySelector('.hero-scene canvas')), null, {
-    timeout: 15000
-  }).catch(() => undefined)
-
-  const rendu = await page.evaluate(() => {
-    const canevas = document.querySelector('.hero-scene canvas')
-    return {
-      mode: document.querySelector('.hero-scene')?.getAttribute('data-scene'),
-      largeur: canevas?.width ?? 0,
-      hauteur: canevas?.height ?? 0
-    }
+  const ouverture = page.locator('#ouverture')
+  check((await ouverture.getAttribute('class'))?.includes('est-fixe') === false, 'le film tourne quand les animations sont permises' + à)
+  const canevas = await page.evaluate(() => {
+    const c = document.querySelector('#ouverture canvas.film')
+    return c ? { largeur: c.width, hauteur: c.height } : null
   })
-  check(rendu.mode === 'relief', 'la marque est rendue en relief', String(rendu.mode))
-  check(rendu.largeur > 0 && rendu.hauteur > 0, 'le canevas WebGL a une taille réelle', JSON.stringify(rendu))
+  check(canevas !== null && canevas.largeur > 0 && canevas.hauteur > 0, 'le canevas WebGL a une taille réelle' + à, JSON.stringify(canevas))
+  check((await station(page)) === '0', 'en haut de page, le film montre la marque' + à, String(await station(page)))
 
   // Une scène immobile ne serait qu'une image : deux captures espacées
-  // doivent différer.
-  //
-  // La comparaison passe par des captures d'écran, pas par `toDataURL` : sans
-  // `preserveDrawingBuffer`, le tampon de dessin WebGL est vidé une fois
-  // l'image composée, et `toDataURL` ne renvoie qu'un rectangle vide — deux
-  // rectangles vides se ressemblent beaucoup, et la vérification passerait
-  // sans rien avoir vérifié.
-  const avant = await zone.screenshot()
-  await page.waitForTimeout(900)
-  const apres = await zone.screenshot()
-  check(
-    avant.length > 0 && !avant.equals(apres),
-    'la scène bouge réellement entre deux captures',
-    `${avant.length} / ${apres.length} octets`
-  )
+  // doivent différer. Des captures d'écran, pas `toDataURL` : sans
+  // `preserveDrawingBuffer`, le tampon WebGL est vidé une fois l'image
+  // composée, et deux rectangles vides se ressemblent beaucoup.
+  const scène = page.locator('#ouverture .scene')
+  const avant = await scène.screenshot()
+  await page.waitForTimeout(700)
+  const après = await scène.screenshot()
+  check(!avant.equals(après), 'les grains bougent réellement entre deux captures' + à)
 
-  check(errors.length === 0, 'aucune erreur JavaScript avec la scène 3D', errors.join(' | '))
+  // Chaque ligne du film a sa station : le défilement les fait venir dans
+  // l'ordre, une seule visible à la fois.
+  const lues = []
+  for (let n = 1; n <= 5; n += 1) {
+    await allerDansLaPiste(page, n / 6)
+    // Les mots montent l'un après l'autre (750 ms, plus 45 ms par mot) :
+    // on attend que la ligne ait fini d'arriver.
+    await page
+      .waitForFunction(
+        (s) =>
+          document.querySelector('#ouverture .scene')?.dataset.station === s &&
+          [...document.querySelectorAll(`#ouverture .station[data-index="${s}"] .mot-dedans`)].every(
+            (m) => getComputedStyle(m).transform === 'none'
+          ),
+        String(n),
+        { timeout: 5000 }
+      )
+      .catch(() => undefined)
+    await page.waitForTimeout(450)
+    const relevé = await page.evaluate((s) => {
+      // Une ligne lisible : ses mots sont remontés dans leur fenêtre (aucune
+      // translation) et son numéro est allumé.
+      const visibles = [...document.querySelectorAll('#ouverture .station')].filter((li) => {
+        const mots = [...li.querySelectorAll('.mot-dedans')]
+        const numéro = li.querySelector('.station-numero')
+        return (
+          mots.length > 0 &&
+          mots.every((m) => getComputedStyle(m).transform === 'none') &&
+          Number(getComputedStyle(numéro).opacity) > 0.9
+        )
+      })
+      return {
+        station: document.querySelector('#ouverture .scene')?.dataset.station,
+        visibles: visibles.map((li) => li.dataset.index),
+        texte: visibles[0]?.querySelector('.station-texte')?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+      }
+    }, String(n))
+    lues.push(relevé.texte)
+    check(
+      relevé.station === String(n) && relevé.visibles.length === 1 && relevé.visibles[0] === String(n),
+      `station ${n} : sa ligne, et elle seule, est lisible` + à,
+      JSON.stringify(relevé)
+    )
+  }
+  check(new Set(lues).size === 5 && lues.every((t) => t.length > 8), 'les cinq lignes du film sont toutes différentes' + à, lues.join(' / '))
+
+  // Au bout de la piste, la dernière forme, et l'accueil par-dessus.
+  await allerDansLaPiste(page, 1)
+  await page.waitForTimeout(500)
+  check((await station(page)) === '6', 'au bout de la piste, la dernière forme' + à, String(await station(page)))
+
+  // « Passer l'intro » mène droit à l'accueil.
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+  await page.waitForTimeout(300)
+  await page.locator('#ouverture .passer').click()
+  const arrivé = await page
+    .waitForFunction(() => Math.abs(document.getElementById('accueil').getBoundingClientRect().top) < 4, null, { timeout: 4000 })
+    .then(() => true)
+    .catch(() => false)
+  check(arrivé, '« Passer l’intro » mène à l’accueil' + à, String(await page.evaluate(() => document.getElementById('accueil').getBoundingClientRect().top)))
+  check(await page.locator('#accueil h1').isVisible(), 'le titre de l’accueil est lisible après l’intro' + à)
+
+  check(errors.length === 0, 'aucune erreur JavaScript pendant le film' + à, errors.join(' | '))
   await context.close()
 }
 
-// Réglage système « Réduire les animations » : rien ne doit bouger, et le
-// morceau 3D ne doit même pas être téléchargé.
+// Le curseur sur mesure et le défilement doux : seulement avec une souris.
 {
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    reducedMotion: 'reduce'
-  })
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   const page = await context.newPage()
-  const telecharges = []
-  page.on('request', (requete) => telecharges.push(requete.url()))
   await page.goto(base, { waitUntil: 'networkidle' })
-  await page.waitForTimeout(600)
+  await page.mouse.move(400, 400)
+  await page.mouse.move(640, 420, { steps: 4 })
+  const classes = await page.evaluate(() => document.documentElement.className)
+  check(/curseur-actif/.test(classes) && /curseur-visible/.test(classes), 'avec une souris, le curseur sur mesure suit le pointeur', classes)
+  check(/defilement-doux/.test(classes), 'avec une souris, le défilement est adouci', classes)
 
-  const mode = await page.locator('.hero-scene').getAttribute('data-scene')
-  check(mode === 'plate', 'animations réduites : la marque reste à plat', String(mode))
-  check(
-    (await page.locator('.hero-scene canvas').count()) === 0,
-    'animations réduites : aucun canevas WebGL'
-  )
-  check(
-    !telecharges.some((url) => /HeroCanvas|three/i.test(url)),
-    'animations réduites : le morceau 3D n\'est pas téléchargé',
-    telecharges.filter((url) => /HeroCanvas|three/i.test(url)).join(' ')
-  )
+  // Le bouton aimanté se laisse attirer par le pointeur, puis revient.
+  await page.locator('#ouverture .passer').click()
+  await page.waitForFunction(() => Math.abs(document.getElementById('accueil').getBoundingClientRect().top) < 2, null, { timeout: 6000 })
+  const bouton = page.locator('.hero-actions .button.primary')
+  const boîte = await bouton.boundingBox()
+  await page.mouse.move(boîte.x + boîte.width / 2 + boîte.width * 0.4, boîte.y + boîte.height / 2 + 10, { steps: 6 })
+  await page.waitForTimeout(400)
+  const attiré = await bouton.evaluate((n) => getComputedStyle(n).translate)
+  check(attiré !== 'none' && attiré !== '0px', 'un bouton aimanté suit le pointeur', attiré)
+  await page.mouse.move(40, 760, { steps: 4 })
+  await page.waitForTimeout(500)
+  const relâché = await bouton.evaluate((n) => getComputedStyle(n).translate)
+  check(relâché === 'none' || /^0px( 0px)?$/.test(relâché), 'le bouton revient en place quand le pointeur s’éloigne', relâché)
+  await context.close()
+}
+{
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  const classes = await page.evaluate(() => document.documentElement.className)
+  check(!/curseur-actif|defilement-doux/.test(classes), 'au doigt, ni curseur sur mesure ni défilement détourné', classes)
+  await context.close()
+}
+
+// Réglage système « Réduire les animations » : pas de film, pas de porte,
+// les lignes se lisent d'un bloc et l'image fixe montre l'appareil.
+{
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(400)
+  const relevé = await page.evaluate(() => ({
+    fixe: document.getElementById('ouverture').classList.contains('est-fixe'),
+    canevas: document.querySelectorAll('canvas').length,
+    image: Boolean(document.querySelector('#accueil .hero-still')),
+    porte: getComputedStyle(document.querySelector('.porte')).display,
+    grain: getComputedStyle(document.querySelector('.grain')).display,
+    lignes: [...document.querySelectorAll('#ouverture .station .mot-dedans')].every((n) => Number(getComputedStyle(n).opacity) === 1),
+    curseur: document.documentElement.classList.contains('curseur-actif')
+  }))
+  check(relevé.fixe && relevé.canevas === 0, 'animations réduites : aucun film, aucun canevas', JSON.stringify(relevé))
+  check(relevé.image, 'animations réduites : l’accueil montre l’image fixe de l’appareil')
+  check(relevé.porte === 'none' && relevé.grain === 'none', 'animations réduites : ni porte ni grain', JSON.stringify(relevé))
+  check(relevé.lignes, 'animations réduites : toutes les lignes du film se lisent d’emblée')
   await context.close()
 }
 
@@ -1025,13 +1178,12 @@ for (const scheme of ['dark', 'light']) {
 
   const animations = page.locator('.preference-animation')
   check(await animations.count() === 1, 'le réglage des animations est dans le pied de page')
+  const fixe = () => page.evaluate(() => document.getElementById('ouverture').classList.contains('est-fixe'))
 
   await animations.getByRole('button', { name: /^(Apaisées|Calm|En calma)$/ }).click()
   await page.waitForTimeout(250)
-  check(
-    (await page.locator('.hero-scene').getAttribute('data-scene')) === 'plate',
-    'le réglage « apaisées » arrête la scène'
-  )
+  check(await fixe(), 'le réglage « apaisées » arrête le film')
+  check((await page.locator('canvas.film').count()) === 0, 'le réglage « apaisées » retire le canevas')
   check(
     (await page.evaluate(() => document.documentElement.dataset.motion)) === 'reduced',
     'le choix est exposé au CSS'
@@ -1041,19 +1193,20 @@ for (const scheme of ['dark', 'light']) {
   // qu'il faut reprendre à chaque visite n'en est pas un.
   await page.reload({ waitUntil: 'networkidle' })
   await page.waitForTimeout(250)
-  check(
-    (await page.locator('.hero-scene').getAttribute('data-scene')) === 'plate',
-    'le réglage « apaisées » survit au rechargement'
-  )
+  check(await fixe(), 'le réglage « apaisées » survit au rechargement')
 
   await page.locator('.preference-animation').getByRole('button', { name: /^(Animées|Animated|Animadas)$/ }).click()
-  await page.waitForFunction(() => Boolean(document.querySelector('.hero-scene canvas')), null, {
-    timeout: 15000
-  }).catch(() => undefined)
-  check(
-    (await page.locator('.hero-scene canvas').count()) === 1,
-    'le réglage « animées » rallume la scène'
-  )
+  await page.waitForTimeout(400)
+  check(!(await fixe()) && (await page.locator('canvas.film').count()) === 1, 'le réglage « animées » rallume le film')
+  await context.close()
+}
+{
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.locator('.preference-animation').getByRole('button', { name: /^(Animées|Animated|Animadas)$/ }).click()
+  await page.waitForTimeout(400)
+  check((await page.locator('canvas.film').count()) === 1, 'le réglage « animées » l’emporte sur un système qui demande le calme')
   await context.close()
 }
 
@@ -1063,7 +1216,7 @@ for (const scheme of ['dark', 'light']) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
   const page = await context.newPage()
   await page.goto(base, { waitUntil: 'networkidle' })
-  await page.locator('#demo').scrollIntoViewIfNeeded()
+  await allerALaDemo(page)
   await page.waitForTimeout(500)
 
   const position = () =>
@@ -1112,21 +1265,24 @@ for (const scheme of ['dark', 'light']) {
       sélecteur
     )
 
-  check(await opacité('#partage') < 1, 'une section hors écran attend son tour')
+  check(await opacité('#partage .share-panel') < 1, 'un bloc hors écran attend son tour')
   await page.locator('#partage').scrollIntoViewIfNeeded()
-  await page.waitForTimeout(900)
-  check(await opacité('#partage') === 1, 'la section apparaît quand on arrive dessus')
+  await page.waitForTimeout(1200)
+  check(await opacité('#partage .share-panel') === 1, 'le bloc apparaît quand on arrive dessus')
 
   // Aucune section ne doit rester coincée une fois la page parcourue.
-  for (const ancre of ['#demo', '#accessibilite', '#clavier', '#consoles', '#technique']) {
-    await page.locator(ancre).scrollIntoViewIfNeeded()
-    await page.waitForTimeout(250)
+  // Bloc par bloc : un saut de section en section en laissait passer
+  // certains sans qu'ils croisent jamais l'écran.
+  const blocs = await page.locator('[data-reveler]').count()
+  for (let i = 0; i < blocs; i += 1) {
+    await page.locator('[data-reveler]').nth(i).scrollIntoViewIfNeeded()
+    await page.waitForTimeout(60)
   }
-  await page.waitForTimeout(700)
+  await page.waitForTimeout(1200)
   const restées = await page.evaluate(() =>
-    [...document.querySelectorAll('.reveal')]
-      .filter((n) => Number(getComputedStyle(n).opacity) < 1)
-      .map((n) => n.id || n.className)
+    [...document.querySelectorAll('[data-reveler]')]
+      .filter((n) => !n.classList.contains('est-visible') || Number(getComputedStyle(n).opacity) < 1)
+      .map((n) => n.className)
   )
   check(restées.length === 0, 'aucune section ne reste cachée après le parcours', restées.join(' '))
   await context.close()
@@ -1142,7 +1298,7 @@ for (const scheme of ['dark', 'light']) {
   await page.goto(base, { waitUntil: 'networkidle' })
   await page.waitForTimeout(400)
   const opacités = await page.evaluate(() =>
-    [...document.querySelectorAll('.reveal')].map((n) => Number(getComputedStyle(n).opacity))
+    [...document.querySelectorAll('[data-reveler], .mot-dedans')].map((n) => Number(getComputedStyle(n).opacity))
   )
   check(
     opacités.length > 0 && opacités.every((valeur) => valeur === 1),
@@ -1332,22 +1488,15 @@ for (const [largeur, collante] of [[1280, true], [390, false]]) {
 
 // --- Suivre l'inclinaison du téléphone -------------------------------------
 
-// Sur ordinateur : pas de bouton, mais la souris doit atteindre la scène.
+// Sur ordinateur : pas de bouton, la souris écarte déjà les grains.
 {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   const page = await context.newPage()
   await page.goto(base, { waitUntil: 'networkidle' })
-  await page.waitForFunction(() => Boolean(document.querySelector('.hero-scene canvas')), null, {
-    timeout: 15000
-  }).catch(() => undefined)
   check(
-    (await page.locator('.hero-tilt-button').count()) === 0,
+    (await page.locator('.tilt-toggle').count()) === 0,
     'sur ordinateur, pas de bouton d’inclinaison — la souris suffit'
   )
-  await page.mouse.move(200, 300)
-  await page.mouse.move(1000, 400, { steps: 5 })
-  const source = await page.evaluate(() => document.documentElement.dataset.inclinaison)
-  check(source === 'pointeur', 'la souris atteint bien la scène 3D', String(source))
   await context.close()
 }
 
@@ -1363,7 +1512,7 @@ for (const [largeur, collante] of [[1280, true], [390, false]]) {
   page.on('pageerror', (error) => errors.push(String(error)))
   await page.goto(base, { waitUntil: 'networkidle' })
 
-  const bouton = page.locator('.hero-tilt-button')
+  const bouton = page.locator('.tilt-toggle')
   check(await bouton.count() === 1, 'sur téléphone, le bouton d’inclinaison est proposé')
   check((await bouton.getAttribute('aria-pressed')) === 'false', 'le suivi est éteint par défaut')
 
@@ -1375,7 +1524,7 @@ for (const [largeur, collante] of [[1280, true], [390, false]]) {
   // réellement allumé, puis on simule un capteur qui émet toutes les 50 ms.
   const allumé = await page
     .waitForFunction(
-      () => document.querySelector('.hero-tilt-button')?.getAttribute('aria-pressed') === 'true',
+      () => document.querySelector('.tilt-toggle')?.getAttribute('aria-pressed') === 'true',
       null,
       { timeout: 3000 }
     )
@@ -1396,12 +1545,9 @@ for (const [largeur, collante] of [[1280, true], [390, false]]) {
   check((await bouton.getAttribute('aria-pressed')) === 'true', 'le suivi reste allumé quand le capteur répond')
   check(
     (await page.evaluate(() => document.documentElement.dataset.inclinaison)) === 'orientation',
-    'le gyroscope atteint bien la scène 3D'
+    'le gyroscope atteint bien le film'
   )
-  check(
-    ((await page.locator('.hero-tilt-message').textContent()) ?? '').trim() === '',
-    'aucun message d’erreur quand tout fonctionne'
-  )
+  check((await page.locator('.inclinaison .hint').count()) === 0, 'aucun message d’erreur quand tout fonctionne')
 
   await bouton.tap()
   await page.waitForTimeout(200)
@@ -1409,8 +1555,8 @@ for (const [largeur, collante] of [[1280, true], [390, false]]) {
   // Le capteur simulé continue d'émettre : éteint, le suivi doit l'ignorer.
   await page.waitForTimeout(300)
   check(
-    (await page.evaluate(() => document.documentElement.dataset.inclinaison)) === 'aucune',
-    'éteindre le suivi remet la scène droite'
+    (await page.evaluate(() => document.documentElement.dataset.inclinaison)) === undefined,
+    'éteindre le suivi remet le film droit'
   )
   await page.evaluate(() => window.clearInterval(window.__capteur))
   check(errors.length === 0, 'aucune erreur JavaScript avec le suivi', errors.join(' | '))
@@ -1426,14 +1572,14 @@ for (const [largeur, collante] of [[1280, true], [390, false]]) {
   })
   const page = await context.newPage()
   await page.goto(base, { waitUntil: 'networkidle' })
-  await page.locator('.hero-tilt-button').tap()
+  await page.locator('.tilt-toggle').tap()
   await page.waitForTimeout(2000)
   check(
-    (await page.locator('.hero-tilt-button').getAttribute('aria-pressed')) === 'false',
+    (await page.locator('.tilt-toggle').getAttribute('aria-pressed')) === 'false',
     'sans capteur, le suivi ne prétend pas être allumé'
   )
   check(
-    ((await page.locator('.hero-tilt-message').textContent()) ?? '').trim().length > 0,
+    ((await page.locator('.inclinaison .hint').textContent().catch(() => '')) ?? '').trim().length > 0,
     'sans capteur, un message l’explique'
   )
   await context.close()
@@ -1450,7 +1596,7 @@ for (const [largeur, collante] of [[1280, true], [390, false]]) {
   const page = await context.newPage()
   await page.goto(base, { waitUntil: 'networkidle' })
   check(
-    (await page.locator('.hero-tilt-button').count()) === 0,
+    (await page.locator('.tilt-toggle').count()) === 0,
     'animations réduites : pas de suivi d’inclinaison proposé'
   )
   await context.close()
@@ -1509,14 +1655,10 @@ for (const thème of ['dark', 'light']) {
   await context.close()
 }
 
-// --- Le choix de l'appareil, partagé par tout le site ----------------------
-
-
-// --- La main valide, choisie sous l'image 3D ------------------------------
+// --- La main valide et l'appareil, partagés par tout le site -------------
 //
-// L'image du haut de page ne montrait que la main droite. Le choix est
-// maintenant proposé sous l'image, et c'est le même que dans la
-// démonstration.
+// L'accueil propose les deux choix, et ce sont les mêmes que dans la
+// démonstration : le film (ou l'image fixe) redessine la main et l'appareil.
 for (const motion of ['no-preference', 'reduce']) {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -1526,15 +1668,15 @@ for (const motion of ['no-preference', 'reduce']) {
   })
   const page = await context.newPage()
   await page.goto(base, { waitUntil: 'networkidle' })
-  const cas = motion === 'reduce' ? 'image fixe' : 'image 3D'
-  const sousImage = page.locator('.hero-main')
+  const cas = motion === 'reduce' ? 'image fixe' : 'film'
+  const sousImage = page.locator('.choix-main')
   const démo = page.locator('#demo')
   const pressé = (portée, nom) =>
     portée.getByRole('button', { name: nom, exact: true }).getAttribute('aria-pressed')
   const rendue = (main) =>
     page
       .waitForFunction(
-        (m) => document.querySelector('.hero-scene [data-main-rendu], .hero-scene[data-main-rendu]')
+        (m) => document.querySelector('#ouverture .scene[data-main-rendu], #accueil .hero-still[data-main-rendu]')
           ?.getAttribute('data-main-rendu') === m,
         main,
         { timeout: 4000 }
@@ -1542,22 +1684,22 @@ for (const motion of ['no-preference', 'reduce']) {
       .then(() => true)
       .catch(() => false)
 
-  check((await sousImage.count()) === 1, `sous l’image, le choix de la main valide (${cas})`)
+  check((await sousImage.count()) === 1, `à l’accueil, le choix de la main valide (${cas})`)
   check((await pressé(sousImage, /^(Droite|Right|Derecha)$/)) === 'true', `main droite par défaut (${cas})`)
 
   await sousImage.getByRole('button', { name: /^(Gauche|Left|Izquierda)$/ }).tap()
-  check(await rendue('left'), `choisir « gauche » retourne l’image vers la main gauche (${cas})`)
+  check(await rendue('left'), `choisir « gauche » redessine la main gauche (${cas})`)
   check(
     (await pressé(démo, /^(Gauche|Left|Izquierda)$/)) === 'true',
-    `le choix fait sous l’image se retrouve dans la démonstration (${cas})`
+    `le choix fait à l’accueil se retrouve dans la démonstration (${cas})`
   )
 
   if (motion === 'reduce') {
     // Sur l'image fixe, on peut mesurer : les commandes passent à gauche.
     const côté = await page.evaluate(() => {
-      const svg = document.querySelector('.hero-scene-plat')
+      const svg = document.querySelector('#accueil .hero-still')
       const cadre = svg.getBoundingClientRect()
-      const centres = [...svg.querySelectorAll('rect[filter]')].map((r) => {
+      const centres = [...svg.querySelectorAll('rect.commande')].map((r) => {
         const b = r.getBoundingClientRect()
         return (b.left + b.right) / 2 - cadre.left
       })
@@ -1567,11 +1709,10 @@ for (const motion of ['no-preference', 'reduce']) {
   }
 
   await démo.getByRole('button', { name: /^(Droite|Right|Derecha)$/ }).first().tap()
-  // Hors écran, la scène 3D est en pause — c'est voulu. On remonte la voir.
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
   check(
     (await pressé(sousImage, /^(Droite|Right|Derecha)$/)) === 'true' && (await rendue('right')),
-    `le choix fait dans la démonstration se retrouve sous l’image (${cas})`
+    `le choix fait dans la démonstration se retrouve à l’accueil (${cas})`
   )
   await context.close()
 }
@@ -1587,16 +1728,16 @@ for (const motion of ['no-preference', 'reduce']) {
   page.on('pageerror', (error) => errors.push(String(error)))
   await page.goto(base, { waitUntil: 'networkidle' })
 
-  const haut = page.locator('.hero-appareil')
+  const haut = page.locator('.choix-appareil')
   const démo = page.locator('#demo')
   const pressé = (portée, nom) =>
     portée.getByRole('button', { name: nom, exact: true }).getAttribute('aria-pressed')
-  // L'appareil que la scène dessine vraiment, bascule terminée — pas seulement
+  // L'appareil que le film dessine vraiment — pas seulement
   // celui qu'on a demandé.
   const rendu = (appareil) =>
     page
       .waitForFunction(
-        (a) => document.querySelector('.hero-scene [data-appareil-rendu], .hero-scene[data-appareil-rendu]')
+        (a) => document.querySelector('#ouverture .scene[data-appareil-rendu], #accueil .hero-still[data-appareil-rendu]')
           ?.getAttribute('data-appareil-rendu') === a,
         appareil,
         { timeout: 4000 }
@@ -1604,12 +1745,12 @@ for (const motion of ['no-preference', 'reduce']) {
       .then(() => true)
       .catch(() => false)
 
-  check(await haut.count() === 1, 'le haut de page propose le choix de l’appareil')
+  check(await haut.count() === 1, 'l’accueil propose le choix de l’appareil')
   check((await pressé(haut, 'iPad')) === 'true', 'l’iPad est le choix par défaut')
-  check(await rendu('ipad'), 'la scène dessine un iPad par défaut')
+  check(await rendu('ipad'), 'le film dessine un iPad par défaut')
 
   await haut.getByRole('button', { name: 'iPhone', exact: true }).tap()
-  check(await rendu('iphone'), 'choisir iPhone en haut de page fait basculer la scène sur un iPhone')
+  check(await rendu('iphone'), 'choisir iPhone à l’accueil fait basculer le film sur un iPhone')
   check(
     (await pressé(démo, 'iPhone')) === 'true' &&
       (await démo.locator('.phone').getAttribute('data-device')) === 'iphone',
@@ -1619,37 +1760,15 @@ for (const motion of ['no-preference', 'reduce']) {
   await démo.getByRole('button', { name: 'iPad', exact: true }).tap()
   check(
     (await pressé(haut, 'iPad')) === 'true',
-    'le choix fait dans la démonstration se retrouve en haut de page'
+    'le choix fait dans la démonstration se retrouve à l’accueil'
   )
 
   // Le parcours d'une vraie personne : choisir dans la démonstration, puis
-  // remonter voir. Hors écran, la scène est en pause — c'est voulu — et elle
-  // bascule quand on revient. La pause dure ici plusieurs secondes : R3F remet
-  // son horloge à zéro à la reprise, et une bascule datée par cette horloge
-  // restait bloquée aussi longtemps que la page avait été ouverte.
-  await page.waitForTimeout(3000)
+  // remonter voir. Le film a redessiné l'appareil entre-temps.
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
   check(
     await rendu('ipad'),
-    'en remontant après un choix dans la démonstration, la scène a bien basculé'
-  )
-
-  // Le même défaut, provoqué à coup sûr. Le parcours ci-dessus ne le
-  // déclenche que par hasard — il faut qu'une bascule soit *en cours* au
-  // moment de la pause, et que l'horloge ait tourné plus longtemps que notre
-  // attente. On réunit donc les deux conditions : la scène tourne cinq
-  // secondes, une bascule démarre, et on quitte l'écran en plein milieu.
-  // Vérifié par mutation : avec une bascule datée par l'horloge, ce contrôle
-  // échoue ; le parcours ci-dessus, lui, passait quand même.
-  await page.waitForTimeout(5000)
-  await haut.getByRole('button', { name: 'iPhone', exact: true }).tap()
-  await page.waitForTimeout(60)
-  await page.evaluate(() => window.scrollTo({ top: 2400, behavior: 'instant' }))
-  await page.waitForTimeout(1000)
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
-  check(
-    await rendu('iphone'),
-    'une bascule interrompue par une sortie d’écran se termine au retour'
+    'en remontant après un choix dans la démonstration, le film a bien basculé'
   )
 
   // Changer d'avis au milieu de la bascule : la scène doit finir sur le
@@ -1663,7 +1782,7 @@ for (const motion of ['no-preference', 'reduce']) {
   await rendu('iphone')
   await page.reload({ waitUntil: 'networkidle' })
   check(
-    (await pressé(page.locator('.hero-appareil'), 'iPhone')) === 'true' && (await rendu('iphone')),
+    (await pressé(page.locator('.choix-appareil'), 'iPhone')) === 'true' && (await rendu('iphone')),
     'le choix de l’appareil survit au rechargement'
   )
 
@@ -1689,10 +1808,10 @@ for (const motion of ['no-preference', 'reduce']) {
   })
   const page = await context.newPage()
   await page.goto(base, { waitUntil: 'networkidle' })
-  await page.locator('.hero-appareil').getByRole('button', { name: 'iPhone', exact: true }).click()
+  await page.locator('.choix-appareil').getByRole('button', { name: 'iPhone', exact: true }).click()
   await page.waitForTimeout(200)
   const rendu = await page.evaluate(() =>
-    document.querySelector('.hero-scene [data-appareil-rendu]')?.getAttribute('data-appareil-rendu')
+    document.querySelector('#accueil .hero-still[data-appareil-rendu]')?.getAttribute('data-appareil-rendu')
   )
   check(rendu === 'iphone', 'animations réduites : l’image fixe passe elle aussi sur iPhone', String(rendu))
   await context.close()
@@ -1708,7 +1827,7 @@ for (const [name, viewport] of [
   const context = await browser.newContext({ viewport, colorScheme: 'dark' })
   const page = await context.newPage()
   await page.goto(base, { waitUntil: 'networkidle' })
-  await page.locator('#demo').scrollIntoViewIfNeeded()
+  await allerALaDemo(page)
   await page.waitForTimeout(400)
   await writeFile(path.join(shots, `${name}.png`), await page.screenshot())
   await context.close()

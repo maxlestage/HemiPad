@@ -3,8 +3,9 @@
  *
  * Trois règles, et rien d'autre :
  *
- * 1. Les fichiers versionnés par Vite (`/assets/nom.hash.js`) ne changent
- *    jamais sous le même nom : cache d'abord, réseau seulement s'ils manquent.
+ * 1. Les fichiers versionnés (`/assets/nom-empreinte.js`, le programme
+ *    WebAssembly, la feuille de style, les polices) ne changent jamais sous
+ *    le même nom : cache d'abord, réseau seulement s'ils manquent.
  * 2. Les navigations passent par le réseau d'abord, avec repli sur la page
  *    mise en cache. Une mise en ligne est donc visible tout de suite, et le
  *    site reste consultable dans le métro.
@@ -18,7 +19,7 @@
  * la coquille de l'application change.
  */
 
-const VERSION = 'hemipad-v2'
+const VERSION = 'hemipad-v3'
 const SHELL_CACHE = `${VERSION}-shell`
 const ASSET_CACHE = `${VERSION}-assets`
 
@@ -33,6 +34,32 @@ const SHELL = [
   '/icons/apple-touch-icon.png'
 ]
 
+/**
+ * Les fichiers versionnés que cite la page : sans eux, la page hors
+ * connexion n'aurait que sa porte d'entrée — le site lui-même est dans le
+ * programme WebAssembly, chargé avant que le service worker ne prenne la main.
+ */
+async function precharger() {
+  const reponse = await fetch('/', { cache: 'no-cache' })
+  if (!reponse.ok) return
+  const page = await reponse.text()
+  const fichiers = new Set(page.match(/\/assets\/[\w.-]+/g) ?? [])
+  const cache = await caches.open(ASSET_CACHE)
+  // Le chargeur cite à son tour le programme et ses liaisons.
+  for (const fichier of [...fichiers]) {
+    if (!/^\/assets\/demarrage-[\w]+\.js$/.test(fichier)) continue
+    const chargeur = await fetch(fichier).then((r) => (r.ok ? r.text() : ''))
+    for (const cite of chargeur.match(/\/assets\/[\w.-]+/g) ?? []) fichiers.add(cite)
+  }
+  // La feuille de style cite les polices.
+  for (const fichier of [...fichiers]) {
+    if (!fichier.endsWith('.css')) continue
+    const feuille = await fetch(fichier).then((r) => (r.ok ? r.text() : ''))
+    for (const cite of feuille.match(/\/assets\/[\w.-]+\.woff2/g) ?? []) fichiers.add(cite)
+  }
+  await Promise.all([...fichiers].map((url) => cache.add(url).catch(() => undefined)))
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
@@ -41,6 +68,7 @@ self.addEventListener('install', (event) => {
       // cache une par une pour qu'une icône absente ne prive pas la personne
       // du mode hors connexion.
       .then((cache) => Promise.all(SHELL.map((url) => cache.add(url).catch(() => undefined))))
+      .then(() => precharger().catch(() => undefined))
       .then(() => self.skipWaiting())
   )
 })
