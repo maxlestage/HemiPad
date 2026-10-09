@@ -1,0 +1,255 @@
+/*
+ * La mise en page éditoriale : de grands titres, des sections numérotées,
+ * une barre légère, une bande qui défile, un pied de page qui signe.
+ */
+
+/* ------------------------------------------------------------------- barre */
+
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) var(--marge) 10px;
+  transition:
+    transform 500ms var(--ease),
+    background-color 400ms ease,
+    border-color 400ms ease;
+  border-bottom: 1px solid transparent;
+}
+
+.nav.is-filled {
+  background: color-mix(in srgb, var(--bg) 74%, transparent);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border-bottom-color: var(--border);
+}
+
+.nav.is-hidden {
+  transform: translateY(-110%);
+}
+
+.nav-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.nav-mark {
+  width: 30px;
+  height: 30px;
+  color: var(--accent);
+}
+
+.nav-links {
+  display: none;
+  gap: 4px;
+  margin: 0 auto;
+}
+
+.nav-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  text-decoration: none;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  border-radius: 999px;
+  transition: color 200ms ease;
+}
+
+.nav-links a:hover {
+  color: var(--text);
+}
+
+.nav-cta {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border));
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (min-width: 1000px) {
+  .nav-links {
+    display: flex;
+  }
+
+  .nav-cta {
+    margin-left: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- sections */
+
+main > section.section {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(84px, 13vh, 168px) var(--marge);
+}
+
+.section-tete {
+  display: grid;
+  gap: 22px;
+  margin-bottom: clamp(36px, 7vh, 72px);
+}
+
+.sur-titre {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.numero {
+  color: var(--accent);
+}
+
+.numero::after {
+  content: '';
+  display: inline-block;
+  width: 36px;
+  height: 1px;
+  margin-left: 14px;
+  vertical-align: middle;
+  background: var(--border);
+}
+
+.titre-section {
+  max-width: 15ch;
+  font-size: clamp(2.3rem, 7.2vw, 6rem);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+
+.chapeau {
+  max-width: 54ch;
+  font-size: clamp(1.02rem, 1.5vw, 1.2rem);
+  color: var(--text-dim);
+}
+
+@media (min-width: 1000px) {
+  .section-tete {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: end;
+    column-gap: 56px;
+  }
+
+  .sur-titre {
+    grid-column: 1 / -1;
+  }
+
+  .chapeau {
+    padding-bottom: 0.6em;
+  }
+}
+
+/* ------------------------------------------------------------------- bande */
+
+.bande {
+  overflow: hidden;
+  border-block: 1px solid var(--border);
+  padding: 22px 0;
+}
+
+.bande-piste {
+  display: flex;
+  width: max-content;
+  animation: bande 38s linear infinite;
+}
+
+.bande-ligne {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.bande-nom {
+  padding: 0 0.45em;
+  font-size: clamp(1.8rem, 5vw, 4.2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.bande-nom:nth-child(4n + 3) {
+  color: transparent;
+  -webkit-text-stroke: 1px var(--text-dim);
+}
+
+.bande-sep {
+  font-size: clamp(1rem, 2.4vw, 2rem);
+  color: var(--accent);
+}
+
+@keyframes bande {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+:root[data-motion='reduced'] .bande-piste {
+  animation: none;
+}
+
+/* ------------------------------------------------------------ pied de page */
+
+.footer-grand {
+  padding: clamp(64px, 12vh, 140px) var(--marge) 0;
+  max-width: 1280px;
+  margin: 0 auto;
+  font-size: clamp(2.6rem, 9.4vw, 8.6rem);
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: -0.055em;
+  margin-bottom: clamp(40px, 8vh, 88px);
+}
+
+/* --------------------------------------------- boutons : relief au survol */
+
+.button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.button > span {
+  position: relative;
+  z-index: 1;
+}
+
+.button.ghost::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--surface-strong);
+  transform: translateY(101%);
+  transition: transform 450ms var(--ease);
+}
+
+.button.ghost:hover::before {
+  transform: none;
+}

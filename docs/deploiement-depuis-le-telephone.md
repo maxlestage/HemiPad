@@ -39,12 +39,16 @@ Code met le site à jour tout seul.
 | Étape | Fichier | Commande |
 |---|---|---|
 | Installation | `package.json` | `npm install` (workspaces) |
-| Construction | `package.json` | `heroku-postbuild` → `npm run build --workspace=web` |
+| Construction | `package.json` | `heroku-postbuild` → `web/tools/heroku-construire.sh` |
 | Démarrage | `Procfile` | `node server/index.mjs` |
 
 La variable `PORT` est fournie par Heroku ; aucune autre n'est nécessaire.
-`NPM_CONFIG_PRODUCTION=false` (déjà dans `app.json`) garantit que Vite et
-TypeScript sont installés au moment de la construction.
+Le site est écrit en Rust et compilé en WebAssembly. Le buildpack Node
+n'apporte pas Rust : `heroku-construire.sh` installe la version figée par
+`web/rust-toolchain.toml` (dans `/tmp`, hors de l'application déployée), puis
+construit. Comptez deux à trois minutes de construction.
+`NPM_CONFIG_PRODUCTION=false` (déjà dans `app.json`) garantit que les polices
+sont installées au moment de la construction.
 
 ### Vérifier que tout va bien
 

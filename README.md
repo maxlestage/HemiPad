@@ -12,7 +12,7 @@ des raccourcis clavier — en découle.
 | | |
 |---|---|
 | **Application** | iOS 16+, Swift, SwiftUI, CoreBluetooth, CoreMotion |
-| **Site vitrine** | React 18, TypeScript, Vite, servi par Express · application installable (PWA) |
+| **Site vitrine** | Rust (Yew 0.23), compilé en WebAssembly, film de particules WebGL2, servi par Express · application installable (PWA) |
 | **Langues** | Français, anglais, espagnol · thèmes clair, sombre et automatique |
 | **Cibles** | Nintendo Switch, PlayStation, Xbox, Steam Deck / PC, émulateurs, ordinateur (clavier) |
 | **Appareil de référence** | **iPad** — posé sur une table ou un support, il libère la main du poids de l'appareil et offre des cibles bien plus grandes. L'iPhone est géré, en second. |
@@ -68,22 +68,23 @@ l'écran, et les chevauchements sont signalés au lieu d'être corrigés.
 
 ## Le site vitrine
 
-Le site n'est pas qu'une plaquette : il **rejoue le solveur de disposition de
-l'application**, porté en TypeScript. Basculer la main ou agrandir les cibles
-recalcule vraiment la géométrie, avec les mêmes règles que sur l'iPhone.
+Le site est écrit en **Rust, avec Yew**, et compilé en **WebAssembly**. Ce
+n'est pas qu'une plaquette : il **rejoue le solveur de disposition de
+l'application**, porté en Rust (`web/src/solveur.rs`, couvert par ses propres
+tests). Basculer la main ou agrandir les cibles recalcule vraiment la
+géométrie, avec les mêmes règles que sur l'iPhone.
 
-- **Trois langues** — français, anglais, espagnol. La langue est détectée
-  depuis le navigateur, changeable dans le pied de page, et mémorisée.
+- **Trois langues** — français, anglais, espagnol (`web/i18n/*.json`). La
+  langue est détectée depuis le navigateur, changeable dans le pied de page, et
+  mémorisée.
 - **Trois thèmes** — clair, sombre et automatique (le mode par défaut, qui suit
   le réglage du système). Le thème est appliqué avant le premier rendu, sans
   l'éclair blanc habituel.
 - **Application installable** — manifeste, icônes adaptatives, service worker :
-  le site s'ajoute à l'écran d'accueil et reste consultable hors connexion.
+  le site s'ajoute à l'écran d'accueil et reste consultable hors connexion, le
+  programme WebAssembly compris.
 - **Fiche de partage** — image d'aperçu 1200 × 630 pour les messageries, plus
   un bouton qui utilise le partage natif du téléphone, ou copie le lien.
-- **L'arc de portée en volume** — au sommet de la page, un iPad modélisé en 3D
-  (React Three Fiber) montre la disposition que le solveur calcule vraiment, et
-  une lueur parcourt l'arc en allumant chaque commande au passage.
 - **Des commandes qui glissent** — dans la démonstration, changer de main ou
   écarter les cibles fait *voyager* les commandes au lieu de les téléporter :
   on voit le solveur travailler.
@@ -91,47 +92,66 @@ recalcule vraiment la géométrie, avec les mêmes règles que sur l'iPhone.
   ou l'autre pouce, descend d'une section à la suivante ; au bout de la page,
   il remonte. Pour qui n'a qu'un pouce qui se fatigue, un appui répété au même
   endroit remplace une longue suite de glissements.
-- **Suivre l'inclinaison** — sur téléphone et tablette, l'iPad du hero peut
-  suivre le gyroscope. iOS n'autorise l'accès aux capteurs qu'à la demande de
-  la personne : d'où un bouton, plutôt qu'un suivi imposé. Sur ordinateur, la
-  scène suit la souris.
 
-### Les animations, et leur interrupteur
+### Le mouvement
 
-La scène du hero n'est pas un objet décoratif : c'est un iPad qui affiche la
-sortie de `solveLayout`, le même code que la démonstration et que
-l'application. Les commandes sont là où le solveur les met, la lueur suit
-l'angle réel de chaque cible sur l'arc du pouce. Changez les règles de
-placement, la page d'accueil change avec elles — et quatre tests unitaires
-couvrent cette disposition sans avoir besoin d'un navigateur.
+L'ouverture se joue comme un court film, piloté par le défilement :
+
+- **La porte** — pendant que le programme se charge, le signe HemiPad se
+  trace trait par trait, un compteur monte jusqu'à 100, puis la porte se lève.
+  Elle est en CSS pur : elle s'anime avant même que le WebAssembly arrive, et
+  s'ouvre d'elle-même s'il n'arrivait jamais.
+- **Le film de grains** — quatorze mille particules (sept mille sur
+  téléphone), dessinées en WebGL2, passent d'une forme à l'autre au fil du
+  défilement : la marque, une main, une manette, l'arc du pouce, un clavier,
+  des ondes, puis l'appareil choisi avec la disposition que le solveur calcule
+  pour la main choisie. Cinq phrases viennent se poser, mot à mot, à chaque
+  étape. Le pointeur écarte les grains ; sur téléphone, ils peuvent suivre
+  l'inclinaison (iOS ne donne les capteurs qu'à la demande : d'où un bouton).
+- **Les détails d'atelier** — un grain de pellicule, un curseur dessiné qui
+  grossit sur ce qui se clique, des boutons aimantés qui se laissent attirer
+  par le pointeur, un défilement adouci à la molette, des titres qui montent
+  mot à mot.
 
 Animer un site qui parle d'accessibilité demande quelques garanties, et elles
 sont toutes tenues :
 
-- **Rien n'est téléchargé de force.** three.js et le rendu pèsent près d'un
-  mégaoctet ; ils vivent dans un morceau à part, chargé seulement si la scène
-  doit tourner. Le reste du site n'a pas bougé de plus de deux kilo-octets.
-- **« Réduire les animations » est respecté**, et le morceau 3D n'est alors
-  même pas demandé au serveur. Un réglage explicite — *Animations :
-  automatique, animées, apaisées* — est offert dans le pied de page, dans les
-  deux sens : il peut apaiser une machine qui ne demande rien, et animer une
-  machine réglée en calme.
-- **Quatre replis vers une image fixe** : calme demandé, WebGL absent, morceau
-  pas encore arrivé, scène en échec. L'image fixe dessine **la même
-  disposition**, issue du même solveur : couper les animations change le relief
-  de l'image, jamais son sujet.
-- **L'apparition des sections ne cache rien.** L'état masqué n'existe que si le
-  script a pris la main ; sans JavaScript, tout s'affiche d'emblée. Une page
-  dont le contenu dépend d'une animation pour exister est une page cassée.
-- **La boucle de rendu s'arrête** dès que la scène sort de l'écran ou que
-  l'onglet passe en arrière-plan, et la zone réserve sa hauteur d'avance : le
-  texte ne saute pas quand la 3D arrive.
+- **« Réduire les animations » est respecté.** Ni film, ni porte, ni grain :
+  les cinq phrases se lisent d'un bloc et l'accueil montre une image fixe qui
+  dessine **la même disposition**, issue du même solveur. Un réglage explicite
+  — *Animations : automatique, animées, apaisées* — est offert dans le pied de
+  page, dans les deux sens.
+- **WebGL absent** : même repli, sans erreur.
+- **Le doigt garde son défilement.** Le défilement adouci et le curseur ne
+  s'allument qu'avec une souris ou un trackpad ; au doigt, rien n'est
+  détourné, et le clavier, la barre de défilement et les ancres restent natifs.
+- **Le film s'arrête de dessiner** dès qu'il sort de l'écran.
+- **L'apparition des blocs ne cache rien.** L'état masqué n'existe que si le
+  programme a pris la main ; sans lui, tout s'affiche d'emblée.
+- **Aucun script en ligne.** La politique de sécurité n'autorise que les
+  fichiers du site, plus `'wasm-unsafe-eval'` — la compilation du
+  WebAssembly, pas `eval()`. Les styles en ligne restent interdits, attributs
+  compris : les couleurs par profil passent par des attributs `data-*` et des
+  règles CSS.
 
-Ces garanties sont vérifiées dans un vrai navigateur, y compris le fait que la
-scène **bouge réellement** — deux captures espacées doivent différer —, qu'une
-commande **glisse au lieu de sauter** quand on change de main, que le
-gyroscope et la souris atteignent bien la scène, et que « Suivant » arrive
-exactement au début de chaque section, sur téléphone comme sur iPad.
+Ces garanties sont vérifiées dans un vrai navigateur : chaque étape du film
+affiche sa phrase et elle seule, les grains **bougent réellement** (deux
+captures espacées doivent différer), la porte se lève — même si le programme
+ne se charge pas —, le réglage « apaisées » arrête le film et survit au
+rechargement, une commande **glisse au lieu de sauter** quand on change de
+main, et « Suivant » arrive exactement au début de chaque section, sur
+téléphone comme sur iPad.
+
+### Construction
+
+Pas de Trunk : son chargeur est un script en ligne, que la politique de
+sécurité refuse. [`web/tools/construire.mjs`](web/tools/construire.mjs)
+compile la crate pour `wasm32-unknown-unknown`, génère les liaisons avec
+`wasm-bindgen` (la version exacte de la crate, téléchargée et vérifiée par son
+empreinte si elle manque), assemble la feuille de style et les polices servies
+par le site lui-même, et écrit `index.html` avec des noms de fichiers qui
+changent à chaque version. La version de Rust est figée par
+`web/rust-toolchain.toml`.
 
 ## Identité visuelle
 
@@ -144,9 +164,9 @@ celui-ci.
 
 Tout part d'un seul fichier, [`web/tools/mark.mjs`](web/tools/mark.mjs) :
 l'icône iOS 1024 px, la favicon, les icônes installables, l'image de partage.
-Le composant React [`web/src/components/Mark.tsx`](web/src/components/Mark.tsx)
-en reprend les tracés, et un test compare les deux fichiers pour qu'ils ne
-puissent pas diverger en silence.
+Le site en reprend les tracés ([`web/src/composants/commun.rs`](web/src/composants/commun.rs),
+et la porte d'entrée de `web/index.html`), et un test Rust compare les trois
+exemplaires pour qu'ils ne puissent pas diverger en silence.
 
 Deux variantes, chacune pour une contrainte réelle : la marque complète à
 partir de 32 px, et une variante d'onglet en dessous — à 16 px le pointillé
@@ -171,7 +191,7 @@ ios/                   Application Swift
     Views/             Écrans SwiftUI
   HemiPadTests/        58 tests unitaires
   tools/               Génération et vérification du projet Xcode
-web/                   Site vitrine React + TypeScript
+web/                   Site vitrine Rust (Yew) → WebAssembly
 server/                Serveur Express de production
 docs/                  Déploiement depuis un téléphone
 ```
@@ -179,26 +199,29 @@ docs/                  Déploiement depuis un téléphone
 ## Démarrer
 
 ```bash
-npm install          # dépendances du site (workspace npm)
-npm run dev          # site en développement sur http://localhost:5173
-npm test             # tests du solveur de disposition partagé
-npm run build        # construction du site
+rustup toolchain install  # dans web/ : la version de Rust et la cible wasm32
+npm install          # polices et serveur (workspace npm)
+npm test             # tests Rust : solveur, clavier, traductions, formes
+npm run lint         # clippy (sans la moindre alerte) et rustfmt
+npm run build        # construction du site, optimisée
+npm run dev          # construction rapide, sans optimisation
 npm start            # serveur de production sur $PORT (3000 par défaut)
 ```
 
-Deux outils demandent en plus un Chromium (via `playwright-core`) et ne sont
-donc pas branchés sur l'intégration continue :
+Deux outils demandent en plus un Chromium (via `playwright-core`) ;
+`verify:site` tourne aussi en intégration continue :
 
 ```bash
 npm run assets       # régénère icônes et image de partage
-npm run verify:site  # 67 vérifications dans un vrai navigateur
+npm run verify:site  # près de trois cents vérifications dans un vrai navigateur
 ```
 
 `verify:site` contrôle ce qu'aucun test unitaire ne voit : les trois langues,
 les trois thèmes, l'absence de défilement horizontal de 320 à 1280 px,
 l'espacement et la taille des cibles, le contraste du texte dans les deux
-thèmes, l'installation de l'application, son fonctionnement hors connexion et
-la fiche de partage.
+thèmes, l'installation de l'application, son fonctionnement hors connexion, la
+fiche de partage, le film et ses étapes, la porte, le curseur et les animations
+apaisées.
 
 Côté iOS :
 

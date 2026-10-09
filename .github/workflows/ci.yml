@@ -26,13 +26,38 @@ jobs:
           node-version: 22
           cache: npm
 
+      # Le site est écrit en Rust (Yew) et compilé en WebAssembly. La version
+      # et la cible wasm32 sont figées par web/rust-toolchain.toml.
+      - name: Chaîne Rust
+        working-directory: web
+        run: |
+          rustup toolchain install
+          rustc --version
+
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            web/target
+            web/.outils
+          key: site-${{ runner.os }}-${{ hashFiles('web/Cargo.lock', 'web/rust-toolchain.toml') }}
+          restore-keys: site-${{ runner.os }}-
+
       - name: Installer les dépendances
         run: npm ci
 
-      - name: Vérifier les types
-        run: npm run typecheck
+      - name: Format
+        working-directory: web
+        run: cargo fmt --check
 
-      - name: Tests du solveur de disposition
+      - name: Clippy, sans la moindre alerte
+        working-directory: web
+        run: cargo clippy --locked --all-targets --target wasm32-unknown-unknown -- -D warnings
+
+      # Les tests tournent sur la machine (pas dans un navigateur) : le
+      # solveur de disposition, le clavier, les traductions, les formes.
+      - name: Tests
         run: npm test
 
       - name: Construire le site
@@ -49,17 +74,27 @@ jobs:
             sleep 1
           done
           curl -sf http://localhost:4173/healthz
-          curl -sf http://localhost:4173/ | grep -q '<div id="root">'
+          curl -sf http://localhost:4173/ | grep -q '<div id="racine"'
           kill $serveur
+
+      # Le site construit passe au travail suivant : pas de seconde
+      # compilation Rust pour les vérifications dans le navigateur.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: site-construit
+          path: web/dist/
+          retention-days: 1
 
   navigateur:
     name: Vérifications dans un navigateur
     runs-on: ubuntu-latest
-    # Le garde-fou le plus complet du projet : cent six contrôles dans un vrai
-    # Chromium — les trois langues, les trois thèmes, le contraste, le
-    # débordement de 320 à 1280 px, l'application installable et le mode hors
-    # connexion, les réglages par commande, les animations et leur
-    # interrupteur. Rien de tout cela n'est visible depuis un test unitaire.
+    needs: site
+    # Le garde-fou le plus complet du projet, dans un vrai Chromium : les
+    # trois langues, les trois thèmes, le contraste, le débordement de 320 à
+    # 1280 px, l'application installable et le mode hors connexion, les
+    # réglages par commande, le film de particules et ses étapes, les
+    # animations et leur interrupteur. Rien de tout cela n'est visible depuis
+    # un test unitaire.
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -78,8 +113,10 @@ jobs:
         # système qu'un Chromium sans bureau réclame.
         run: node node_modules/playwright-core/cli.js install --with-deps chromium
 
-      - name: Construire le site
-        run: npm run build
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: site-construit
+          path: web/dist
 
       - name: Vérifier le site dans le navigateur
         run: |
