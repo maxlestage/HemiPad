@@ -1,0 +1,257 @@
+/*
+ * Ce que les attributs `style` faisaient, en règles : la politique de
+ * sécurité (CSP) refuse tout style écrit dans la page. Une teinte par profil
+ * de console, un rang pour décaler les apparitions, un délai par mot.
+ */
+
+.control[data-profil='switch'] {
+  --accent: #ff4d5e;
+}
+
+.chip[data-profil='switch'] {
+  --chip-accent: #ff4d5e;
+}
+
+.console-card[data-profil='switch'] {
+  --card-accent: #ff4d5e;
+}
+
+.control[data-profil='playstation'] {
+  --accent: #4d8dff;
+}
+
+.chip[data-profil='playstation'] {
+  --chip-accent: #4d8dff;
+}
+
+.console-card[data-profil='playstation'] {
+  --card-accent: #4d8dff;
+}
+
+.control[data-profil='xbox'] {
+  --accent: #4ce660;
+}
+
+.chip[data-profil='xbox'] {
+  --chip-accent: #4ce660;
+}
+
+.console-card[data-profil='xbox'] {
+  --card-accent: #4ce660;
+}
+
+.control[data-profil='steam'] {
+  --accent: #8b7dff;
+}
+
+.chip[data-profil='steam'] {
+  --chip-accent: #8b7dff;
+}
+
+.console-card[data-profil='steam'] {
+  --card-accent: #8b7dff;
+}
+
+.control[data-profil='retro'] {
+  --accent: #ffa33d;
+}
+
+.chip[data-profil='retro'] {
+  --chip-accent: #ffa33d;
+}
+
+.console-card[data-profil='retro'] {
+  --card-accent: #ffa33d;
+}
+
+.control[data-profil='desktop'] {
+  --accent: #00e5ff;
+}
+
+.chip[data-profil='desktop'] {
+  --chip-accent: #00e5ff;
+}
+
+.console-card[data-profil='desktop'] {
+  --card-accent: #00e5ff;
+}
+
+[data-rang='0'] {
+  --rang: 0;
+}
+
+[data-rang='1'] {
+  --rang: 1;
+}
+
+[data-rang='2'] {
+  --rang: 2;
+}
+
+[data-rang='3'] {
+  --rang: 3;
+}
+
+[data-rang='4'] {
+  --rang: 4;
+}
+
+[data-rang='5'] {
+  --rang: 5;
+}
+
+.mot:nth-child(2) > .mot-dedans {
+  --i: 1;
+}
+
+.mot:nth-child(3) > .mot-dedans {
+  --i: 2;
+}
+
+.mot:nth-child(4) > .mot-dedans {
+  --i: 3;
+}
+
+.mot:nth-child(5) > .mot-dedans {
+  --i: 4;
+}
+
+.mot:nth-child(6) > .mot-dedans {
+  --i: 5;
+}
+
+.mot:nth-child(7) > .mot-dedans {
+  --i: 6;
+}
+
+.mot:nth-child(8) > .mot-dedans {
+  --i: 7;
+}
+
+.mot:nth-child(9) > .mot-dedans {
+  --i: 8;
+}
+
+.mot:nth-child(10) > .mot-dedans {
+  --i: 9;
+}
+
+.mot:nth-child(11) > .mot-dedans {
+  --i: 10;
+}
+
+.mot:nth-child(12) > .mot-dedans {
+  --i: 11;
+}
+
+.mot:nth-child(13) > .mot-dedans {
+  --i: 12;
+}
+
+.mot:nth-child(14) > .mot-dedans {
+  --i: 13;
+}
+
+.mot:nth-child(15) > .mot-dedans {
+  --i: 14;
+}
+
+.mot:nth-child(16) > .mot-dedans {
+  --i: 15;
+}
+
+.mot:nth-child(17) > .mot-dedans {
+  --i: 16;
+}
+
+.mot:nth-child(18) > .mot-dedans {
+  --i: 17;
+}
+
+.mot:nth-child(19) > .mot-dedans {
+  --i: 18;
+}
+
+.mot:nth-child(20) > .mot-dedans {
+  --i: 19;
+}
+
+.mot:nth-child(21) > .mot-dedans {
+  --i: 20;
+}
+
+.mot:nth-child(22) > .mot-dedans {
+  --i: 21;
+}
+
+.mot:nth-child(23) > .mot-dedans {
+  --i: 22;
+}
+
+.mot:nth-child(24) > .mot-dedans {
+  --i: 23;
+}
+
+.mot:nth-child(25) > .mot-dedans {
+  --i: 24;
+}
+
+.mot:nth-child(26) > .mot-dedans {
+  --i: 25;
+}
+
+.mot:nth-child(27) > .mot-dedans {
+  --i: 26;
+}
+
+.mot:nth-child(28) > .mot-dedans {
+  --i: 27;
+}
+
+.mot:nth-child(29) > .mot-dedans {
+  --i: 28;
+}
+
+.mot:nth-child(30) > .mot-dedans {
+  --i: 29;
+}
+
+.mot:nth-child(31) > .mot-dedans {
+  --i: 30;
+}
+
+.mot:nth-child(32) > .mot-dedans {
+  --i: 31;
+}
+
+.mot:nth-child(33) > .mot-dedans {
+  --i: 32;
+}
+
+.mot:nth-child(34) > .mot-dedans {
+  --i: 33;
+}
+
+.mot:nth-child(35) > .mot-dedans {
+  --i: 34;
+}
+
+.mot:nth-child(36) > .mot-dedans {
+  --i: 35;
+}
+
+.mot:nth-child(37) > .mot-dedans {
+  --i: 36;
+}
+
+.mot:nth-child(38) > .mot-dedans {
+  --i: 37;
+}
+
+.mot:nth-child(39) > .mot-dedans {
+  --i: 38;
+}
+
+.mot:nth-child(40) > .mot-dedans {
+  --i: 39;
+}

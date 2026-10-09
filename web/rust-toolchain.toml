@@ -1,0 +1,7 @@
+# La même version de Rust que le boîtier (bridge/rust-toolchain.toml), avec la
+# cible WebAssembly : le site se compile pour le navigateur.
+[toolchain]
+channel = "1.98.0"
+components = ["clippy", "rustfmt"]
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"
