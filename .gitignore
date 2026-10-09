@@ -26,3 +26,7 @@ __pycache__/
 
 # Compilation Rust du pont USB.
 bridge/target/
+
+# Compilation Rust du site (WebAssembly) et outils téléchargés.
+web/target/
+web/.outils/
