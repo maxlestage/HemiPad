@@ -1,0 +1,326 @@
+/*
+ * Le mouvement, façon atelier : la porte qui trace le signe, le grain de
+ * pellicule, le curseur dessiné, les boutons aimantés.
+ *
+ * Tout ici s'éteint quand les animations sont apaisées — par le système ou
+ * par le réglage du pied de page.
+ */
+
+:root {
+  --ease: cubic-bezier(0.2, 0.7, 0.1, 1);
+  --ease-doux: cubic-bezier(0.2, 0.6, 0.3, 1);
+  --marge: clamp(20px, 4.2vw, 72px);
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+/* ------------------------------------------------------------------ porte */
+
+@property --compte {
+  syntax: '<integer>';
+  initial-value: 0;
+  inherits: false;
+}
+
+.porte {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--text);
+  transition:
+    clip-path 900ms var(--ease) 120ms,
+    visibility 0s linear 1100ms;
+  clip-path: inset(0 0 0 0);
+  /* Filet de sécurité : si le programme ne répond jamais, la porte s'ouvre
+     quand même. Une page ne doit jamais rester cachée derrière son écran
+     de chargement. */
+  animation: porte-secours 600ms ease 7s forwards;
+}
+
+.porte-signe {
+  width: clamp(96px, 18vw, 150px);
+  height: auto;
+  overflow: visible;
+}
+
+.trace {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: tracer 1300ms var(--ease-doux) forwards;
+}
+
+.trace-croix {
+  animation-delay: 380ms;
+}
+
+.trace-moitie {
+  stroke: var(--accent);
+  animation-delay: 560ms;
+}
+
+.porte-point {
+  fill: var(--accent);
+  opacity: 0;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: point 500ms var(--ease) 1100ms forwards;
+}
+
+.porte-point-2 {
+  fill: var(--warn);
+  animation-delay: 1250ms;
+}
+
+.porte-compte {
+  position: absolute;
+  right: var(--marge);
+  bottom: calc(var(--marge) + env(safe-area-inset-bottom, 0px));
+  margin: 0;
+  font-family: var(--mono);
+  font-size: clamp(2.4rem, 9vw, 6.5rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--text-dim);
+}
+
+.porte-nombre {
+  counter-reset: compte var(--compte);
+  animation: compter 1600ms var(--ease-doux) forwards;
+}
+
+.porte-nombre::after {
+  content: counter(compte);
+}
+
+.porte-compte::after {
+  content: '%';
+  font-size: 0.4em;
+  margin-left: 0.1em;
+  vertical-align: top;
+  color: var(--accent);
+}
+
+/* Le programme est prêt : la porte se lève, de bas en haut. */
+:root.programme-pret .porte,
+:root.sans-programme .porte {
+  clip-path: inset(0 0 100% 0);
+  visibility: hidden;
+}
+
+@keyframes tracer {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes point {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes compter {
+  to {
+    --compte: 100;
+  }
+}
+
+@keyframes porte-secours {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.sans-script {
+  max-width: 34rem;
+  margin: 30vh auto 0;
+  padding: 0 24px;
+  position: relative;
+  z-index: 201;
+  font-size: 1.1rem;
+}
+
+/* Le moteur de défilement adouci fait lui-même la douceur : le défilement
+   natif doit rester instantané sous lui. */
+:root.defilement-doux {
+  scroll-behavior: auto;
+}
+
+/* ------------------------------------------------------------------ grain */
+
+.grain {
+  position: fixed;
+  /* Juste assez de marge pour les sauts du grain : un calque quatre fois
+     grand comme l'écran coûtait cher à composer, et en mémoire sur un
+     téléphone. */
+  inset: -80px;
+  z-index: 60;
+  will-change: transform;
+  pointer-events: none;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+  animation: grain 900ms steps(6) infinite;
+}
+
+:root[data-theme='light'] .grain {
+  opacity: 0.045;
+}
+
+@keyframes grain {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-48px, 32px); }
+  40% { transform: translate(40px, -48px); }
+  60% { transform: translate(-24px, 56px); }
+  80% { transform: translate(56px, 16px); }
+  100% { transform: translate(-32px, -40px); }
+}
+}
+
+/* ----------------------------------------------------------------- curseur */
+
+.curseur-point,
+.curseur-anneau {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 300;
+  pointer-events: none;
+  opacity: 0;
+  border-radius: 50%;
+  transition: opacity 240ms ease;
+}
+
+.curseur-point {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: var(--accent);
+}
+
+.curseur-anneau {
+  width: 38px;
+  height: 38px;
+  margin: -19px 0 0 -19px;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.curseur-anneau::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  transform: scale(0);
+  transition: transform 320ms var(--ease);
+}
+
+:root.curseur-actif.curseur-visible .curseur-point,
+:root.curseur-actif.curseur-visible .curseur-anneau {
+  opacity: 1;
+}
+
+:root.curseur-survol .curseur-anneau::after {
+  transform: scale(1.7);
+}
+
+:root.curseur-appui .curseur-anneau::after {
+  transform: scale(1.2);
+}
+
+/* ------------------------------------------------------------------ aimant */
+
+[data-aimant] {
+  translate: var(--ax, 0) var(--ay, 0);
+  transition: translate 520ms var(--ease);
+}
+
+[data-aimant].est-aimante {
+  transition: translate 140ms linear;
+}
+
+/* --------------------------------------------- titres qui montent mot à mot */
+
+.mot {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  /* Les jambages (g, p, ç) ne doivent pas être rognés. */
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.mot-dedans {
+  display: inline-block;
+}
+
+:root.revelation-active [data-reveler] .mot-dedans,
+:root.revelation-active .mot-dedans[data-reveler] {
+  transform: translateY(108%);
+  transition: transform 1000ms var(--ease) calc(var(--i, 0) * 55ms);
+}
+
+:root.revelation-active [data-reveler].est-visible .mot-dedans {
+  transform: none;
+}
+
+/* Les blocs entiers : ils montent et se dévoilent. */
+:root.revelation-active [data-reveler]:not(.section-tete):not(.footer-grand) {
+  opacity: 0;
+  transform: translateY(34px);
+  transition:
+    opacity 900ms var(--ease) calc(var(--rang, 0) * 90ms),
+    transform 1100ms var(--ease) calc(var(--rang, 0) * 90ms);
+}
+
+:root.revelation-active [data-reveler].est-visible:not(.section-tete):not(.footer-grand) {
+  opacity: 1;
+  transform: none;
+}
+
+:root.revelation-active .section-tete[data-reveler] .sur-titre,
+:root.revelation-active .section-tete[data-reveler] .chapeau {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 800ms var(--ease) 260ms,
+    transform 900ms var(--ease) 260ms;
+}
+
+:root.revelation-active .section-tete.est-visible .sur-titre,
+:root.revelation-active .section-tete.est-visible .chapeau {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------------------------------------------------- animations apaisées */
+
+:root[data-motion='reduced'] .porte,
+:root[data-motion='reduced'] .grain,
+:root[data-motion='reduced'] .curseur-point,
+:root[data-motion='reduced'] .curseur-anneau {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) .porte,
+  :root:not([data-motion='full']) .grain {
+    display: none;
+  }
+}
+
+:root[data-motion='reduced'] [data-aimant] {
+  translate: none;
+}

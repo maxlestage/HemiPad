@@ -1,0 +1,394 @@
+/*
+ * L'ouverture : une piste longue de plusieurs écrans, et dessus une scène
+ * collée en haut. Le défilement fait avancer le film ; la scène, elle, ne
+ * bouge pas. Puis l'accueil glisse par-dessus le dernier écran.
+ */
+
+main > section.ouverture {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ouverture {
+  position: relative;
+  /* Chaque passage d'une forme à l'autre dure un peu moins d'un écran. */
+  --pas: 78svh;
+}
+
+.piste {
+  position: relative;
+  height: calc(100svh + var(--etapes, 6) * var(--pas) + 100svh);
+}
+
+.scene {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.film {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Le bas de l'écran est réservé au texte : le voile y assombrit les grains. */
+.voile {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 70% at 50% 110%, color-mix(in srgb, var(--bg) 82%, transparent) 0%, transparent 62%),
+    linear-gradient(to bottom, color-mix(in srgb, var(--bg) 55%, transparent), transparent 18%);
+}
+
+/* ------------------------------------------------------ la marque, étape 0 */
+
+.marque-geante {
+  position: absolute;
+  left: var(--marge);
+  right: var(--marge);
+  bottom: calc(11svh + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 10px;
+  transition:
+    opacity 700ms var(--ease),
+    transform 900ms var(--ease),
+    filter 700ms var(--ease);
+}
+
+.marque-geante-signe {
+  display: none;
+}
+
+.marque-geante-nom {
+  font-size: clamp(4rem, 13vw, 11rem);
+  font-weight: 700;
+  line-height: 0.82;
+  letter-spacing: -0.065em;
+  margin-left: -0.04em;
+}
+
+.marque-geante-sous {
+  max-width: 26ch;
+  font-size: clamp(1.05rem, 2.2vw, 1.6rem);
+  color: var(--text-dim);
+}
+
+.scene:not([data-station='0']) .marque-geante {
+  opacity: 0;
+  transform: translateY(-40px);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------ les étapes */
+
+.stations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.station {
+  position: absolute;
+  left: var(--marge);
+  right: var(--marge);
+  bottom: calc(11svh + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 14px;
+  max-width: 17ch;
+  font-size: clamp(2rem, 8.6vw, 5.2rem);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+
+.station-numero {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.station .mot-dedans {
+  transform: translateY(110%);
+  transition: transform 750ms var(--ease) calc(var(--i, 0) * 45ms);
+}
+
+.station .station-numero {
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.scene[data-station='1'] .station[data-index='1'] .mot-dedans,
+.scene[data-station='2'] .station[data-index='2'] .mot-dedans,
+.scene[data-station='3'] .station[data-index='3'] .mot-dedans,
+.scene[data-station='4'] .station[data-index='4'] .mot-dedans,
+.scene[data-station='5'] .station[data-index='5'] .mot-dedans {
+  transform: none;
+}
+
+.scene[data-station='1'] .station[data-index='1'] .station-numero,
+.scene[data-station='2'] .station[data-index='2'] .station-numero,
+.scene[data-station='3'] .station[data-index='3'] .station-numero,
+.scene[data-station='4'] .station[data-index='4'] .station-numero,
+.scene[data-station='5'] .station[data-index='5'] .station-numero {
+  opacity: 1;
+}
+
+/* Une ligne qui s'en va remonte au lieu de redescendre : on lit vers le bas. */
+.scene .station .mot-dedans {
+  transform: translateY(-110%);
+}
+
+.scene[data-station='0'] .station .mot-dedans,
+.scene[data-station='1'] .station[data-index='2'] .mot-dedans,
+.scene[data-station='1'] .station[data-index='3'] .mot-dedans,
+.scene[data-station='1'] .station[data-index='4'] .mot-dedans,
+.scene[data-station='1'] .station[data-index='5'] .mot-dedans,
+.scene[data-station='2'] .station[data-index='3'] .mot-dedans,
+.scene[data-station='2'] .station[data-index='4'] .mot-dedans,
+.scene[data-station='2'] .station[data-index='5'] .mot-dedans,
+.scene[data-station='3'] .station[data-index='4'] .mot-dedans,
+.scene[data-station='3'] .station[data-index='5'] .mot-dedans,
+.scene[data-station='4'] .station[data-index='5'] .mot-dedans {
+  transform: translateY(110%);
+}
+
+/* ------------------------------------------------- défiler, passer l'intro */
+
+.defiler {
+  position: absolute;
+  right: var(--marge);
+  bottom: calc(11svh + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  transition: opacity 500ms ease;
+}
+
+.defiler i {
+  position: relative;
+  width: 1px;
+  height: 56px;
+  overflow: hidden;
+  background: var(--border);
+}
+
+.defiler i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  animation: goutte 1800ms var(--ease) infinite;
+}
+
+@keyframes goutte {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.scene:not([data-station='0']) .defiler {
+  opacity: 0;
+}
+
+.passer {
+  position: absolute;
+  right: var(--marge);
+  top: calc(84px + env(safe-area-inset-top, 0px));
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.passer:hover {
+  color: var(--text);
+}
+
+.scene[data-station='6'] .passer {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- accueil */
+
+.accueil {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 32px;
+  padding: 24px var(--marge) 72px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.accueil h1 {
+  font-size: clamp(2.4rem, 9.6vw, 5.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  max-width: 12ch;
+}
+
+.accueil-texte {
+  display: grid;
+  gap: 22px;
+  align-content: center;
+}
+
+.accueil .lede {
+  max-width: 38ch;
+}
+
+.accueil-choix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+}
+
+.accueil-choix fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.accueil-choix legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.inclinaison {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+/*
+ * Sur un grand écran, l'accueil se pose sur le dernier écran de la piste :
+ * le texte à gauche, l'appareil dessiné par les grains à droite.
+ */
+@media (min-width: 900px) and (min-height: 560px) {
+  .ouverture:not(.est-fixe) .accueil {
+    margin-top: -100svh;
+    min-height: 100svh;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    padding-top: 96px;
+    padding-bottom: 48px;
+    pointer-events: none;
+  }
+
+  .ouverture:not(.est-fixe) .accueil-texte {
+    pointer-events: auto;
+  }
+}
+
+/* --------------------------------- animations apaisées, ou WebGL absent */
+
+.ouverture.est-fixe .piste {
+  height: auto;
+}
+
+.ouverture.est-fixe .scene {
+  position: relative;
+  height: auto;
+  overflow: visible;
+  padding: 120px var(--marge) 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  gap: 40px;
+}
+
+.ouverture.est-fixe .voile {
+  display: none;
+}
+
+.ouverture.est-fixe .marque-geante,
+.ouverture.est-fixe .station,
+.ouverture.est-fixe .stations {
+  position: static;
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+.ouverture.est-fixe .stations {
+  display: grid;
+  gap: 22px;
+  counter-reset: none;
+}
+
+.ouverture.est-fixe .station {
+  font-size: clamp(1.6rem, 5vw, 2.8rem);
+  max-width: 24ch;
+}
+
+.ouverture.est-fixe .station .mot-dedans,
+.ouverture.est-fixe .station .station-numero {
+  transform: none;
+  opacity: 1;
+}
+
+.ouverture.est-fixe .accueil {
+  align-items: center;
+}
+
+.hero-still {
+  width: min(100%, 360px);
+  height: auto;
+  justify-self: center;
+}
+
+@media (min-width: 900px) {
+  .ouverture.est-fixe .accueil {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+}
+
+/* Sur téléphone, l'invitation à défiler passe sous le nom, au centre. */
+@media (max-width: 899px) {
+  .defiler {
+    right: 50%;
+    bottom: calc(2.5svh + env(safe-area-inset-bottom, 0px));
+    transform: translateX(50%);
+  }
+
+  .defiler i {
+    height: 34px;
+  }
+}
+
+.accueil-choix .segmented-compact {
+  display: inline-flex;
+  flex-wrap: nowrap;
+}

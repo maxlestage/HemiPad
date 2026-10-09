@@ -2,7 +2,7 @@
   "name": "hemipad",
   "version": "1.0.0",
   "private": true,
-  "description": "Site vitrine de HemiPad, la manette tactile accessible pour consoles et ordinateurs.",
+  "description": "Site vitrine de HemiPad (Rust, Yew, WebAssembly), servi par Express.",
   "license": "UNLICENSED",
   "workspaces": [
     "web"
@@ -15,12 +15,11 @@
     "dev": "npm run dev --workspace=web",
     "build": "npm run build --workspace=web",
     "lint": "npm run lint --workspace=web",
-    "typecheck": "npm run typecheck --workspace=web",
     "test": "npm run test --workspace=web",
     "start": "node server/index.mjs",
     "verify:site": "node web/tools/verify-site.mjs",
     "assets": "node web/tools/generate-assets.mjs",
-    "heroku-postbuild": "npm run build --workspace=web"
+    "heroku-postbuild": "sh web/tools/heroku-construire.sh"
   },
   "dependencies": {
     "compression": "^1.7.4",
